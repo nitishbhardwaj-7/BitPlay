@@ -4,6 +4,7 @@ import Purchase from '../../models/Purchase.js';
 import UserMiningDetail from '../../models/UserMiningDetails.js';
 import SubscriptionPlan from '../../models/SubscriptionPlan.js';
 import { requireMobileClient, writeLimiter, readLimiter } from '../../middleware/mobileAuth.js';
+import { verifyPurchase } from '../../services/revenuecatService.js';
 
 const router = express.Router();
 
@@ -19,7 +20,8 @@ router.post('/:userId', requireMobileClient, writeLimiter, async (req, res) => {
       revenuecat_customer_id,
       price_paid,
       currency,
-      purchase_date
+      purchase_date,
+      platform,   // 'ios' | 'android' — selects the correct RevenueCat API key
     } = req.body;
 
     // Validate required fields
@@ -27,6 +29,32 @@ router.post('/:userId', requireMobileClient, writeLimiter, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields: userId, plan_id, product_identifier, price_paid, currency'
+      });
+    }
+
+    // Duplicate purchase guard — one product_identifier per user
+    const existing = await Purchase.findOne({ user: userId, product_identifier });
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: 'Purchase already recorded for this product',
+        purchase_id: existing._id
+      });
+    }
+
+    // RevenueCat server-side verification — uses platform-specific API key
+    const { verified, reason } = await verifyPurchase({
+      revenuecatCustomerId: revenuecat_customer_id,
+      productIdentifier: product_identifier,
+      platform,
+    });
+
+    if (!verified) {
+      console.warn(`[Purchase] RevenueCat verification failed for user ${userId} (${platform}): ${reason}`);
+      return res.status(402).json({
+        success: false,
+        message: 'Purchase could not be verified. Please contact support if you were charged.',
+        reason
       });
     }
 
@@ -44,46 +72,20 @@ router.post('/:userId', requireMobileClient, writeLimiter, async (req, res) => {
       });
     }
 
-    console.log('Found plan:', plan.name, 'Hashrate:', plan.hashrate, plan.unit);
+    console.log('Found plan:', plan.name, 'Hashrate:', plan.hashrate, plan.unit, 'Bonus:', plan.bonus_percent, '%');
 
     // Get current user mining details with lock
     let userMining = await UserMiningDetail.findOne({ user: userId }).session(session);
     const existingHashPower = userMining ? userMining.hashpower : 0;
 
-    // Calculate updated hashpower (2x multiplier: users get double the purchased hashpower)
-    let extraPercent = 0;
-    switch (plan._id?.toString()) {
-      case '6929dcb949e964d72c41fab1': 
-        extraPercent = 35; 
-        break;
-      case '692a89b9a6ff597e727676a5': 
-        extraPercent = 5;
-        break;
-      case '692a8aa5a6ff597e727676a8': 
-        extraPercent = 10; 
-        break;
-      case '692a8c32a6ff597e727676ab':
-        extraPercent = 15; 
-        break;
-      case '692aa830a6ff597e727676b5': 
-        extraPercent = 25; 
-        break;
-      case '692aa933a6ff597e727676b7': 
-        extraPercent = 40; 
-        break;
-      case '692aaa54a6ff597e727676b9': 
-        extraPercent = 45; 
-        break;
-      default:
-        extraPercent = 0;
-        break;
-    }
+    // Calculate hashpower using bonus_percent from the plan (no hardcoded IDs)
+    const bonusPercent = plan.bonus_percent || 0;
     const baseHash = plan.hashrate * 2;
-    const extraHash = baseHash * (extraPercent / 100);
+    const extraHash = baseHash * (bonusPercent / 100);
     const hashpowerToAdd = baseHash + extraHash;
     const updatedHashPower = existingHashPower + hashpowerToAdd;
 
-    console.log(`Hashpower update: ${existingHashPower} -> ${updatedHashPower}`);
+    console.log(`Hashpower update: ${existingHashPower} -> ${updatedHashPower} (bonus: ${bonusPercent}%)`);
 
     // Create purchase record
     const purchase = new Purchase({

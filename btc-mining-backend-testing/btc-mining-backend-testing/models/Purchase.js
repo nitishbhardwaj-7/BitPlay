@@ -57,5 +57,7 @@ const PurchaseSchema = new mongoose.Schema({
 
 // Index for querying user purchases
 PurchaseSchema.index({ user: 1, purchase_date: -1 });
+// Prevent duplicate purchases for the same product per user
+PurchaseSchema.index({ user: 1, product_identifier: 1 }, { unique: true, sparse: true });
 
 export default mongoose.model('Purchase', PurchaseSchema);
