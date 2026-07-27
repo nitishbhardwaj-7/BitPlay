@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: fake-mining-api
+    runtime: node
+    plan: free
+    rootDir: ./backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        value: mongodb+srv://bitplaypro:owH5NTgw3PohNY3S@cluster0.gzkzosz.mongodb.net/bitplay-pro &appName=Cluster0
+      - key: JWT_SECRET
+        value: your-super-secret-jwt-key-for-fake-mining-app-2024
+      - key: JWT_EXPIRE
+        value: 7d
+      - key: CLIENT_URL
+        value: "*"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "100"
+      - key: PORT
+        value: "10000"
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USER
+        value: growthdev1@gmail.com
+      - key: EMAIL_PASS
+        value: NewGrowth@007**
+      - key: EMAIL_FROM
+        value: growthdev1@gmail.com

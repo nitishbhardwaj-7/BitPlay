@@ -1,0 +1,71 @@
+# Resolve react_native_pods.rb with node to allow for hoisting
+require_relative '../node_modules/react-native/scripts/react_native_pods'
+
+platform :ios, '16.0'
+prepare_react_native_project!
+
+linkage = ENV['USE_FRAMEWORKS']
+
+use_frameworks! :linkage => :static
+
+target 'BitPlayPro' do
+  config = use_native_modules!
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :hermes_enabled => false,
+    :fabric_enabled => true,
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  post_install do |installer|
+    react_native_post_install(installer)
+    installer.pods_project.build_configurations.each do |config|
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386'
+    end
+  require 'xcodeproj'
+  # Use the project object CocoaPods already created
+  pods_project = installer.pods_project
+
+  # Remove bundle-only targets
+  pods_project.targets.each do |target|
+    if target.name =~ /(_privacy|Resources|bundle|filters)/i
+      puts "Removing target #{target.name}"
+      pods_project.targets.delete(target)
+    end
+  end
+
+  # Remove .bundle refs from CopySwiftLibs
+  pods_project.targets.each do |target|
+    next unless target.respond_to?(:copy_files_build_phases)
+    target.copy_files_build_phases.each do |phase|
+      next unless phase.name =~ /CopySwiftLibs/i
+      phase.files_references.dup.each do |ref|
+        if ref.path =~ /\.bundle$/i
+          puts "Removing bundle ref from CopySwiftLibs: #{ref.path}"
+          phase.remove_file_reference(ref)
+        end
+      end
+    end
+  end
+
+  pods_project.save
+
+  # Strip .bundle from xcfilelists & resource scripts
+  Dir.glob("Pods/Target Support Files/**/*.xcfilelist").each do |file|
+    text = File.read(file)
+    new_text = text.gsub(/.*(_privacy|\.bundle).*?\n/, "")
+    File.write(file, new_text) if text != new_text
+  end
+
+  Dir.glob("Pods/Target Support Files/**/*.sh").each do |file|
+    text = File.read(file)
+    new_text = text.gsub(/.*(_privacy|\.bundle).*?\n/, "")
+    File.write(file, new_text) if text != new_text
+  end
+
+  puts "Post-install bundle cleanup done"
+end
+
+end
