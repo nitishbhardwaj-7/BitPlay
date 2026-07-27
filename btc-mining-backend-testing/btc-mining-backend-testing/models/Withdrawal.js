@@ -39,12 +39,18 @@ const withdrawalSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["PENDING", "APPROVED", "SENT", "CONFIRMED", "FAILED"],
+    enum: ["PENDING", "PROCESSING", "APPROVED", "SENT", "CONFIRMED", "FAILED"],
     default: "PENDING",
   },
   txHash: {
     type: String,
     default: null
+  },
+  idempotency_key: {
+    type: String,
+    index: true,
+    sparse: true,
+    unique: true,
   },
   approvedBy: String,
   approvedAt: Date,

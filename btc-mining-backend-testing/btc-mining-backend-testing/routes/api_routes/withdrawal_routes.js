@@ -215,20 +215,54 @@ router.post("/", requireMobileClient, writeLimiter, async (req, res) => {
  */
 router.patch("/:id/approve", requireAdmin, async (req, res) => {
   try {
-    // 1. Load the withdrawal by ID
-    const withdrawal = await Withdrawal.findById(req.params.id);
-    if (!withdrawal) {
-      return res.status(404).json({ error: "Withdrawal not found" });
-    }
+    // 1. Atomically claim the withdrawal — prevents double-approval race condition
+    const withdrawal = await Withdrawal.findOneAndUpdate(
+      { _id: req.params.id, status: "PENDING" },
+      { $set: { status: "PROCESSING" } },
+      { new: true }
+    );
 
-    // Check if already processed
-    if (withdrawal.status !== "PENDING") {
-      return res.status(400).json({
-        error: `Cannot approve withdrawal with status: ${withdrawal.status}`,
+    if (!withdrawal) {
+      // Either not found or already being processed / already sent
+      const existing = await Withdrawal.findById(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Withdrawal not found" });
+      return res.status(409).json({
+        error: `Cannot approve withdrawal with status: ${existing.status}`,
       });
     }
 
-    // Use dynamic values for Speed API payload
+    // 2. Determine deduct amount — prefer defaultAmountNumeric, fall back to amountNumeric
+    const rawDeduct = withdrawal.defaultAmountNumeric ?? withdrawal.amountNumeric;
+    const deductAmount = rawDeduct !== null && rawDeduct !== undefined
+      ? (typeof rawDeduct === "object" && rawDeduct.toString ? rawDeduct.toString() : String(rawDeduct))
+      : null;
+
+    if (!deductAmount || isNaN(Number(deductAmount)) || Number(deductAmount) <= 0) {
+      // Restore to PENDING so admin can retry
+      await Withdrawal.findByIdAndUpdate(req.params.id, { $set: { status: "PENDING" } });
+      return res.status(400).json({
+        error: "Cannot approve: withdrawal has no valid deduct amount",
+        withdrawal_id: withdrawal._id,
+      });
+    }
+
+    // 3. Deduct balance BEFORE sending payment — if this fails nothing is sent
+    let balanceAfterDeduct;
+    try {
+      balanceAfterDeduct = await deductBTCDepositBalance(withdrawal.userId, deductAmount);
+    } catch (balanceErr) {
+      // Restore to PENDING so admin can see it and retry or reject
+      await Withdrawal.findByIdAndUpdate(req.params.id, { $set: { status: "PENDING" } });
+      const isInsufficient = balanceErr.message.includes("Insufficient");
+      return res.status(isInsufficient ? 402 : 500).json({
+        error: isInsufficient
+          ? "User has insufficient BTC_DEPOSIT balance to cover this withdrawal"
+          : "Balance deduction failed",
+        details: balanceErr.message,
+      });
+    }
+
+    // 4. Send via Speed API
     const amount =
       typeof withdrawal.amountNumeric === "object" &&
       withdrawal.amountNumeric !== null &&
@@ -237,34 +271,31 @@ router.patch("/:id/approve", requireAdmin, async (req, res) => {
         : Number(withdrawal.amountNumeric);
 
     if (!amount || Number.isNaN(amount) || amount <= 0) {
-      return res.status(400).json({
-        error: "Invalid withdrawal amount",
-      });
+      await restoreBTCDepositBalance(withdrawal.userId, deductAmount, null);
+      await Withdrawal.findByIdAndUpdate(req.params.id, { $set: { status: "PENDING" } });
+      return res.status(400).json({ error: "Invalid withdrawal amount" });
     }
 
-    // Speed API minimum: 0.5 USDT (50 USDT cents)
     const SPEED_MIN_USDT = 0.5;
     if (withdrawal.asset === "USDT" && amount < SPEED_MIN_USDT) {
+      await restoreBTCDepositBalance(withdrawal.userId, deductAmount, null);
+      await Withdrawal.findByIdAndUpdate(req.params.id, { $set: { status: "PENDING" } });
       return res.status(400).json({
-        error: `Withdrawal amount is below Speed minimum. Amount must be at least ${SPEED_MIN_USDT} USDT (got ${amount} USDT).`,
+        error: `Amount below Speed minimum of ${SPEED_MIN_USDT} USDT`,
         minAmountUsdt: SPEED_MIN_USDT,
         amountUsdt: amount,
       });
     }
 
-    // Speed API allows at most 8 decimal digits; avoid float precision (e.g. 0.058973399999999995)
     const amountForSpeed = parseFloat(Number(amount).toFixed(8));
-
     const dataspeed = JSON.stringify({
       amount: amountForSpeed,
       currency: withdrawal.asset,
       target_currency: withdrawal.asset,
       withdraw_method: "lightning",
       withdraw_request: withdrawal.toAddress,
-      note: "Withdrawal approved from backend"
+      note: "Withdrawal approved from backend",
     });
-
-    // Do not log full payload — contains amount and wallet address
 
     const config = {
       method: "post",
@@ -277,74 +308,56 @@ router.patch("/:id/approve", requireAdmin, async (req, res) => {
       data: dataspeed,
     };
 
-    // 3. Call Speed API with proper error handling
     let responsespeed;
     try {
       responsespeed = await axios.request(config);
     } catch (apiError) {
+      // Speed API failed — restore balance and reset to PENDING so admin can retry
+      await restoreBTCDepositBalance(withdrawal.userId, deductAmount, null);
+      await Withdrawal.findByIdAndUpdate(req.params.id, { $set: { status: "PENDING" } });
+
       console.error("Speed API error details (approve):", {
         status: apiError.response?.status,
-        statusText: apiError.response?.statusText,
         data: apiError.response?.data,
         message: apiError.message,
-        payload: config.data,
-        headers: config.headers,
-        url: config.url,
       });
-      if (apiError.response?.data) {
-        console.error(
-          "Full Speed API error response (approve):",
-          JSON.stringify(apiError.response.data, null, 2)
-        );
-      }
 
       const speedMessage =
         apiError.response?.data?.errors?.[0]?.message ||
         apiError.response?.data?.error ||
-          apiError.message;
+        apiError.message;
       const isInsufficientFunds =
         typeof speedMessage === "string" &&
         speedMessage.toLowerCase().includes("insufficient funds");
 
-      return res
-        .status(isInsufficientFunds ? 402 : 500)
-        .json({
-          error: isInsufficientFunds
-            ? "Speed wallet has insufficient funds to send this payment (including network fee). Top up your Speed account at tryspeed.com."
-            : "Failed to send withdrawal via Speed API",
-          details: speedMessage,
-          code: isInsufficientFunds ? "SPEED_INSUFFICIENT_FUNDS" : undefined,
-          fullError: apiError.response?.data || null,
-        });
+      return res.status(isInsufficientFunds ? 402 : 500).json({
+        error: isInsufficientFunds
+          ? "Speed wallet has insufficient funds. Top up your Speed account at tryspeed.com."
+          : "Failed to send withdrawal via Speed API",
+        details: speedMessage,
+        code: isInsufficientFunds ? "SPEED_INSUFFICIENT_FUNDS" : undefined,
+        fullError: apiError.response?.data || null,
+      });
     }
 
-    // Validate API response
     if (!responsespeed.data?.id) {
+      await restoreBTCDepositBalance(withdrawal.userId, deductAmount, null);
+      await Withdrawal.findByIdAndUpdate(req.params.id, { $set: { status: "PENDING" } });
       console.error("Invalid Speed API response:", responsespeed.data);
       return res.status(500).json({
-        error: "Speed API returned invalid response format",
+        error: "Speed API returned invalid response",
         details: responsespeed.data,
       });
     }
 
-    // 4. Update withdrawal record after successful payment
+    // 5. Mark as SENT
     withdrawal.status = "SENT";
-    withdrawal.txHash = responsespeed.data.id; // Speed instant_send id
+    withdrawal.txHash = responsespeed.data.id;
     withdrawal.approvedBy = req.user?.id || "system";
     withdrawal.approvedAt = new Date();
     withdrawal.action = responsespeed.data;
     await withdrawal.save();
 
-      const deductAmount = withdrawal?.defaultAmountNumeric;
-      if (!deductAmount || isNaN(Number(deductAmount)) || Number(deductAmount) <= 0) {
-        console.error("Approve: invalid defaultAmountNumeric — cannot deduct balance. Withdrawal ID:", withdrawal._id);
-        return res.status(500).json({
-          error: "Cannot deduct balance: invalid defaultAmountNumeric on withdrawal record",
-          withdrawal_id: withdrawal._id,
-        });
-      }
-      await deductBTCDepositBalance(withdrawal.userId, String(deductAmount));
-    // 5. Respond
     return res.json({
       message: "Withdrawal approved and sent",
       withdrawal,
@@ -475,16 +488,16 @@ router.post("/create-speed-payment", requireMobileClient, writeLimiter, async (r
     await session.startTransaction();
     let updatedBalance, createdWithdrawal;
     try {
-      // 1. Check and deduct balance first
-      // const updatedBalance = await deductBTCDepositBalance(
-      //   metadata.user_id,
-      //   baseAmount,
-      //   session
-      // );
-      // console.log(
-      //   `Balance deducted for user ${metadata.user_id}: ${baseAmount} from BTC_DEPOSIT`
-      // );
-      // 2. Create withdrawal record
+      // 1. Deduct balance first — if insufficient this throws and aborts the transaction
+      updatedBalance = await deductBTCDepositBalance(
+        metadata.user_id,
+        baseAmount
+      );
+      console.log(
+        `Balance deducted for user ${metadata.user_id}: ${baseAmount} from BTC_DEPOSIT`
+      );
+
+      // 2. Create withdrawal record with PENDING status — admin must approve to send
       const withdrawalArr = await Withdrawal.create(
         [
           {
