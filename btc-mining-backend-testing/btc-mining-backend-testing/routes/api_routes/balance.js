@@ -2,11 +2,18 @@
 import express from "express";
 import Balance from "../../models/Balance.js";
 import BalanceHistory from "../../models/BalanceHistory.js";
+import { requireMobileClient, readLimiter } from "../../middleware/mobileAuth.js";
 
 const router = express.Router();
 
+// Admin-only guard — requires active session (cookie-based, same as admin panel)
+const requireAdmin = (req, res, next) => {
+  if (req.session && req.session.isLoggedIn) return next();
+  return res.status(401).json({ error: "Admin authentication required" });
+};
+
 // GET balance for a user
-router.get("/balance", async (req, res) => {
+router.get("/balance", requireMobileClient, readLimiter, async (req, res) => {
   try {
     const { userId } = req.query;
 
@@ -26,8 +33,8 @@ router.get("/balance", async (req, res) => {
   }
 });
 
-// POST update balance
-router.post("/balance", async (req, res) => {
+// POST update balance — admin only, directly overwrites a user's balance
+router.post("/balance", requireAdmin, async (req, res) => {
   try {
     const { userId, asset, amount } = req.body;
     if (!userId || !asset || amount === undefined) {
@@ -59,7 +66,7 @@ router.post("/balance", async (req, res) => {
   }
 });
 
-router.get("/history", async (req, res) => {
+router.get("/history", requireMobileClient, readLimiter, async (req, res) => {
   try {
     const { userId } = req.query;
 
