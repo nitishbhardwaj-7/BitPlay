@@ -189,6 +189,21 @@ router.post("/", requireMobileClient, writeLimiter, async (req, res) => {
       });
     }
 
+    // Balance check — reject overdraft withdrawals before they enter the queue
+    const userBalance = await Balance.findOne({ user: userId });
+    const currentDeposit = userBalance?.BTC_DEPOSIT
+      ? (typeof userBalance.BTC_DEPOSIT === "object" && userBalance.BTC_DEPOSIT.toString
+          ? parseFloat(userBalance.BTC_DEPOSIT.toString())
+          : Number(userBalance.BTC_DEPOSIT))
+      : 0;
+    if (currentDeposit < amountNum) {
+      return res.status(402).json({
+        error: "Insufficient balance for withdrawal",
+        available: currentDeposit,
+        requested: amountNum,
+      });
+    }
+
     const withdrawal = await Withdrawal.create({
       userId,
       asset,
