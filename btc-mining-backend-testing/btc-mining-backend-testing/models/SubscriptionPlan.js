@@ -33,6 +33,11 @@ const subscriptionPlanSchema = new mongoose.Schema({
   plan_cost: {
     type: Number,
     required: true
+  },
+  bonus_percent: {
+    type: Number,
+    default: 0,
+    min: 0,
   }
 });
 
