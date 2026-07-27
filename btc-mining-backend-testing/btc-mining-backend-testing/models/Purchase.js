@@ -49,6 +49,10 @@ const PurchaseSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  mining_power_added: {
+    type: Boolean,
+    default: false,
+  },
 }, { timestamps: true });
 
 // Index for querying user purchases
