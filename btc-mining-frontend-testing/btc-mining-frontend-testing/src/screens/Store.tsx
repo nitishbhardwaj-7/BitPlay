@@ -19,7 +19,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { RootStackParamList } from '../components/types';
 import { useNavigation } from '@react-navigation/native';
-import { get_data_uri } from '../config/api';
+import { get_data_uri, getMobileSecurityHeaders } from '../config/api';
 import axios from 'axios';
 import MinerBotSVG from '../components/MinerBotSVG';
 import { useHashPower } from '../stores/HashPowerStore';
@@ -113,7 +113,9 @@ const StoreScreen = () => {
         return;
       }
       try {
-        const response = await axios.get(`${get_data_uri('SYNC_PURCHASE')}/${user.id}`);
+        const response = await axios.get(`${get_data_uri('SYNC_PURCHASE')}/${user.id}`, {
+          headers: getMobileSecurityHeaders(),
+        });
         if (response.data && Array.isArray(response.data.purchases)) {
           // FIX: Extract plan_id as string for correct UI comparison
           // Some purchases return plan_id as an object, not a string.
@@ -210,7 +212,8 @@ const StoreScreen = () => {
 
         // Fetch backend subscription plans
         const response = await axios.get<SubscriptionResponse>(
-          get_data_uri('GET_SUBSCRIPTIONS')
+          get_data_uri('GET_SUBSCRIPTIONS'),
+          { headers: getMobileSecurityHeaders() }
         );
         const backendPlans = response.data.plans;
 
@@ -452,11 +455,15 @@ const StoreScreen = () => {
             price_paid: selectedPlan.revenueCatPackage.product.price,
             currency: selectedPlan.revenueCatPackage.product.currencyCode,
             purchase_date: new Date().toISOString(),
+            platform: Platform.OS,
           };
 
 
           const response = await axios.post(`${get_data_uri('SYNC_PURCHASE')}/${user?.id}`, payload, {
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...getMobileSecurityHeaders(),
+            },
           });
 
 
