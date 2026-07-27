@@ -14,7 +14,8 @@ const PurchaseSchema = new mongoose.Schema({
   },
   product_identifier: {
     type: String,
-    required: true
+    required: true,
+    index: true
   },
   revenuecat_customer_id: {
     type: String,
@@ -55,7 +56,8 @@ const PurchaseSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-// Index for querying user purchases
 PurchaseSchema.index({ user: 1, purchase_date: -1 });
+// Prevent duplicate purchase credits for the same app-store transaction
+PurchaseSchema.index({ product_identifier: 1, user: 1 }, { unique: true });
 
 export default mongoose.model('Purchase', PurchaseSchema);

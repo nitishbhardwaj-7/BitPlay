@@ -26,6 +26,11 @@ const subscriptionPlanSchema = new mongoose.Schema({
   },
   apple_identifier: {type: String, default: null, required: false},
   google_identifier: {type: String, default: null, required: false},
+  bonus_percent: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   maintenance_cost: {
     type: Number,
     required: true

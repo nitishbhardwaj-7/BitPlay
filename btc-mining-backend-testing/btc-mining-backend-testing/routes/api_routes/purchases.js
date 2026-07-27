@@ -4,13 +4,14 @@ import Purchase from '../../models/Purchase.js';
 import UserMiningDetail from '../../models/UserMiningDetails.js';
 import SubscriptionPlan from '../../models/SubscriptionPlan.js';
 import { requireMobileClient, writeLimiter, readLimiter } from '../../middleware/mobileAuth.js';
+import { verifyPurchase } from '../../services/revenuecatService.js';
 
 const router = express.Router();
 
 // POST /api/purchases/:userId - Store purchase and update mining power
 router.post('/:userId', requireMobileClient, writeLimiter, async (req, res) => {
   const session = await mongoose.startSession();
-  
+
   try {
     const { userId } = req.params;
     const {
@@ -30,12 +31,37 @@ router.post('/:userId', requireMobileClient, writeLimiter, async (req, res) => {
       });
     }
 
+    // Duplicate purchase guard — one product_identifier per user
+    const existing = await Purchase.findOne({ user: userId, product_identifier });
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: 'Purchase already recorded for this product',
+        purchase_id: existing._id
+      });
+    }
+
+    // RevenueCat server-side verification
+    const { verified, reason } = await verifyPurchase({
+      revenuecatCustomerId: revenuecat_customer_id,
+      productIdentifier: product_identifier
+    });
+
+    if (!verified) {
+      console.warn(`[Purchase] RevenueCat verification failed for user ${userId}: ${reason}`);
+      return res.status(402).json({
+        success: false,
+        message: 'Purchase could not be verified. Please contact support if you were charged.',
+        reason
+      });
+    }
+
     // Start transaction
     session.startTransaction();
 
     // Fetch the subscription plan details
     const plan = await SubscriptionPlan.findById(plan_id).session(session);
-    
+
     if (!plan) {
       await session.abortTransaction();
       return res.status(404).json({
@@ -44,46 +70,20 @@ router.post('/:userId', requireMobileClient, writeLimiter, async (req, res) => {
       });
     }
 
-    console.log('Found plan:', plan.name, 'Hashrate:', plan.hashrate, plan.unit);
+    console.log('Found plan:', plan.name, 'Hashrate:', plan.hashrate, plan.unit, 'Bonus:', plan.bonus_percent, '%');
 
     // Get current user mining details with lock
     let userMining = await UserMiningDetail.findOne({ user: userId }).session(session);
     const existingHashPower = userMining ? userMining.hashpower : 0;
 
-    // Calculate updated hashpower (2x multiplier: users get double the purchased hashpower)
-    let extraPercent = 0;
-    switch (plan._id?.toString()) {
-      case '6929dcb949e964d72c41fab1': 
-        extraPercent = 35; 
-        break;
-      case '692a89b9a6ff597e727676a5': 
-        extraPercent = 5;
-        break;
-      case '692a8aa5a6ff597e727676a8': 
-        extraPercent = 10; 
-        break;
-      case '692a8c32a6ff597e727676ab':
-        extraPercent = 15; 
-        break;
-      case '692aa830a6ff597e727676b5': 
-        extraPercent = 25; 
-        break;
-      case '692aa933a6ff597e727676b7': 
-        extraPercent = 40; 
-        break;
-      case '692aaa54a6ff597e727676b9': 
-        extraPercent = 45; 
-        break;
-      default:
-        extraPercent = 0;
-        break;
-    }
+    // Calculate hashpower using bonus_percent from the plan (no hardcoded IDs)
+    const bonusPercent = plan.bonus_percent || 0;
     const baseHash = plan.hashrate * 2;
-    const extraHash = baseHash * (extraPercent / 100);
+    const extraHash = baseHash * (bonusPercent / 100);
     const hashpowerToAdd = baseHash + extraHash;
     const updatedHashPower = existingHashPower + hashpowerToAdd;
 
-    console.log(`Hashpower update: ${existingHashPower} -> ${updatedHashPower}`);
+    console.log(`Hashpower update: ${existingHashPower} -> ${updatedHashPower} (bonus: ${bonusPercent}%)`);
 
     // Create purchase record
     const purchase = new Purchase({
@@ -105,12 +105,11 @@ router.post('/:userId', requireMobileClient, writeLimiter, async (req, res) => {
 
     // Update user mining power
     if (!userMining) {
-      // Create new mining details if not exists
       userMining = new UserMiningDetail({
         user: userId,
         hashpower: hashpowerToAdd,
         claimedHashpower: 0,
-        purchasedHashpower: hashpowerToAdd, // Set purchased hashpower (2x)
+        purchasedHashpower: hashpowerToAdd,
         rewarded_ads_watched: 0,
         thirty_gh_rewarded_ads_watched: 0,
         random_ads_watched: 0,
@@ -123,12 +122,11 @@ router.post('/:userId', requireMobileClient, writeLimiter, async (req, res) => {
       });
       console.log('Created new mining details for user:', userId);
     } else {
-      // Add hashrate to existing mining power (2x multiplier: users get double the purchased hashpower)
       const existingClaimed = userMining.claimedHashpower || 0;
       const existingPurchased = userMining.purchasedHashpower || 0;
 
-      userMining.purchasedHashpower = existingPurchased + hashpowerToAdd; // Add to purchased (2x)
-      userMining.hashpower = updatedHashPower; // Total = claimed + purchased
+      userMining.purchasedHashpower = existingPurchased + hashpowerToAdd;
+      userMining.hashpower = updatedHashPower;
 
       // Migration: Initialize missing fields for old users
       if (!userMining.dailyVideoRequirement || !userMining.dailyVideoRequirement.lastResetDate) {
@@ -182,7 +180,6 @@ router.post('/:userId', requireMobileClient, writeLimiter, async (req, res) => {
     });
 
   } catch (error) {
-    // Rollback transaction on error
     await session.abortTransaction();
     console.error('Error processing purchase:', error);
     return res.status(500).json({
@@ -191,7 +188,6 @@ router.post('/:userId', requireMobileClient, writeLimiter, async (req, res) => {
       error: error.message
     });
   } finally {
-    // End session
     session.endSession();
   }
 });
