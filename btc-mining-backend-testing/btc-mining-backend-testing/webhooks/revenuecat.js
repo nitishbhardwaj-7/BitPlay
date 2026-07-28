@@ -20,15 +20,21 @@ const router = express.Router();
 
 const WEBHOOK_SECRET = process.env.REVENUECAT_WEBHOOK_SECRET;
 
+if (!WEBHOOK_SECRET) {
+  console.error('[RevenueCat Webhook] WARNING: REVENUECAT_WEBHOOK_SECRET is not set — webhook endpoint is open to anyone. Set this env var immediately.');
+}
+
 // POST /webhooks/revenuecat
 router.post('/', (req, res) => {
-  // Verify shared secret if configured
-  if (WEBHOOK_SECRET) {
-    const authHeader = req.headers['authorization'];
-    if (authHeader !== WEBHOOK_SECRET) {
-      console.warn('[RevenueCat Webhook] Rejected — invalid authorization header');
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+  // Always verify shared secret — reject if not configured (fail-secure)
+  if (!WEBHOOK_SECRET) {
+    console.error('[RevenueCat Webhook] Rejected — REVENUECAT_WEBHOOK_SECRET not configured');
+    return res.status(503).json({ error: 'Webhook not configured' });
+  }
+  const authHeader = req.headers['authorization'];
+  if (authHeader !== WEBHOOK_SECRET) {
+    console.warn('[RevenueCat Webhook] Rejected — invalid authorization header');
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   const event = req.body?.event;

@@ -18,7 +18,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthProvider';
-import { get_data_uri } from '../config/api';
+import { get_data_uri, getMobileSecurityHeaders } from '../config/api';
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { RootStackParamList } from '../components/types';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -119,7 +119,7 @@ const WithdrawScreen = () => {
     async (btc_price: any) => {
       try {
         const url = `${get_data_uri('GET_WALLET_BALANCE')}?userId=${user.id}`;
-        const res = await fetch(url);
+        const res = await fetch(url, { headers: getMobileSecurityHeaders() });
         const data = await res.json();
 
         // console.log("User Balance: ", data);
@@ -171,7 +171,7 @@ const WithdrawScreen = () => {
   const fetchWithdrawalLimits = useCallback(async () => {
     try {
       const url = get_data_uri('GET_WITHDRAWAL_LIMITS');
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: getMobileSecurityHeaders() });
       const data = await res.json();
       if (res.ok && typeof data.minBtc === 'number' && typeof data.maxBtc === 'number') {
         setWithdrawalLimits({ minBtc: data.minBtc, maxBtc: data.maxBtc });
@@ -281,7 +281,7 @@ const WithdrawScreen = () => {
         // --- BTC Withdrawal ---
         const res = await fetch(get_data_uri('CREATE_WITHDRAWAL'), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...getMobileSecurityHeaders() },
           body: JSON.stringify({
             userId: user.id,
             asset: currency.code,
@@ -716,6 +716,7 @@ async function handle_speed_withdraw(inv_id: any) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getMobileSecurityHeaders(),
       },
       body: JSON.stringify({
         invoice: inv_id,
@@ -761,6 +762,7 @@ async function handle_speed_wallet(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getMobileSecurityHeaders(),
       },
       body: JSON.stringify({
         amount: amountUSD,
