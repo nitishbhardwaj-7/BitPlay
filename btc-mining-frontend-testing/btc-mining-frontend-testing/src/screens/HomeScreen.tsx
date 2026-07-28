@@ -1629,8 +1629,8 @@ const Page: React.FC = () => {
                 >
                   <Text style={styles.detailBTCNumber}>
                     {previousDayEarnings > 0
-                      ? previousDayEarnings.toFixed(16)
-                      : userBalanceBTC?.toFixed(16)}
+                      ? previousDayEarnings.toFixed(10)
+                      : userBalanceBTC?.toFixed(10)}
                   </Text>
 
                   <Text style={styles.detailBTCUnit}> BTC</Text>
@@ -1643,8 +1643,8 @@ const Page: React.FC = () => {
                   minimumFontScale={0.6}
                 >
                   {previousDayEarnings > 0
-                    ? `${previousDayEarnings.toFixed(16)} BTC`
-                    : `${userBalanceBTC?.toFixed(16)} BTC`}
+                    ? `${previousDayEarnings.toFixed(10)} BTC`
+                    : `${userBalanceBTC?.toFixed(10)} BTC`}
                 </Text>
               )}
 
