@@ -1,11 +1,17 @@
 import express from "express";
 import DailyReward from "../../models/DailyReward.js";
 import DailyRewardClaim from "../../models/DailyRewardClaim.js";
+import { requireMobileClient, writeLimiter } from '../../middleware/mobileAuth.js';
+
+const requireAdmin = (req, res, next) => {
+  if (req.session && req.session.isLoggedIn) return next();
+  return res.status(401).json({ success: false, error: 'Unauthorized' });
+};
 
 const router = express.Router();
 
 // Fetch all rewards (with claimed flag for the user)
-router.get("/", async (req, res) => {
+router.get("/", requireMobileClient, async (req, res) => {
   try {
     const { userId } = req.query;
 
@@ -21,11 +27,16 @@ router.get("/", async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const rewardMap = new Map(rewards.map(r => [r._id.toString(), r]));
     claims.forEach(claim => {
-      if (claim.claimedAt >= today) {
-        claimedSet.add(claim.rewardId.toString()); // recurring → claimed today
+      const reward = rewardMap.get(claim.rewardId.toString());
+      if (!reward) return;
+      if (reward.isRecurring) {
+        // Only mark as claimed if the claim was made today
+        if (claim.claimedAt >= today) claimedSet.add(claim.rewardId.toString());
       } else {
-        claimedSet.add(claim.rewardId.toString()); // non-recurring → claimed once ever
+        // One-time rewards: once claimed, always claimed
+        claimedSet.add(claim.rewardId.toString());
       }
     });
 
@@ -45,7 +56,7 @@ router.get("/", async (req, res) => {
 });
 
 // Admin: Create reward
-router.post("/create", async (req, res) => {
+router.post("/create", requireAdmin, async (req, res) => {
   try {
     const { day, isRecurring, rewardType, amount } = req.body;
 
@@ -69,7 +80,7 @@ router.post("/create", async (req, res) => {
 });
 
 // User: Claim reward
-router.post("/claim", async (req, res) => {
+router.post("/claim", requireMobileClient, writeLimiter, async (req, res) => {
   try {
     const { userId, rewardId } = req.body;
 
@@ -114,7 +125,7 @@ router.post("/claim", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 

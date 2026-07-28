@@ -2,11 +2,12 @@ import express from 'express';
 import mongoose from 'mongoose';
 import UserMiningDetail from "../../models/UserMiningDetails.js";
 import DailyFreeMiner from "../../models/DailyMiner.js";
+import { requireMobileClient, writeLimiter } from '../../middleware/mobileAuth.js';
 
 const router = express.Router();
 
 // POST endpoint to claim daily mining reward
-router.post("/", async (req, res) => {
+router.post("/", requireMobileClient, writeLimiter, async (req, res) => {
   try {
     const { userId, local_time } = req.body;
     if (!userId || !local_time) {
@@ -112,7 +113,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/:userId", async (req, res) => {
+router.get("/:userId", requireMobileClient, async (req, res) => {
   try {
     const { userId } = req.params;
 
