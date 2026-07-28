@@ -65,26 +65,38 @@ interface OdometerCounterProps {
 }
 
 const OdometerCounter: React.FC<OdometerCounterProps> = ({ value }) => {
-    // Display 15 decimal places to match exact BTC mining digits (e.g. 0.000000327426781 BTC)
-    const formattedValue = `${value.toFixed(15)} BTC`;
-    const characters = formattedValue.split('');
+    // Show 10 decimal places (enough for tiny BTC amounts) and strip trailing zeros beyond 8
+    const raw = value.toFixed(10);
+    const trimmed = raw.replace(/(\.\d{8}?)0+$/, '$1');
+    const characters = trimmed.split('');
 
     return (
-        <View style={styles.container}>
-            {characters.map((char, index) => (
-                <View key={index} style={[
-                    styles.digitWrapper,
-                    // Add border to right of every digit except the last one
-                    // index < characters.length - 1 && styles.separator
-                ]}>
-                    <OdometerDigit digit={char} />
-                </View>
-            ))}
+        <View style={styles.outerRow}>
+            <View style={styles.container}>
+                {characters.map((char, index) => (
+                    <View key={index} style={[
+                        styles.digitWrapper,
+                    ]}>
+                        <OdometerDigit digit={char} />
+                    </View>
+                ))}
+            </View>
+            <Text style={styles.btcLabel}> BTC</Text>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
+    outerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    btcLabel: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#FFFFFF',
+        fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
     container: {
         flexDirection: 'row',
         alignItems: 'center',
