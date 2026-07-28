@@ -29,7 +29,5 @@ subprojects { p ->
             force 'androidx.work:work-runtime-ktx:2.8.0'
         }
     }
-    if (p.name == 'react-native-reanimated' || p.name == 'react-native-mmkv' || p.name == 'react-native-screens') {
-        p.buildDir = new File("C:/tmp/build/" + p.name)
-    }
+    // Removed Windows-only C:/tmp/build override — cross-platform build compatibility
 }
