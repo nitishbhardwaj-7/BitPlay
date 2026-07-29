@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "preinstall": "node -e \"if(process.env.BUN||!require('fs').existsSync('package-lock.json'))process.exit(0); require('child_process').execSync('npx npm-force-resolutions',{stdio:'inherit'})\"",
+    "preinstall": "node -e \"if(process.env.CI||process.env.BUN||!require('fs').existsSync('package-lock.json'))process.exit(0); try{require('child_process').execSync('npx npm-force-resolutions',{stdio:'inherit'})}catch(e){console.warn('npm-force-resolutions skipped:',e.message)}\"",
     "android": "react-native run-android",
     "ios": "react-native run-ios || exit 1",
     "ios:simulator": "react-native run-ios --simulator \"iPhone 17 Pro\"",
@@ -65,6 +65,13 @@
     "source-map": "^0.8.0"
   },
   "resolutions": {
+    "react": "19.1.4",
+    "react-dom": "19.1.4",
+    "react-test-renderer": "19.1.4",
+    "react-native-renderer": "19.1.4",
+    "@types/react": "19.1.0"
+  },
+  "overrides": {
     "react": "19.1.4",
     "react-dom": "19.1.4",
     "react-test-renderer": "19.1.4",
