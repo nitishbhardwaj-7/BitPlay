@@ -69,11 +69,7 @@ interface OdometerCounterProps {
 }
 
 const OdometerCounter: React.FC<OdometerCounterProps> = ({ value }) => {
-    // toFixed(10) then strip trailing zeros beyond the 8th decimal place (satoshi precision)
-    // e.g. 0.000000327400000 → 0.0000003274  (no extra zeros)
-    const raw = value.toFixed(10);
-    const trimmed = raw.replace(/(\.\d{8})0+$/, '$1');
-    const formattedValue = `${trimmed} BTC`;
+    const formattedValue = `${value.toFixed(15)} BTC`;
     const characters = formattedValue.split('');
 
     return (
