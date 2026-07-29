@@ -3324,13 +3324,13 @@ const styles = StyleSheet.create({
   detailBTCNumber: {
     color: '#FFFFFF',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 16.5,
   },
 
   detailBTCUnit: {
     color: '#9CA3AF',
     fontWeight: '600',
-    fontSize: 13,
+    fontSize: 15,
   },
 
   detailSubtitle: {
