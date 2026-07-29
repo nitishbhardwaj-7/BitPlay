@@ -75,8 +75,7 @@
     "react": "19.1.4",
     "react-dom": "19.1.4",
     "react-test-renderer": "19.1.4",
-    "react-native-renderer": "19.1.4",
-    "@types/react": "19.1.0"
+    "react-native-renderer": "19.1.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -90,7 +89,7 @@
     "@react-native/metro-config": "^0.81.1",
     "@react-native/typescript-config": "0.80.0",
     "@types/jest": "^29.5.13",
-    "@types/react": "^18.3.0",
+    "@types/react": "19.1.0",
     "@types/react-native-vector-icons": "^6.4.18",
     "@types/react-test-renderer": "^19.1.0",
     "eslint": "^8.19.0",
