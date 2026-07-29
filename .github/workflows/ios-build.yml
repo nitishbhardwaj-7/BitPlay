@@ -1,0 +1,112 @@
+name: iOS Build (IPA)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-ios:
+    name: Build iOS Release
+    runs-on: macos-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: btc-mining-frontend-testing/btc-mining-frontend-testing/package-lock.json
+
+      - name: Install JS dependencies
+        working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing
+        run: npm install --legacy-peer-deps
+
+      - name: Install CocoaPods
+        working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing/ios
+        run: pod install --repo-update
+
+      - name: Import code-signing certificate
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode -o $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+      - name: Install provisioning profile
+        env:
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          PP_PATH=$RUNNER_TEMP/profile.mobileprovision
+          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          UUID=$(grep -a -A1 "<key>UUID</key>" $PP_PATH | grep "<string>" | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+          echo "Provisioning profile UUID: $UUID"
+
+      - name: Build iOS IPA (Archive)
+        working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing
+        run: |
+          xcodebuild \
+            -workspace ios/BitPlayPro.xcworkspace \
+            -scheme BitPlayPro \
+            -configuration Release \
+            -destination generic/platform=iOS \
+            -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=L99G6M8D7G \
+            CODE_SIGN_IDENTITY="iPhone Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ secrets.PROVISIONING_PROFILE_NAME }}" \
+            archive | xcpretty
+
+      - name: Export IPA
+        run: |
+          cat > $RUNNER_TEMP/ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>L99G6M8D7G</string>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>compileBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild \
+            -exportArchive \
+            -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
+            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
+            -exportPath $RUNNER_TEMP/ipa \
+            | xcpretty
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitplay-ios-release-ipa
+          path: ${{ runner.temp }}/ipa/*.ipa
+          retention-days: 30
+
+      - name: Clean up keychain
+        if: always()
+        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
