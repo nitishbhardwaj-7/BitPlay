@@ -287,11 +287,26 @@ const Page: React.FC = () => {
   const [serverTimeRemaining, setServerTimeRemaining] = useState(0);
   const [stockGameBonus, setStockGameBonus] = useState(0);
 
-  // Fixed 3 games — BTC Trading, Spin & Win, Memory Match
-  const DEFAULT_FEATURED: Array<{ name: string; route: string; hint: string }> = [
-    { name: 'BTC Trading', route: 'TradingScreen', hint: 'Trade BTC · Earn rewards' },
-    { name: 'Spin & Win', route: 'SpinAndWin', hint: 'Wheel · Claim +5 GH/s' },
-    { name: 'Memory Match', route: 'MemoryCardMatch', hint: 'Match pairs · Claim +5 GH/s' },
+  // Fixed 3 games — BTC Trading, Spin and Win, Memory Match
+  const DEFAULT_FEATURED: Array<{ name: string; route: string; hint: string; iconImage: any }> = [
+    {
+      name: 'BTC Trading',
+      route: 'TradingScreen',
+      hint: 'Predict price · +10\nGH/s',
+      iconImage: require('../assets/images/icon_btc_trading.png'),
+    },
+    {
+      name: 'Spin and Win',
+      route: 'SpinAndWin',
+      hint: 'Wheel · Gh/s &\nvideos',
+      iconImage: require('../assets/images/icon_spin_win.png'),
+    },
+    {
+      name: 'Memory Match',
+      route: 'MemoryCardMatch',
+      hint: '30 sec · Claim +10\nGH/s',
+      iconImage: require('../assets/images/icon_memory_match.png'),
+    },
   ];
   const [featuredGames] = useState(DEFAULT_FEATURED);
 
@@ -2173,12 +2188,20 @@ const Page: React.FC = () => {
                 {({ pressed }) => (
                   <View style={styles.gamesPlayEarnIconColumn}>
                     <View style={[styles.gamesPlayEarnIconCircle, pressed && styles.gamesPlayEarnIconCirclePressed]}>
-                      <Icon name="gamepad-variant-outline" size={32} color="#22d3ee" />
+                      {game.iconImage ? (
+                        <Image
+                          source={game.iconImage}
+                          style={styles.gamesPlayEarnIconImage}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <Icon name="gamepad-variant-outline" size={32} color="#22d3ee" />
+                      )}
                     </View>
                     <Text style={[styles.gamesPlayEarnIconName, pressed && styles.gamesPlayEarnIconTextPressed]} numberOfLines={1}>
                       {game.name}
                     </Text>
-                    <Text style={[styles.gamesPlayEarnIconHint, pressed && styles.gamesPlayEarnIconTextPressed]} numberOfLines={1}>
+                    <Text style={[styles.gamesPlayEarnIconHint, pressed && styles.gamesPlayEarnIconTextPressed]} numberOfLines={2}>
                       {game.hint}
                     </Text>
                   </View>
@@ -2732,18 +2755,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   gamesPlayEarnIconCircle: {
-    width: 66,
-    height: 66,
+    width: 72,
+    height: 72,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
-    shadowColor: '#000',
+    backgroundColor: '#0a0f1d',
+    shadowColor: '#D08A13',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 4,
-    borderRadius: 16,
-    borderWidth: 1,
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 5,
+    borderRadius: 20,
+    borderWidth: 1.5,
     borderColor: '#D08A13',
     overflow: 'hidden',
   },
@@ -2764,8 +2787,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.48,
   },
   gamesPlayEarnIconImage: {
-    width: 60,
-    height: 60,
+    width: '100%',
+    height: '100%',
+    borderRadius: 18,
   },
   gamesPlayEarnIconImagePressed: {
     opacity: 0.9,

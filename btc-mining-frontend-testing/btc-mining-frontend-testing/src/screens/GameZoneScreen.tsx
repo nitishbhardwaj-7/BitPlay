@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, Animated, Dimensions, Platform,
+  TextInput, Animated, Dimensions, Platform, Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -22,6 +22,7 @@ const { width: W } = Dimensions.get('window');
 interface GameEntry {
   name: string;
   icon: string;
+  iconImage?: any;
   color: string;
   gradient: [string, string];
   route: keyof RootStackParamList;
@@ -31,9 +32,9 @@ interface GameEntry {
 }
 
 const GAMES: GameEntry[] = [
-  { name: 'BTC Trading', icon: 'bitcoin', color: '#f59e0b', gradient: ['#f59e0b', '#d97706'], route: 'TradingScreen', category: 'Featured', desc: 'Trade BTC and earn rewards', emoji: '₿' },
-  { name: 'Spin & Win', icon: 'rotate-3d-variant', color: '#22d3ee', gradient: ['#0e7490', '#164e63'], route: 'SpinAndWin', category: 'Featured', desc: 'Spin the wheel, win rewards', emoji: '🎡' },
-  { name: 'Memory Match', icon: 'cards', color: '#7c3aed', gradient: ['#7c3aed', '#6d28d9'], route: 'MemoryCardMatch', category: 'Featured', desc: 'Match all the pairs', emoji: '🃏' },
+  { name: 'BTC Trading', icon: 'bitcoin', iconImage: require('../assets/images/icon_btc_trading.png'), color: '#f59e0b', gradient: ['#f59e0b', '#d97706'], route: 'TradingScreen', category: 'Featured', desc: 'Trade BTC and earn rewards', emoji: '₿' },
+  { name: 'Spin & Win', icon: 'rotate-3d-variant', iconImage: require('../assets/images/icon_spin_win.png'), color: '#22d3ee', gradient: ['#0e7490', '#164e63'], route: 'SpinAndWin', category: 'Featured', desc: 'Spin the wheel, win rewards', emoji: '🎡' },
+  { name: 'Memory Match', icon: 'cards', iconImage: require('../assets/images/icon_memory_match.png'), color: '#7c3aed', gradient: ['#7c3aed', '#6d28d9'], route: 'MemoryCardMatch', category: 'Featured', desc: 'Match all the pairs', emoji: '🃏' },
 ];
 
 const CATEGORIES = [
@@ -281,8 +282,12 @@ export default function GameZoneScreen() {
                       )}
 
                       {/* Icon */}
-                      <View style={[styles.iconBox, { backgroundColor: game.color + '18' }]}>
-                        <MaterialCommunityIcons name={game.icon} size={26} color={game.color} />
+                      <View style={[styles.iconBox, { backgroundColor: '#0a0f1d', borderWidth: 1, borderColor: '#d97706', overflow: 'hidden' }]}>
+                        {game.iconImage ? (
+                          <Image source={game.iconImage} style={{ width: '100%', height: '100%', borderRadius: 10 }} resizeMode="cover" />
+                        ) : (
+                          <MaterialCommunityIcons name={game.icon} size={26} color={game.color} />
+                        )}
                       </View>
 
                       <Text style={styles.cardName} numberOfLines={1}>{game.name}</Text>
