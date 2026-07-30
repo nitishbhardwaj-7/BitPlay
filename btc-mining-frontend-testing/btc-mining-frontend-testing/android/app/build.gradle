@@ -22,8 +22,8 @@ android {
         applicationId "com.bitplay.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 248
-        versionName "1.6.9"
+        versionCode 249
+        versionName "1.7.0"
     }
     signingConfigs {
         debug {
@@ -50,6 +50,12 @@ android {
             shrinkResources false
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             debuggable false
+        }
+    }
+
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
 }
