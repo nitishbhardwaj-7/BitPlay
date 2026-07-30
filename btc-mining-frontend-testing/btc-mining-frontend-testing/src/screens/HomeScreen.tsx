@@ -20,6 +20,7 @@ import {
   AppState,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon5 from 'react-native-vector-icons/FontAwesome5';
@@ -1602,7 +1603,7 @@ const Page: React.FC = () => {
 
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#111827" translucent={false} />
       <ScrollView
         style={styles.scrollContainer}
@@ -2632,7 +2633,7 @@ const Page: React.FC = () => {
           )}
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -2830,12 +2831,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#111827',
-    paddingTop: Platform.OS === 'ios' ? 64 : (StatusBar.currentHeight || 32) + 16,
   },
   scrollContainer: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 16 : 12,
+    paddingTop: 8,
   },
   headerSection: {
     marginBottom: 4,
