@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -21,19 +21,7 @@ type NavigationProp = StackNavigationProp<RootStackParamList, 'AboutUsScreen'>;
 const AboutUsScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const appVersion = DeviceInfo.getVersion();
-  const versionTapCount = useRef(0);
-  const versionTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleVersionTap = () => {
-    versionTapCount.current += 1;
-    if (versionTapTimer.current) clearTimeout(versionTapTimer.current);
-    if (versionTapCount.current >= 5) {
-      versionTapCount.current = 0;
-      (navigation as any).navigate('ApptroveDebug');
-    } else {
-      versionTapTimer.current = setTimeout(() => { versionTapCount.current = 0; }, 2000);
-    }
-  };
 
   return (
     <ImageBackground
@@ -264,13 +252,6 @@ const AboutUsScreen = () => {
             <Text style={styles.contactButtonText}>Contact Support</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.contactButton, { backgroundColor: '#8B5CF6', marginTop: 12 }]}
-            onPress={() => (navigation as any).navigate('ApptroveDebug')}
-          >
-            <Icon name="bug-outline" size={20} color="#fff" />
-            <Text style={styles.contactButtonText}>Apptrove Events Debugger</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Social Media Links */}
@@ -278,15 +259,12 @@ const AboutUsScreen = () => {
           <SocialMediaLinks />
         </View>
 
-        {/* Version Info — tap 5× to open Apptrove debug screen */}
-        <TouchableOpacity onPress={handleVersionTap} activeOpacity={1}>
-          <View style={styles.versionCard}>
-            <Text style={styles.versionText}>Version {appVersion}</Text>
-            <Text style={styles.copyrightText}>
-              © 2025 BitPlayPro. All rights reserved.
-            </Text>
-          </View>
-        </TouchableOpacity>
+        <View style={styles.versionCard}>
+          <Text style={styles.versionText}>Version {appVersion}</Text>
+          <Text style={styles.copyrightText}>
+            © 2026 BitPlayPro. All rights reserved.
+          </Text>
+        </View>
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
