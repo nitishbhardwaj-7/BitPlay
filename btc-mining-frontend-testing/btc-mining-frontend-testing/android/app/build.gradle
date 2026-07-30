@@ -22,8 +22,8 @@ android {
         applicationId "com.bitplay.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 249
-        versionName "1.7.0"
+        versionCode 250
+        versionName "1.7.1"
     }
     signingConfigs {
         debug {
@@ -46,7 +46,7 @@ android {
         release {
             // Using release keystore for production build
             signingConfig signingConfigs.release
-            minifyEnabled false
+            minifyEnabled true
             shrinkResources false
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             debuggable false
