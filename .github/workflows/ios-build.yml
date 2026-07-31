@@ -46,6 +46,8 @@ jobs:
           echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode -o $RUNNER_TEMP/certificate.p12
           security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
+          echo "Certificate imported successfully"
+          security find-identity -v -p codesigning $KEYCHAIN_PATH
 
       - name: Install provisioning profile
         env:
@@ -53,28 +55,24 @@ jobs:
         run: |
           PP_PATH=$RUNNER_TEMP/profile.mobileprovision
           echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > $PP_PATH
-          echo "Profile file size: $(wc -c < $PP_PATH) bytes"
+          PROFILE_SIZE=$(wc -c < $PP_PATH)
+          echo "Profile file size: $PROFILE_SIZE bytes"
+          if [ "$PROFILE_SIZE" -lt 1000 ]; then
+            echo "ERROR: Profile too small ($PROFILE_SIZE bytes) — secret is corrupted or truncated"
+            exit 1
+          fi
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          # Use security cms to properly decode the PKCS7-wrapped profile
-          DECODED=$(security cms -D -i "$PP_PATH" 2>/dev/null)
-          # Extract UUID with PlistBuddy (most reliable on macOS)
-          UUID=$(echo "$DECODED" | /usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin 2>/dev/null)
-          # Fallback: grep method
-          if [ -z "$UUID" ]; then
-            UUID=$(echo "$DECODED" | grep -A1 '<key>UUID</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
-          fi
-          echo "Provisioning profile UUID: $UUID"
-          if [ -z "$UUID" ]; then
-            echo "ERROR: Could not extract UUID from provisioning profile"; exit 1
-          fi
+          # Hardcoded UUID (extracted from profile: a6acd01d-d401-4ace-9933-0c3d68a38d9d)
+          UUID="a6acd01d-d401-4ace-9933-0c3d68a38d9d"
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
-          echo "Profile installed at: $UUID.mobileprovision"
-          ls ~/Library/MobileDevice/Provisioning\ Profiles/
+          echo "Profile installed as: $UUID.mobileprovision"
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
       - name: Build iOS IPA (Archive)
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing
         run: |
           set -o pipefail
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           xcodebuild \
             -workspace ios/BitPlayPro.xcworkspace \
             -scheme BitPlayPro \
@@ -82,16 +80,24 @@ jobs:
             -destination generic/platform=iOS \
             -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
             DEVELOPMENT_TEAM=L99G6M8D7G \
+            CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
-            OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db" \
-            archive 2>&1 | tee $RUNNER_TEMP/xcodebuild-archive.log | xcpretty
-          echo "Archive exit code: ${PIPESTATUS[0]}"
-          ls -la $RUNNER_TEMP/BitPlayPro.xcarchive || echo "WARNING: Archive not found"
+            PROVISIONING_PROFILE_SPECIFIER="BitPlayPro AppStore" \
+            OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH" \
+            archive 2>&1 | tee $RUNNER_TEMP/xcodebuild-archive.log | xcpretty --color
+          ARCHIVE_EXIT=${PIPESTATUS[0]}
+          echo "Archive exit code: $ARCHIVE_EXIT"
+          if [ "$ARCHIVE_EXIT" -ne 0 ]; then
+            echo "--- Last 100 lines of xcodebuild log ---"
+            tail -100 $RUNNER_TEMP/xcodebuild-archive.log
+            exit $ARCHIVE_EXIT
+          fi
+          ls -la $RUNNER_TEMP/BitPlayPro.xcarchive
 
       - name: Export IPA
         run: |
           set -o pipefail
-          cat > $RUNNER_TEMP/ExportOptions.plist << EOF
+          cat > $RUNNER_TEMP/ExportOptions.plist << 'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -105,7 +111,7 @@ jobs:
             <key>provisioningProfiles</key>
             <dict>
               <key>com.bitplaypro.bitplaypro</key>
-              <string>${{ secrets.PROVISIONING_PROFILE_NAME }}</string>
+              <string>BitPlayPro AppStore</string>
             </dict>
             <key>uploadBitcode</key>
             <false/>
@@ -115,16 +121,22 @@ jobs:
             <true/>
           </dict>
           </plist>
-          EOF
+          PLIST
           mkdir -p $RUNNER_TEMP/ipa
           xcodebuild \
             -exportArchive \
             -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
             -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
             -exportPath $RUNNER_TEMP/ipa \
-            2>&1 | tee $RUNNER_TEMP/xcodebuild-export.log | xcpretty
-          echo "Export exit code: $?"
-          ls -la $RUNNER_TEMP/ipa/ || echo "WARNING: IPA directory empty"
+            2>&1 | tee $RUNNER_TEMP/xcodebuild-export.log | xcpretty --color
+          EXPORT_EXIT=${PIPESTATUS[0]}
+          echo "Export exit code: $EXPORT_EXIT"
+          ls -la $RUNNER_TEMP/ipa/
+          if [ "$EXPORT_EXIT" -ne 0 ]; then
+            echo "--- Last 50 lines of export log ---"
+            tail -50 $RUNNER_TEMP/xcodebuild-export.log
+            exit $EXPORT_EXIT
+          fi
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
