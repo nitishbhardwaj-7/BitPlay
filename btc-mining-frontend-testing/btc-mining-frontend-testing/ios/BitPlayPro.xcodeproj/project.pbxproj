@@ -358,7 +358,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = BitPlayPro/BitPlayPro.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = L99G6M8D7G;
 				INFOPLIST_FILE = BitPlayPro/Info.plist;
@@ -377,7 +377,6 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.bitplaypro.bitplaypro;
 				PRODUCT_NAME = BitPlayPro;
-				PROVISIONING_PROFILE_SPECIFIER = "a6acd01d-d401-4ace-9933-0c3d68a38d9d";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;

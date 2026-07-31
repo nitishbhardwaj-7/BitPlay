@@ -45,53 +45,55 @@ jobs:
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode -o $RUNNER_TEMP/certificate.p12
           security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          # Add to both user and system keychain search list so Xcode finds it without --keychain flag
           security list-keychain -d user -s $KEYCHAIN_PATH $(security list-keychain -d user | tr -d '"')
-          echo "Certificate imported successfully"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          echo "Certificate imported:"
           security find-identity -v -p codesigning $KEYCHAIN_PATH
 
-      - name: Install provisioning profile
+      - name: Set up App Store Connect API key
         env:
-          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          ASC_API_KEY_CONTENT: ${{ secrets.ASC_API_KEY_CONTENT }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
         run: |
-          PP_PATH=$RUNNER_TEMP/profile.mobileprovision
-          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > $PP_PATH
-          PROFILE_SIZE=$(wc -c < $PP_PATH)
-          echo "Profile file size: $PROFILE_SIZE bytes"
-          if [ "$PROFILE_SIZE" -lt 1000 ]; then
-            echo "ERROR: Profile too small ($PROFILE_SIZE bytes) — secret is corrupted or truncated"
-            exit 1
-          fi
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          # Hardcoded UUID (extracted from profile: a6acd01d-d401-4ace-9933-0c3d68a38d9d)
-          UUID="a6acd01d-d401-4ace-9933-0c3d68a38d9d"
-          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
-          echo "Profile installed as: $UUID.mobileprovision"
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s' "$ASC_API_KEY_CONTENT" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
+          echo "API key installed: AuthKey_${ASC_API_KEY_ID}.p8"
+          ls -la ~/.appstoreconnect/private_keys/
 
-      - name: Build iOS IPA (Archive)
+      - name: Archive app
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
         run: |
           set -o pipefail
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           xcodebuild \
             -workspace ios/BitPlayPro.xcworkspace \
             -scheme BitPlayPro \
             -configuration Release \
             -destination generic/platform=iOS \
             -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8 \
+            -authenticationKeyID "$ASC_API_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_API_ISSUER_ID" \
             DEVELOPMENT_TEAM=L99G6M8D7G \
+            CODE_SIGN_STYLE=Automatic \
             archive 2>&1 | tee $RUNNER_TEMP/xcodebuild-archive.log | xcpretty --color
           ARCHIVE_EXIT=${PIPESTATUS[0]}
           echo "Archive exit code: $ARCHIVE_EXIT"
           if [ "$ARCHIVE_EXIT" -ne 0 ]; then
-            echo "--- Last 100 lines of xcodebuild log ---"
-            tail -100 $RUNNER_TEMP/xcodebuild-archive.log
+            echo "--- Last 150 lines of xcodebuild log ---"
+            tail -150 $RUNNER_TEMP/xcodebuild-archive.log
             exit $ARCHIVE_EXIT
           fi
+          echo "Archive created:"
           ls -la $RUNNER_TEMP/BitPlayPro.xcarchive
 
       - name: Export IPA
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
         run: |
           set -o pipefail
           cat > $RUNNER_TEMP/ExportOptions.plist << 'PLIST'
@@ -104,12 +106,7 @@ jobs:
             <key>teamID</key>
             <string>L99G6M8D7G</string>
             <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.bitplaypro.bitplaypro</key>
-              <string>BitPlayPro AppStore</string>
-            </dict>
+            <string>automatic</string>
             <key>uploadBitcode</key>
             <false/>
             <key>compileBitcode</key>
@@ -125,10 +122,14 @@ jobs:
             -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
             -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
             -exportPath $RUNNER_TEMP/ipa \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8 \
+            -authenticationKeyID "$ASC_API_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_API_ISSUER_ID" \
             2>&1 | tee $RUNNER_TEMP/xcodebuild-export.log | xcpretty --color
           EXPORT_EXIT=${PIPESTATUS[0]}
           echo "Export exit code: $EXPORT_EXIT"
-          ls -la $RUNNER_TEMP/ipa/
+          ls -la $RUNNER_TEMP/ipa/ 2>/dev/null || echo "No IPA directory found"
           if [ "$EXPORT_EXIT" -ne 0 ]; then
             echo "--- Last 50 lines of export log ---"
             tail -50 $RUNNER_TEMP/xcodebuild-export.log
