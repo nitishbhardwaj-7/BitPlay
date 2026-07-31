@@ -39,12 +39,12 @@ workflows:
   ios-release:
     name: iOS Release (IPA)
     max_build_duration: 90
+    integrations:
+      app_store_connect: CodeMagic
     environment:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.bitplaypro.bitplaypro
-      integrations:
-        app_store_connect: CodeMagic
       vars:
         XCODE_WORKSPACE: btc-mining-frontend-testing/btc-mining-frontend-testing/ios/BitPlayPro.xcworkspace
         XCODE_SCHEME: BitPlayPro
