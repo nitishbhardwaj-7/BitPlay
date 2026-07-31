@@ -45,7 +45,6 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.bitplaypro.bitplaypro
-        certificate_reference: BitPlayPro Distribution
       vars:
         XCODE_WORKSPACE: btc-mining-frontend-testing/btc-mining-frontend-testing/ios/BitPlayPro.xcworkspace
         XCODE_SCHEME: BitPlayPro
