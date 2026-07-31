@@ -59,17 +59,29 @@ workflows:
       - name: Set up code signing
         script: |
           keychain initialize
-          # Delete any existing App Store profiles for this bundle ID so Codemagic
-          # creates a fresh one that includes all current App ID capabilities
-          # (In-App Purchase, Push Notifications, Sign In with Apple)
+          # Delete ALL App Store profiles for this bundle ID (including any manually
+          # created ones like "CodeMagic") so a fresh profile is created with all
+          # current App ID capabilities: In-App Purchase, Push Notifications, Sign In with Apple
+          echo "Deleting all existing App Store profiles for $BUNDLE_ID..."
           app-store-connect list-profiles \
-            --bundle-id-identifier $BUNDLE_ID \
-            --profile-type IOS_APP_STORE \
             --json 2>/dev/null \
-            | python3 -c "import sys,json; [print(p['id']) for p in json.load(sys.stdin)]" \
+            | python3 -c "
+import sys, json
+profiles = json.load(sys.stdin)
+for p in profiles:
+    attrs = p.get('attributes', {})
+    name = attrs.get('name', '')
+    ptype = attrs.get('profileType', '')
+    bid = attrs.get('bundleId', {})
+    # Delete any IOS_APP_STORE profile for our bundle ID
+    if ptype == 'IOS_APP_STORE' and '$BUNDLE_ID' in str(bid):
+        print(p['id'])
+" \
             | while read pid; do
+                echo "Deleting profile $pid..."
                 app-store-connect delete-profile "$pid" || true
               done
+          echo "Creating fresh provisioning profile..."
           app-store-connect fetch-signing-files $BUNDLE_ID \
             --type IOS_APP_STORE \
             --create
