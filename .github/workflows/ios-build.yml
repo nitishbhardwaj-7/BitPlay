@@ -33,7 +33,17 @@ jobs:
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing/ios
         run: pod install --repo-update
 
-      - name: Import code-signing certificate
+      - name: Set up App Store Connect API key
+        env:
+          ASC_API_KEY_CONTENT: ${{ secrets.ASC_API_KEY_CONTENT }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_API_KEY_CONTENT" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
+          ls -la ~/.appstoreconnect/private_keys/
+          echo "API key installed: AuthKey_${ASC_API_KEY_ID}.p8"
+
+      - name: Import distribution certificate
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -50,24 +60,10 @@ jobs:
           echo "Certificate imported:"
           security find-identity -v -p codesigning $KEYCHAIN_PATH
 
-      - name: Install provisioning profile
-        run: |
-          PP_PATH=$RUNNER_TEMP/profile.mobileprovision
-          # Read profile from committed .b64 file — avoids GitHub secret size truncation bug
-          cat btc-mining-frontend-testing/btc-mining-frontend-testing/ios/BitPlayPro.mobileprovision.b64 | tr -d '\n' | base64 --decode > $PP_PATH
-          PROFILE_SIZE=$(wc -c < $PP_PATH)
-          echo "Profile file size: $PROFILE_SIZE bytes"
-          if [ "$PROFILE_SIZE" -lt 10000 ]; then
-            echo "ERROR: Profile too small ($PROFILE_SIZE bytes) — .b64 file may be corrupted"
-            exit 1
-          fi
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          UUID="a6acd01d-d401-4ace-9933-0c3d68a38d9d"
-          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
-          echo "Profile installed: $UUID.mobileprovision ($PROFILE_SIZE bytes)"
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
-
-      - name: Build iOS IPA (Archive)
+      - name: Archive (automatic signing via API key)
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing
         run: |
           set -o pipefail
@@ -77,18 +73,26 @@ jobs:
             -configuration Release \
             -destination generic/platform=iOS \
             -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8 \
+            -authenticationKeyID "$ASC_API_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_API_ISSUER_ID" \
+            CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM=L99G6M8D7G \
             archive 2>&1 | tee $RUNNER_TEMP/xcodebuild-archive.log | xcpretty --color
           ARCHIVE_EXIT=${PIPESTATUS[0]}
-          echo "Archive exit code: $ARCHIVE_EXIT"
           if [ "$ARCHIVE_EXIT" -ne 0 ]; then
-            echo "--- Last 100 lines of xcodebuild log ---"
-            tail -100 $RUNNER_TEMP/xcodebuild-archive.log
+            echo "--- Last 150 lines of xcodebuild log ---"
+            tail -150 $RUNNER_TEMP/xcodebuild-archive.log
             exit $ARCHIVE_EXIT
           fi
+          echo "Archive succeeded:"
           ls -la $RUNNER_TEMP/BitPlayPro.xcarchive
 
       - name: Export IPA
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
         run: |
           set -o pipefail
           cat > $RUNNER_TEMP/ExportOptions.plist << 'PLIST'
@@ -97,16 +101,11 @@ jobs:
           <plist version="1.0">
           <dict>
             <key>method</key>
-            <string>app-store</string>
+            <string>app-store-connect</string>
             <key>teamID</key>
             <string>L99G6M8D7G</string>
             <key>signingStyle</key>
-            <string>manual</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.bitplaypro.bitplaypro</key>
-              <string>BitPlayPro AppStore</string>
-            </dict>
+            <string>automatic</string>
             <key>uploadBitcode</key>
             <false/>
             <key>compileBitcode</key>
@@ -122,15 +121,19 @@ jobs:
             -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
             -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
             -exportPath $RUNNER_TEMP/ipa \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8 \
+            -authenticationKeyID "$ASC_API_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_API_ISSUER_ID" \
             2>&1 | tee $RUNNER_TEMP/xcodebuild-export.log | xcpretty --color
           EXPORT_EXIT=${PIPESTATUS[0]}
-          echo "Export exit code: $EXPORT_EXIT"
-          ls -la $RUNNER_TEMP/ipa/
           if [ "$EXPORT_EXIT" -ne 0 ]; then
             echo "--- Last 50 lines of export log ---"
             tail -50 $RUNNER_TEMP/xcodebuild-export.log
             exit $EXPORT_EXIT
           fi
+          echo "Export succeeded:"
+          ls -la $RUNNER_TEMP/ipa/
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
@@ -152,4 +155,5 @@ jobs:
 
       - name: Clean up keychain
         if: always()
-        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
