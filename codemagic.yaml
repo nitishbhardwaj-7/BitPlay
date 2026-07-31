@@ -59,22 +59,15 @@ workflows:
       - name: Set up code signing
         script: |
           keychain initialize
-          # Delete any stale profiles so a fresh one is created with all current capabilities
+          # Delete stale profiles so Codemagic creates a fresh one with all current App ID capabilities
           app-store-connect profiles list \
             --bundle-identifier "$BUNDLE_ID" \
             --profile-type IOS_APP_STORE \
-            --json 2>/dev/null | python3 -c "
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    profiles = data if isinstance(data, list) else data.get('data', [])
-    for p in profiles:
-        pid = p.get('id') or (p.get('attributes', {}) or {}).get('uuid', '')
-        if pid:
-            print(pid)
-except: pass
-" | xargs -I {} sh -c 'app-store-connect profiles delete "{}" || true' || true
-          # Fetch/create fresh signing files with all capabilities from the App ID
+            --json 2>/dev/null \
+            | python3 -c 'import sys,json; data=json.load(sys.stdin); items=data if isinstance(data,list) else data.get("data",[]); [print(p.get("id","")) for p in items if p.get("id")]' \
+            | xargs -I {} sh -c 'app-store-connect profiles delete "{}" 2>/dev/null || true' \
+            || true
+          # Create fresh profile with all capabilities (Push Notifications, IAP, Sign In with Apple)
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --platform IOS \
