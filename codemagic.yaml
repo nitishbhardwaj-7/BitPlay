@@ -42,9 +42,6 @@ workflows:
     integrations:
       app_store_connect: CodeMagic
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.bitplaypro.bitplaypro
       vars:
         XCODE_WORKSPACE: btc-mining-frontend-testing/btc-mining-frontend-testing/ios/BitPlayPro.xcworkspace
         XCODE_SCHEME: BitPlayPro
@@ -59,13 +56,9 @@ workflows:
       - name: Install CocoaPods
         working_directory: btc-mining-frontend-testing/btc-mining-frontend-testing/ios
         script: pod install
-      - name: Set up keychain and provisioning profile
+      - name: Set up keychain and signing
         script: |
           keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create \
-            --platform IOS
           keychain add-certificates
           xcode-project use-profiles
       - name: Build IPA
