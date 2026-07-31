@@ -10,7 +10,7 @@ workflows:
     scripts:
       - name: Install JS dependencies
         working_directory: btc-mining-frontend-testing/btc-mining-frontend-testing
-        script: npm install
+        script: npm install --legacy-peer-deps
       - name: Build Android release AAB
         working_directory: btc-mining-frontend-testing/btc-mining-frontend-testing/android
         script: |
@@ -52,7 +52,7 @@ workflows:
     scripts:
       - name: Install JS dependencies
         working_directory: btc-mining-frontend-testing/btc-mining-frontend-testing
-        script: npm install
+        script: npm install --legacy-peer-deps
       - name: Install CocoaPods
         working_directory: btc-mining-frontend-testing/btc-mining-frontend-testing/ios
         script: pod install
