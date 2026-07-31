@@ -377,7 +377,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.bitplaypro.bitplaypro;
 				PRODUCT_NAME = BitPlayPro;
-				PROVISIONING_PROFILE_SPECIFIER = "BitPlayPro AppStore";
+				PROVISIONING_PROFILE_SPECIFIER = "a6acd01d-d401-4ace-9933-0c3d68a38d9d";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;
