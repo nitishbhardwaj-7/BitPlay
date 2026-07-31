@@ -48,7 +48,7 @@ workflows:
       xcode: latest
       cocoapods: default
     integrations:
-      app_store_connect: apple.developer
+      app_store_connect: CodeMagic
     scripts:
       - name: Install JS dependencies
         working_directory: btc-mining-frontend-testing/btc-mining-frontend-testing
