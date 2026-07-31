@@ -47,7 +47,6 @@
     "react-native-google-mobile-ads": "^15.4.0",
     "react-native-image-picker": "^7.2.3",
     "react-native-linear-gradient": "^2.8.3",
-    "react-native-linkedin": "^2.1.1",
     "react-native-mmkv": "2.12.1",
     "react-native-paper": "^5.14.5",
     "react-native-purchases": "9.6.3",
@@ -75,7 +74,9 @@
     "react": "19.1.4",
     "react-dom": "19.1.4",
     "react-test-renderer": "19.1.4",
-    "react-native-renderer": "19.1.4"
+    "react-native-renderer": "19.1.4",
+    "@types/react": "19.1.4",
+    "@react-native-async-storage/async-storage": "^2.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
