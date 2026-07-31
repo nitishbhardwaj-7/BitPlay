@@ -43,13 +43,11 @@ jobs:
           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          # Strip whitespace before decoding (prevents corruption from GitHub secret formatting)
-          echo "$APPLE_CERTIFICATE_BASE64" | tr -d '\r\n\t ' | base64 --decode -o $RUNNER_TEMP/certificate.p12
-          CERT_SIZE=$(wc -c < $RUNNER_TEMP/certificate.p12)
-          echo "Certificate size: $CERT_SIZE bytes"
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode -o $RUNNER_TEMP/certificate.p12
           security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH
-          echo "=== Available signing identities ==="
+          # Add to both user and system keychain search list so Xcode finds it without --keychain flag
+          security list-keychain -d user -s $KEYCHAIN_PATH $(security list-keychain -d user | tr -d '"')
+          echo "Certificate imported successfully"
           security find-identity -v -p codesigning $KEYCHAIN_PATH
 
       - name: Install provisioning profile
@@ -57,31 +55,16 @@ jobs:
           APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
         run: |
           PP_PATH=$RUNNER_TEMP/profile.mobileprovision
-          # Strip whitespace before decoding
-          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | tr -d '\r\n\t ' | base64 --decode > $PP_PATH
+          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > $PP_PATH
           PROFILE_SIZE=$(wc -c < $PP_PATH)
           echo "Profile file size: $PROFILE_SIZE bytes"
           if [ "$PROFILE_SIZE" -lt 1000 ]; then
             echo "ERROR: Profile too small ($PROFILE_SIZE bytes) — secret is corrupted or truncated"
             exit 1
           fi
-          # Decode plist from mobileprovision and extract UUID + Name
-          security cms -D -i $PP_PATH -o $RUNNER_TEMP/profile.plist 2>/dev/null || true
-          if [ -f $RUNNER_TEMP/profile.plist ]; then
-            UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" $RUNNER_TEMP/profile.plist 2>/dev/null || echo "unknown")
-            NAME=$(/usr/libexec/PlistBuddy -c "Print Name" $RUNNER_TEMP/profile.plist 2>/dev/null || echo "unknown")
-            TEAM=$(/usr/libexec/PlistBuddy -c "Print TeamIdentifier:0" $RUNNER_TEMP/profile.plist 2>/dev/null || echo "unknown")
-            EXPIRY=$(/usr/libexec/PlistBuddy -c "Print ExpirationDate" $RUNNER_TEMP/profile.plist 2>/dev/null || echo "unknown")
-            echo "=== Profile details ==="
-            echo "  UUID: $UUID"
-            echo "  Name: $NAME"
-            echo "  Team: $TEAM"
-            echo "  Expires: $EXPIRY"
-          else
-            UUID="a6acd01d-d401-4ace-9933-0c3d68a38d9d"
-            echo "WARNING: Could not decode profile plist. Using hardcoded UUID: $UUID"
-          fi
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          # Hardcoded UUID (extracted from profile: a6acd01d-d401-4ace-9933-0c3d68a38d9d)
+          UUID="a6acd01d-d401-4ace-9933-0c3d68a38d9d"
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
           echo "Profile installed as: $UUID.mobileprovision"
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
@@ -91,11 +74,6 @@ jobs:
         run: |
           set -o pipefail
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          # Add keychain to search path so Xcode finds it
-          security list-keychains -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | sed "s/\"//g")
-          # Archive — NO CODE_SIGN_IDENTITY or PROVISIONING_PROFILE_SPECIFIER CLI args
-          # (those bleed into Pod targets and cause exit 65 in Xcode 26)
-          # Signing is fully controlled by project.pbxproj Release config + Podfile post_install
           xcodebuild \
             -workspace ios/BitPlayPro.xcworkspace \
             -scheme BitPlayPro \
@@ -103,13 +81,12 @@ jobs:
             -destination generic/platform=iOS \
             -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
             DEVELOPMENT_TEAM=L99G6M8D7G \
-            OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN_PATH" \
             archive 2>&1 | tee $RUNNER_TEMP/xcodebuild-archive.log | xcpretty --color
           ARCHIVE_EXIT=${PIPESTATUS[0]}
           echo "Archive exit code: $ARCHIVE_EXIT"
           if [ "$ARCHIVE_EXIT" -ne 0 ]; then
-            echo "--- Last 150 lines of xcodebuild log ---"
-            tail -150 $RUNNER_TEMP/xcodebuild-archive.log
+            echo "--- Last 100 lines of xcodebuild log ---"
+            tail -100 $RUNNER_TEMP/xcodebuild-archive.log
             exit $ARCHIVE_EXIT
           fi
           ls -la $RUNNER_TEMP/BitPlayPro.xcarchive
@@ -118,30 +95,30 @@ jobs:
         run: |
           set -o pipefail
           cat > $RUNNER_TEMP/ExportOptions.plist << 'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>method</key>
-  <string>app-store</string>
-  <key>teamID</key>
-  <string>L99G6M8D7G</string>
-  <key>signingStyle</key>
-  <string>manual</string>
-  <key>provisioningProfiles</key>
-  <dict>
-    <key>com.bitplaypro.bitplaypro</key>
-    <string>a6acd01d-d401-4ace-9933-0c3d68a38d9d</string>
-  </dict>
-  <key>uploadBitcode</key>
-  <false/>
-  <key>compileBitcode</key>
-  <false/>
-  <key>uploadSymbols</key>
-  <true/>
-</dict>
-</plist>
-PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>L99G6M8D7G</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.bitplaypro.bitplaypro</key>
+              <string>BitPlayPro AppStore</string>
+            </dict>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>compileBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
           mkdir -p $RUNNER_TEMP/ipa
           xcodebuild \
             -exportArchive \
@@ -151,7 +128,7 @@ PLIST
             2>&1 | tee $RUNNER_TEMP/xcodebuild-export.log | xcpretty --color
           EXPORT_EXIT=${PIPESTATUS[0]}
           echo "Export exit code: $EXPORT_EXIT"
-          ls -la $RUNNER_TEMP/ipa/ 2>/dev/null || echo "No files in ipa dir"
+          ls -la $RUNNER_TEMP/ipa/
           if [ "$EXPORT_EXIT" -ne 0 ]; then
             echo "--- Last 50 lines of export log ---"
             tail -50 $RUNNER_TEMP/xcodebuild-export.log
@@ -178,4 +155,4 @@ PLIST
 
       - name: Clean up keychain
         if: always()
-        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
