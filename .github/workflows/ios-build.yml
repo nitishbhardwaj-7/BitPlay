@@ -52,11 +52,24 @@ jobs:
           APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
         run: |
           PP_PATH=$RUNNER_TEMP/profile.mobileprovision
-          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
+          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode > $PP_PATH
+          echo "Profile file size: $(wc -c < $PP_PATH) bytes"
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          UUID=$(grep -a -A1 "<key>UUID</key>" $PP_PATH | grep "<string>" | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
-          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+          # Use security cms to properly decode the PKCS7-wrapped profile
+          DECODED=$(security cms -D -i "$PP_PATH" 2>/dev/null)
+          # Extract UUID with PlistBuddy (most reliable on macOS)
+          UUID=$(echo "$DECODED" | /usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin 2>/dev/null)
+          # Fallback: grep method
+          if [ -z "$UUID" ]; then
+            UUID=$(echo "$DECODED" | grep -A1 '<key>UUID</key>' | grep '<string>' | sed 's/.*<string>\(.*\)<\/string>.*/\1/')
+          fi
           echo "Provisioning profile UUID: $UUID"
+          if [ -z "$UUID" ]; then
+            echo "ERROR: Could not extract UUID from provisioning profile"; exit 1
+          fi
+          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+          echo "Profile installed at: $UUID.mobileprovision"
+          ls ~/Library/MobileDevice/Provisioning\ Profiles/
 
       - name: Build iOS IPA (Archive)
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing
@@ -69,9 +82,10 @@ jobs:
             -destination generic/platform=iOS \
             -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
             DEVELOPMENT_TEAM=L99G6M8D7G \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db" \
             archive 2>&1 | tee $RUNNER_TEMP/xcodebuild-archive.log | xcpretty
-          echo "Archive exit code: $?"
+          echo "Archive exit code: ${PIPESTATUS[0]}"
           ls -la $RUNNER_TEMP/BitPlayPro.xcarchive || echo "WARNING: Archive not found"
 
       - name: Export IPA
