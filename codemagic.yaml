@@ -45,9 +45,11 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.bitplaypro.bitplaypro
+        certificate_reference: BitPlayPro Distribution
       vars:
         XCODE_WORKSPACE: btc-mining-frontend-testing/btc-mining-frontend-testing/ios/BitPlayPro.xcworkspace
         XCODE_SCHEME: BitPlayPro
+        BUNDLE_ID: com.bitplaypro.bitplaypro
       node: 18.18.0
       xcode: latest
       cocoapods: default
@@ -58,6 +60,15 @@ workflows:
       - name: Install CocoaPods
         working_directory: btc-mining-frontend-testing/btc-mining-frontend-testing/ios
         script: pod install
+      - name: Set up keychain and provisioning profile
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create \
+            --platform IOS
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Build IPA
         script: |
           xcode-project build-ipa \
