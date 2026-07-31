@@ -61,6 +61,7 @@ jobs:
       - name: Build iOS IPA (Archive)
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing
         run: |
+          set -o pipefail
           xcodebuild \
             -workspace ios/BitPlayPro.xcworkspace \
             -scheme BitPlayPro \
@@ -71,10 +72,13 @@ jobs:
             DEVELOPMENT_TEAM=L99G6M8D7G \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="${{ secrets.PROVISIONING_PROFILE_NAME }}" \
-            archive | xcpretty
+            archive 2>&1 | tee $RUNNER_TEMP/xcodebuild-archive.log | xcpretty
+          echo "Archive exit code: $?"
+          ls -la $RUNNER_TEMP/BitPlayPro.xcarchive || echo "WARNING: Archive not found"
 
       - name: Export IPA
         run: |
+          set -o pipefail
           cat > $RUNNER_TEMP/ExportOptions.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -84,6 +88,13 @@ jobs:
             <string>app-store</string>
             <key>teamID</key>
             <string>L99G6M8D7G</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.bitplaypro.bitplaypro</key>
+              <string>${{ secrets.PROVISIONING_PROFILE_NAME }}</string>
+            </dict>
             <key>uploadBitcode</key>
             <false/>
             <key>compileBitcode</key>
@@ -93,19 +104,33 @@ jobs:
           </dict>
           </plist>
           EOF
+          mkdir -p $RUNNER_TEMP/ipa
           xcodebuild \
             -exportArchive \
             -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
             -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
             -exportPath $RUNNER_TEMP/ipa \
-            | xcpretty
+            2>&1 | tee $RUNNER_TEMP/xcodebuild-export.log | xcpretty
+          echo "Export exit code: $?"
+          ls -la $RUNNER_TEMP/ipa/ || echo "WARNING: IPA directory empty"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: bitplay-ios-release-ipa
           path: ${{ runner.temp }}/ipa/*.ipa
           retention-days: 30
+
+      - name: Upload build logs on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: xcodebuild-logs
+          path: |
+            ${{ runner.temp }}/xcodebuild-archive.log
+            ${{ runner.temp }}/xcodebuild-export.log
+          retention-days: 7
 
       - name: Clean up keychain
         if: always()
