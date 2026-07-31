@@ -30,21 +30,32 @@ target 'BitPlayPro' do
         config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386'
 
         # Fix fmt library consteval compilation error in Xcode 26 / Clang 17+
-        # fmt uses C++20 consteval which Clang 17 rejects in certain contexts
         if target.name == 'fmt' || target.name.start_with?('glog')
           config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
           config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEVAL=0'
           config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
         end
-
-        # Fix MMKVCore AESCrypt.cpp: memset_s undeclared in Xcode 26 / iOS 26.5 SDK
-        # __STDC_WANT_LIB_EXT1__=1 enables C11 Annex K secure functions (memset_s etc.)
-        if target.name == 'MMKVCore'
-          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
-          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '__STDC_WANT_LIB_EXT1__=1'
-          config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '$(inherited) -D__STDC_WANT_LIB_EXT1__=1'
-        end
       end
+    end
+
+    # Patch MMKVCore/AESCrypt.cpp: memset_s is not declared in iOS 26.5 SDK
+    # Compiler flag approach fails because CocoaPods xcconfig overrides it.
+    # Direct source patch: replace memset_s with a secure-erase equivalent.
+    aes_crypt = installer.sandbox.root + 'MMKVCore/Core/aes/AESCrypt.cpp'
+    if aes_crypt.exist?
+      content = aes_crypt.read
+      if content.include?('memset_s(ptr, len, 0, len)')
+        patched = content.gsub(
+          '(void)memset_s(ptr, len, 0, len);',
+          "do { volatile char *p = (volatile char *)ptr; size_t i; for(i=0;i<len;i++) p[i]=0; } while(0);"
+        )
+        aes_crypt.write(patched)
+        puts "Patched MMKVCore/AESCrypt.cpp: replaced memset_s with volatile loop (Xcode 26 fix)"
+      else
+        puts "MMKVCore/AESCrypt.cpp: memset_s not found, no patch needed"
+      end
+    else
+      puts "MMKVCore/AESCrypt.cpp not found at #{aes_crypt}"
     end
   end
 
