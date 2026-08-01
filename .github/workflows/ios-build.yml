@@ -11,12 +11,26 @@ permissions:
 jobs:
   build-ios:
     name: Build iOS Release
-    runs-on: macos-latest
+    runs-on: macos-14
     timeout-minutes: 90
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: |
+          # List available Xcode versions
+          ls /Applications/ | grep Xcode || true
+          # Use Xcode 16 (stable) — avoids Xcode 26 beta breaking changes
+          if [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.0.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+          fi
+          xcodebuild -version
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
@@ -98,10 +112,6 @@ jobs:
           ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
         run: |
           set -o pipefail
-          # Use automatic signing with API key for export — same method as archive.
-          # This avoids "Cloud signing permission error" (which happens when using
-          # signingStyle:automatic WITHOUT the API key) and avoids "No profiles found"
-          # (which happens with signingStyle:manual when profile name doesn't match exactly).
           cat > $RUNNER_TEMP/ExportOptions.plist << 'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -135,8 +145,8 @@ PLIST
             2>&1 | tee $RUNNER_TEMP/xcodebuild-export.log | xcpretty --color
           EXPORT_EXIT=${PIPESTATUS[0]}
           if [ "$EXPORT_EXIT" -ne 0 ]; then
-            echo "=== EXPORT FAILED — Last 100 lines ==="
-            tail -100 $RUNNER_TEMP/xcodebuild-export.log
+            echo "=== EXPORT FAILED — Last 150 lines ==="
+            tail -150 $RUNNER_TEMP/xcodebuild-export.log
             exit $EXPORT_EXIT
           fi
           echo "=== Export succeeded ==="
