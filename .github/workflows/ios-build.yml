@@ -55,7 +55,7 @@ jobs:
         run: |
           PROFILE_B64="btc-mining-frontend-testing/btc-mining-frontend-testing/ios/BitPlayPro.mobileprovision.b64"
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          base64 --decode "$PROFILE_B64" > $RUNNER_TEMP/BitPlayPro.mobileprovision
+          cat "$PROFILE_B64" | base64 --decode > $RUNNER_TEMP/BitPlayPro.mobileprovision
           PROFILE_SIZE=$(wc -c < $RUNNER_TEMP/BitPlayPro.mobileprovision)
           echo "Profile size: $PROFILE_SIZE bytes"
           if [ "$PROFILE_SIZE" -lt 5000 ]; then
