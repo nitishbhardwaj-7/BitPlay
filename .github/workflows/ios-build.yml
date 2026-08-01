@@ -33,6 +33,17 @@ jobs:
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing/ios
         run: pod install --repo-update
 
+      - name: Patch fmt for Xcode 26 Clang 17
+        working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing/ios
+        run: |
+          FMT_HEADER="Pods/fmt/include/fmt/format-inl.h"
+          if [ -f "$FMT_HEADER" ]; then
+            sed -i '' 's/FMT_USE_CONSTEVAL/0 \&\& FMT_USE_CONSTEVAL/g' "$FMT_HEADER" || true
+            echo "Patched fmt/format-inl.h"
+          else
+            echo "fmt header not found, skipping patch"
+          fi
+
       - name: Import distribution certificate
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
