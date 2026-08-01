@@ -33,19 +33,13 @@ jobs:
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing/ios
         run: pod install --repo-update
 
-      - name: Patch source files for Xcode 26 compatibility
+      - name: Patch source files for Xcode compatibility
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing
         run: |
-          # Disable consteval in fmt (Clang 17 C++20 breaking change)
           FMT_FILE="ios/Pods/fmt/include/fmt/format-inl.h"
           if [ -f "$FMT_FILE" ]; then
             sed -i '' 's/FMT_USE_CONSTEVAL/0 \&\& FMT_USE_CONSTEVAL/g' "$FMT_FILE" || true
           fi
-          FMT_HEADER="ios/Pods/Headers/Public/fmt/format.h"
-          if [ -f "$FMT_HEADER" ]; then
-            sed -i '' 's/#define FMT_USE_CONSTEVAL 1/#define FMT_USE_CONSTEVAL 0/' "$FMT_HEADER" || true
-          fi
-          # Fix MMKVCore memset_s on iOS 26 SDK
           MMKV_FILE="ios/Pods/MMKVCore/Core/aes/AESCrypt.cpp"
           if [ -f "$MMKV_FILE" ]; then
             sed -i '' 's/(void)memset_s(ptr, len, 0, len);/{ volatile uint8_t *vp = (volatile uint8_t*)ptr; for(size_t _i=0;_i<(size_t)len;_i++) vp[_i]=0; }/' "$MMKV_FILE" || true
@@ -57,20 +51,16 @@ jobs:
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
-          # Create keychain
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-
-          # Import Distribution certificate
           echo "$APPLE_CERTIFICATE_BASE64" | base64 -D > $RUNNER_TEMP/certificate.p12
           security import $RUNNER_TEMP/certificate.p12 \
             -P "$APPLE_CERTIFICATE_PASSWORD" \
             -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH $(security list-keychain -d user | tr -d '"')
+          security list-keychain -d user -s $KEYCHAIN_PATH $(security list-keychain -d user | tr -d '\"')
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-
           echo "=== Certificates in keychain ==="
           security find-identity -v -p codesigning $KEYCHAIN_PATH
 
@@ -81,7 +71,6 @@ jobs:
         run: |
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$ASC_API_KEY_CONTENT" | base64 -D > ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
-          echo "ASC API key installed: ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
           ls -la ~/.appstoreconnect/private_keys/
 
       - name: Archive
@@ -119,18 +108,16 @@ jobs:
           PROFILE_SIZE=$(wc -c < "$PROFILE_B64")
           echo "Profile b64 file size: $PROFILE_SIZE bytes"
           if [ "$PROFILE_SIZE" -lt 1000 ]; then
-            echo "ERROR: Profile file is too small ($PROFILE_SIZE bytes) - likely corrupted"
+            echo "ERROR: Profile file too small ($PROFILE_SIZE bytes)"
             exit 1
           fi
-
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
           PROFILE_UUID="a6acd01d-d401-4ace-9933-0c3d68a38d9d"
           cat "$PROFILE_B64" | base64 -D > "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
-
           INSTALLED_SIZE=$(wc -c < "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision")
           echo "Installed profile size: $INSTALLED_SIZE bytes"
           if [ "$INSTALLED_SIZE" -lt 5000 ]; then
-            echo "ERROR: Installed profile is too small ($INSTALLED_SIZE bytes)"
+            echo "ERROR: Installed profile too small ($INSTALLED_SIZE bytes)"
             exit 1
           fi
           echo "Profile installed at UUID: $PROFILE_UUID"
@@ -143,8 +130,6 @@ jobs:
           ARCHIVE_PATH=$RUNNER_TEMP/BitPlayPro.xcarchive
           PROFILE_UUID="a6acd01d-d401-4ace-9933-0c3d68a38d9d"
           PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
-
-          # Find the .app in the archive
           APP_PATH=$(find "$ARCHIVE_PATH" -name "*.app" -maxdepth 4 | head -1)
           echo "App path: $APP_PATH"
           if [ -z "$APP_PATH" ]; then
@@ -152,22 +137,15 @@ jobs:
             find "$ARCHIVE_PATH" -type f | head -20
             exit 1
           fi
-
-          # Get signing identity
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          SIGN_IDENTITY=$(security find-identity -v -p codesigning $KEYCHAIN_PATH | grep "Apple Distribution" | awk -F'"' '{print $2}' | head -1)
+          SIGN_IDENTITY=$(security find-identity -v -p codesigning $KEYCHAIN_PATH | grep "Apple Distribution" | awk -F'\"' '{print $2}' | head -1)
           echo "Signing identity: $SIGN_IDENTITY"
           if [ -z "$SIGN_IDENTITY" ]; then
             echo "ERROR: No Apple Distribution certificate found"
             security find-identity -v $KEYCHAIN_PATH
             exit 1
           fi
-
-          # Embed the provisioning profile
           cp "$PROFILE_PATH" "$APP_PATH/embedded.mobileprovision"
-          echo "Embedded provisioning profile"
-
-          # Extract entitlements from profile using Python (avoids security cms -D issues)
           python3 -c "
           import plistlib, sys
           data = open('$PROFILE_PATH', 'rb').read()
@@ -178,52 +156,48 @@ jobs:
           entitlements = profile.get('Entitlements', {})
           with open('/tmp/entitlements.plist', 'wb') as f:
               plistlib.dump(entitlements, f, fmt=plistlib.FMT_XML)
-          print('Entitlements extracted:', list(entitlements.keys()))
+          print('Entitlements:', list(entitlements.keys()))
           "
-
-          echo "=== Entitlements ==="
-          cat /tmp/entitlements.plist
-
-          # Sign all embedded frameworks first (deepest first)
           find "$APP_PATH/Frameworks" -name "*.framework" -type d 2>/dev/null | sort -r | while read fw; do
-            echo "Signing framework: $fw"
             codesign --force --sign "$SIGN_IDENTITY" --keychain "$KEYCHAIN_PATH" --timestamp "$fw" 2>&1 || true
           done
-
-          # Sign dylibs
           find "$APP_PATH" -name "*.dylib" 2>/dev/null | while read lib; do
-            echo "Signing dylib: $lib"
             codesign --force --sign "$SIGN_IDENTITY" --keychain "$KEYCHAIN_PATH" --timestamp "$lib" 2>&1 || true
           done
-
-          # Sign the main app bundle
-          echo "Signing main app..."
           codesign --force --sign "$SIGN_IDENTITY" \
             --keychain "$KEYCHAIN_PATH" \
             --entitlements /tmp/entitlements.plist \
             --timestamp \
             "$APP_PATH"
-
-          # Verify signature
-          echo "=== Verifying signature ==="
           codesign --verify --verbose=2 "$APP_PATH" && echo "Signature VALID" || echo "Signature verification failed"
-          codesign -d --entitlements - "$APP_PATH" 2>&1 | head -20
-
-          # Package as IPA
-          echo "=== Packaging IPA ==="
           IPA_STAGING="$RUNNER_TEMP/ipa_staging"
           mkdir -p "$IPA_STAGING/Payload"
           cp -r "$APP_PATH" "$IPA_STAGING/Payload/"
-          IPA_PATH="$RUNNER_TEMP/ipa/BitPlayPro.ipa"
           mkdir -p "$RUNNER_TEMP/ipa"
+          IPA_PATH="$RUNNER_TEMP/ipa/BitPlayPro.ipa"
           cd "$IPA_STAGING"
           zip -qr "$IPA_PATH" Payload/
           echo "=== IPA created ==="
           ls -lh "$IPA_PATH"
 
+      - name: Upload to TestFlight
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: |
+          IPA_PATH="$RUNNER_TEMP/ipa/BitPlayPro.ipa"
+          echo "=== Uploading to TestFlight ==="
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA_PATH" \
+            --apiKey "$ASC_API_KEY_ID" \
+            --apiIssuer "$ASC_API_ISSUER_ID" \
+            --verbose 2>&1
+          echo "=== Upload complete ==="
+
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
-        if: success()
+        if: always()
         with:
           name: bitplay-ios-release-ipa
           path: ${{ runner.temp }}/ipa/*.ipa
@@ -234,8 +208,7 @@ jobs:
         if: failure()
         with:
           name: xcodebuild-logs
-          path: |
-            ${{ runner.temp }}/xcodebuild-archive.log
+          path: ${{ runner.temp }}/xcodebuild-archive.log
           retention-days: 7
 
       - name: Clean up keychain
