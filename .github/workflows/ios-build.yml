@@ -33,35 +33,51 @@ jobs:
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing/ios
         run: pod install --repo-update
 
-      - name: Set up signing
+      - name: Patch fmt for Xcode 26 Clang 17
+        working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing
+        run: |
+          # Disable consteval in fmt to fix Clang 17 C++20 breakage
+          FMT_FILE="ios/Pods/Headers/Public/fmt/format.h"
+          if [ -f "$FMT_FILE" ]; then
+            sed -i '' 's/#define FMT_USE_CONSTEVAL 1/#define FMT_USE_CONSTEVAL 0/' "$FMT_FILE" || true
+          fi
+          # Also patch via xcconfig approach - add preprocessor define to Pods project
+          PODS_DEBUG="ios/Pods/Pods.xcodeproj/xcuserdata"
+          # Patch MMKVCore memset_s issue
+          MMKV_FILE="ios/Pods/MMKVCore/Core/aes/AESCrypt.cpp"
+          if [ -f "$MMKV_FILE" ]; then
+            sed -i '' 's/(void)memset_s(ptr, len, 0, len);/volatile uint8_t *vp = (volatile uint8_t*)ptr; for(size_t i=0;i<len;i++) vp[i]=0;/' "$MMKV_FILE" || true
+          fi
+
+      - name: Import distribution certificate
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
-          ASC_API_KEY_CONTENT: ${{ secrets.ASC_API_KEY_CONTENT }}
         run: |
-          # Create keychain
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-
-          # Import certificate — macOS base64 uses -D, not --decode
           echo "$APPLE_CERTIFICATE_BASE64" | base64 -D > $RUNNER_TEMP/certificate.p12
           security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" \
             -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH $(security list-keychain -d user | tr -d '"')
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          echo "Certificates in keychain:"
+          echo "Certificates imported:"
           security find-identity -v -p codesigning $KEYCHAIN_PATH
 
-          # Install ASC API key — shared between archive and export steps
+      - name: Install ASC API key
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_KEY_CONTENT: ${{ secrets.ASC_API_KEY_CONTENT }}
+        run: |
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$ASC_API_KEY_CONTENT" | base64 -D > \
             ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
           chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
-          echo "ASC API key installed"
+          echo "ASC API key installed: AuthKey_${ASC_API_KEY_ID}.p8"
+          ls -la ~/.appstoreconnect/private_keys/
 
       - name: Archive
         env:
@@ -82,8 +98,7 @@ jobs:
             -authenticationKeyIssuerID "$ASC_API_ISSUER_ID" \
             CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM=L99G6M8D7G \
-            archive \
-            2>&1 | tee $RUNNER_TEMP/xcodebuild-archive.log | xcpretty --color
+            archive 2>&1 | tee $RUNNER_TEMP/xcodebuild-archive.log | xcpretty --color
           ARCHIVE_EXIT=${PIPESTATUS[0]}
           if [ "$ARCHIVE_EXIT" -ne 0 ]; then
             echo "=== ARCHIVE FAILED - last 200 lines ==="
@@ -98,36 +113,12 @@ jobs:
           ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
         run: |
-          python3 -c "
-          plist = '''<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
-<plist version=\"1.0\">
-<dict>
-  <key>method</key>
-  <string>app-store-connect</string>
-  <key>teamID</key>
-  <string>L99G6M8D7G</string>
-  <key>signingStyle</key>
-  <string>automatic</string>
-  <key>uploadBitcode</key>
-  <false/>
-  <key>compileBitcode</key>
-  <false/>
-  <key>uploadSymbols</key>
-  <true/>
-</dict>
-</plist>'''
-          import os
-          path = os.path.join(os.environ['RUNNER_TEMP'], 'ExportOptions.plist')
-          open(path, 'w').write(plist)
-          print('ExportOptions.plist written to', path)
-          "
           mkdir -p $RUNNER_TEMP/ipa
           set -o pipefail
           xcodebuild \
             -exportArchive \
             -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
-            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
+            -exportOptionsPlist btc-mining-frontend-testing/btc-mining-frontend-testing/ios/ExportOptions.plist \
             -exportPath $RUNNER_TEMP/ipa \
             -allowProvisioningUpdates \
             -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8 \
@@ -136,8 +127,8 @@ jobs:
             2>&1 | tee $RUNNER_TEMP/xcodebuild-export.log | xcpretty --color
           EXPORT_EXIT=${PIPESTATUS[0]}
           if [ "$EXPORT_EXIT" -ne 0 ]; then
-            echo "=== EXPORT FAILED - last 100 lines ==="
-            tail -100 $RUNNER_TEMP/xcodebuild-export.log
+            echo "=== EXPORT FAILED - last 150 lines ==="
+            tail -150 $RUNNER_TEMP/xcodebuild-export.log
             exit $EXPORT_EXIT
           fi
           echo "Export succeeded:"
