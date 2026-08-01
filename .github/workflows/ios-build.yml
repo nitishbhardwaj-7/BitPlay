@@ -33,28 +33,22 @@ jobs:
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing/ios
         run: pod install --repo-update
 
-      - name: Patch fmt for Xcode 26 Clang 17
-        working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing/ios
-        run: |
-          FMT_HEADER="Pods/fmt/include/fmt/format-inl.h"
-          if [ -f "$FMT_HEADER" ]; then
-            sed -i '' 's/FMT_USE_CONSTEVAL/0 \&\& FMT_USE_CONSTEVAL/g' "$FMT_HEADER" || true
-            echo "Patched fmt/format-inl.h"
-          else
-            echo "fmt header not found, skipping patch"
-          fi
-
-      - name: Import distribution certificate
+      - name: Set up signing
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_KEY_CONTENT: ${{ secrets.ASC_API_KEY_CONTENT }}
         run: |
+          # Create keychain
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode -o $RUNNER_TEMP/certificate.p12
+
+          # Import certificate — macOS base64 uses -D, not --decode
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 -D > $RUNNER_TEMP/certificate.p12
           security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" \
             -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH $(security list-keychain -d user | tr -d '"')
@@ -62,34 +56,19 @@ jobs:
           echo "Certificates in keychain:"
           security find-identity -v -p codesigning $KEYCHAIN_PATH
 
-      - name: Install provisioning profile
-        run: |
-          PROFILE_B64="btc-mining-frontend-testing/btc-mining-frontend-testing/ios/BitPlayPro.mobileprovision.b64"
-          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
-          cat "$PROFILE_B64" | base64 --decode > $RUNNER_TEMP/BitPlayPro.mobileprovision
-          PROFILE_SIZE=$(wc -c < $RUNNER_TEMP/BitPlayPro.mobileprovision)
-          echo "Profile size: $PROFILE_SIZE bytes"
-          if [ "$PROFILE_SIZE" -lt 5000 ]; then
-            echo "ERROR: Profile too small ($PROFILE_SIZE bytes) - corrupted"
-            exit 1
-          fi
-          PROFILE_UUID="a6acd01d-d401-4ace-9933-0c3d68a38d9d"
-          echo "Profile UUID: $PROFILE_UUID"
-          cp $RUNNER_TEMP/BitPlayPro.mobileprovision \
-             "$HOME/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
-          echo "Profile installed at: $HOME/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
-          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/"
+          # Install ASC API key — shared between archive and export steps
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_API_KEY_CONTENT" | base64 -D > \
+            ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
+          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
+          echo "ASC API key installed"
 
       - name: Archive
         env:
           ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
-          ASC_API_KEY_CONTENT: ${{ secrets.ASC_API_KEY_CONTENT }}
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing
         run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$ASC_API_KEY_CONTENT" | base64 --decode > \
-            ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
           set -o pipefail
           xcodebuild \
             -workspace ios/BitPlayPro.xcworkspace \
@@ -119,44 +98,41 @@ jobs:
           ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
         run: |
-          set -o pipefail
           python3 -c "
           plist = '''<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-          <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
-          <plist version=\"1.0\">
-          <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-            <key>teamID</key>
-            <string>L99G6M8D7G</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>signingCertificate</key>
-            <string>Apple Distribution</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.bitplaypro.bitplaypro</key>
-              <string>BitPlayPro AppStore</string>
-            </dict>
-            <key>uploadBitcode</key>
-            <false/>
-            <key>compileBitcode</key>
-            <false/>
-            <key>uploadSymbols</key>
-            <true/>
-          </dict>
-          </plist>'''
+<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
+<plist version=\"1.0\">
+<dict>
+  <key>method</key>
+  <string>app-store-connect</string>
+  <key>teamID</key>
+  <string>L99G6M8D7G</string>
+  <key>signingStyle</key>
+  <string>automatic</string>
+  <key>uploadBitcode</key>
+  <false/>
+  <key>compileBitcode</key>
+  <false/>
+  <key>uploadSymbols</key>
+  <true/>
+</dict>
+</plist>'''
           import os
           path = os.path.join(os.environ['RUNNER_TEMP'], 'ExportOptions.plist')
           open(path, 'w').write(plist)
           print('ExportOptions.plist written to', path)
           "
           mkdir -p $RUNNER_TEMP/ipa
+          set -o pipefail
           xcodebuild \
             -exportArchive \
             -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
             -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
             -exportPath $RUNNER_TEMP/ipa \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8 \
+            -authenticationKeyID "$ASC_API_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_API_ISSUER_ID" \
             2>&1 | tee $RUNNER_TEMP/xcodebuild-export.log | xcpretty --color
           EXPORT_EXIT=${PIPESTATUS[0]}
           if [ "$EXPORT_EXIT" -ne 0 ]; then
