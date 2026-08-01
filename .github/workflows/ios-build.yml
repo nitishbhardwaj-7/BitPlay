@@ -18,11 +18,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Select Xcode 16
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '16'
-
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -64,7 +59,7 @@ jobs:
           PROFILE_SIZE=$(wc -c < $RUNNER_TEMP/BitPlayPro.mobileprovision)
           echo "Profile size: $PROFILE_SIZE bytes"
           if [ "$PROFILE_SIZE" -lt 5000 ]; then
-            echo "ERROR: Profile too small ($PROFILE_SIZE bytes) — corrupted"
+            echo "ERROR: Profile too small ($PROFILE_SIZE bytes) - corrupted"
             exit 1
           fi
           PROFILE_UUID=$(security cms -D -i $RUNNER_TEMP/BitPlayPro.mobileprovision | \
@@ -72,9 +67,9 @@ jobs:
           echo "Profile UUID: $PROFILE_UUID"
           cp $RUNNER_TEMP/BitPlayPro.mobileprovision \
              "$HOME/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
-          echo "Profile installed"
+          echo "Profile installed successfully"
 
-      - name: Archive (automatic signing)
+      - name: Archive
         env:
           ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
@@ -101,43 +96,50 @@ jobs:
             2>&1 | tee $RUNNER_TEMP/xcodebuild-archive.log | xcpretty --color
           ARCHIVE_EXIT=${PIPESTATUS[0]}
           if [ "$ARCHIVE_EXIT" -ne 0 ]; then
-            echo "=== ARCHIVE FAILED — last 200 lines ==="
+            echo "=== ARCHIVE FAILED - last 200 lines ==="
             tail -200 $RUNNER_TEMP/xcodebuild-archive.log
             exit $ARCHIVE_EXIT
           fi
           echo "Archive succeeded:"
           ls -la $RUNNER_TEMP/BitPlayPro.xcarchive
 
-      - name: Export IPA (manual signing — avoids cloud permission error)
+      - name: Export IPA
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
         run: |
           set -o pipefail
-          cat > $RUNNER_TEMP/ExportOptions.plist << 'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>method</key>
-  <string>app-store-connect</string>
-  <key>teamID</key>
-  <string>L99G6M8D7G</string>
-  <key>signingStyle</key>
-  <string>manual</string>
-  <key>signingCertificate</key>
-  <string>Apple Distribution</string>
-  <key>provisioningProfiles</key>
-  <dict>
-    <key>com.bitplaypro.bitplaypro</key>
-    <string>BitPlayPro AppStore</string>
-  </dict>
-  <key>uploadBitcode</key>
-  <false/>
-  <key>compileBitcode</key>
-  <false/>
-  <key>uploadSymbols</key>
-  <true/>
-</dict>
-</plist>
-PLIST
+          python3 -c "
+          plist = '''<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+          <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
+          <plist version=\"1.0\">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>teamID</key>
+            <string>L99G6M8D7G</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.bitplaypro.bitplaypro</key>
+              <string>BitPlayPro AppStore</string>
+            </dict>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>compileBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>'''
+          import os
+          path = os.path.join(os.environ['RUNNER_TEMP'], 'ExportOptions.plist')
+          open(path, 'w').write(plist)
+          print('ExportOptions.plist written to', path)
+          "
           mkdir -p $RUNNER_TEMP/ipa
           xcodebuild \
             -exportArchive \
@@ -147,7 +149,7 @@ PLIST
             2>&1 | tee $RUNNER_TEMP/xcodebuild-export.log | xcpretty --color
           EXPORT_EXIT=${PIPESTATUS[0]}
           if [ "$EXPORT_EXIT" -ne 0 ]; then
-            echo "=== EXPORT FAILED — last 100 lines ==="
+            echo "=== EXPORT FAILED - last 100 lines ==="
             tail -100 $RUNNER_TEMP/xcodebuild-export.log
             exit $EXPORT_EXIT
           fi
