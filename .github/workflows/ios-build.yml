@@ -113,31 +113,113 @@ jobs:
           echo "=== Archive succeeded ==="
           ls -la $RUNNER_TEMP/BitPlayPro.xcarchive
 
-      - name: Export IPA
-        env:
-          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
-          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+      - name: Install provisioning profile
         run: |
-          mkdir -p $RUNNER_TEMP/ipa
-          set -o pipefail
-          xcodebuild \
-            -exportArchive \
-            -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
-            -exportOptionsPlist btc-mining-frontend-testing/btc-mining-frontend-testing/ios/ExportOptions.plist \
-            -exportPath $RUNNER_TEMP/ipa \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8 \
-            -authenticationKeyID "${ASC_API_KEY_ID}" \
-            -authenticationKeyIssuerID "${ASC_API_ISSUER_ID}" \
-            2>&1 | tee $RUNNER_TEMP/xcodebuild-export.log | xcpretty --color
-          EXPORT_EXIT=${PIPESTATUS[0]}
-          if [ "$EXPORT_EXIT" -ne 0 ]; then
-            echo "=== EXPORT FAILED - last 150 lines ==="
-            tail -150 $RUNNER_TEMP/xcodebuild-export.log
-            exit $EXPORT_EXIT
+          PROFILE_B64="btc-mining-frontend-testing/btc-mining-frontend-testing/ios/BitPlayPro.mobileprovision.b64"
+          PROFILE_SIZE=$(wc -c < "$PROFILE_B64")
+          echo "Profile b64 file size: $PROFILE_SIZE bytes"
+          if [ "$PROFILE_SIZE" -lt 1000 ]; then
+            echo "ERROR: Profile file is too small ($PROFILE_SIZE bytes) - likely corrupted"
+            exit 1
           fi
-          echo "=== Export succeeded ==="
-          ls -la $RUNNER_TEMP/ipa/
+
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          PROFILE_UUID="a6acd01d-d401-4ace-9933-0c3d68a38d9d"
+          cat "$PROFILE_B64" | base64 -D > "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+
+          INSTALLED_SIZE=$(wc -c < "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision")
+          echo "Installed profile size: $INSTALLED_SIZE bytes"
+          if [ "$INSTALLED_SIZE" -lt 5000 ]; then
+            echo "ERROR: Installed profile is too small ($INSTALLED_SIZE bytes)"
+            exit 1
+          fi
+          echo "Profile installed at UUID: $PROFILE_UUID"
+
+      - name: Sign and package IPA
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          ARCHIVE_PATH=$RUNNER_TEMP/BitPlayPro.xcarchive
+          PROFILE_UUID="a6acd01d-d401-4ace-9933-0c3d68a38d9d"
+          PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+
+          # Find the .app in the archive
+          APP_PATH=$(find "$ARCHIVE_PATH" -name "*.app" -maxdepth 4 | head -1)
+          echo "App path: $APP_PATH"
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: No .app found in archive"
+            find "$ARCHIVE_PATH" -type f | head -20
+            exit 1
+          fi
+
+          # Get signing identity
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          SIGN_IDENTITY=$(security find-identity -v -p codesigning $KEYCHAIN_PATH | grep "Apple Distribution" | awk -F'"' '{print $2}' | head -1)
+          echo "Signing identity: $SIGN_IDENTITY"
+          if [ -z "$SIGN_IDENTITY" ]; then
+            echo "ERROR: No Apple Distribution certificate found"
+            security find-identity -v $KEYCHAIN_PATH
+            exit 1
+          fi
+
+          # Embed the provisioning profile
+          cp "$PROFILE_PATH" "$APP_PATH/embedded.mobileprovision"
+          echo "Embedded provisioning profile"
+
+          # Extract entitlements from profile using Python (avoids security cms -D issues)
+          python3 -c "
+          import plistlib, sys
+          data = open('$PROFILE_PATH', 'rb').read()
+          start = data.find(b'<?xml')
+          end = data.find(b'</plist>') + len(b'</plist>')
+          plist_data = data[start:end]
+          profile = plistlib.loads(plist_data)
+          entitlements = profile.get('Entitlements', {})
+          with open('/tmp/entitlements.plist', 'wb') as f:
+              plistlib.dump(entitlements, f, fmt=plistlib.FMT_XML)
+          print('Entitlements extracted:', list(entitlements.keys()))
+          "
+
+          echo "=== Entitlements ==="
+          cat /tmp/entitlements.plist
+
+          # Sign all embedded frameworks first (deepest first)
+          find "$APP_PATH/Frameworks" -name "*.framework" -type d 2>/dev/null | sort -r | while read fw; do
+            echo "Signing framework: $fw"
+            codesign --force --sign "$SIGN_IDENTITY" --keychain "$KEYCHAIN_PATH" --timestamp "$fw" 2>&1 || true
+          done
+
+          # Sign dylibs
+          find "$APP_PATH" -name "*.dylib" 2>/dev/null | while read lib; do
+            echo "Signing dylib: $lib"
+            codesign --force --sign "$SIGN_IDENTITY" --keychain "$KEYCHAIN_PATH" --timestamp "$lib" 2>&1 || true
+          done
+
+          # Sign the main app bundle
+          echo "Signing main app..."
+          codesign --force --sign "$SIGN_IDENTITY" \
+            --keychain "$KEYCHAIN_PATH" \
+            --entitlements /tmp/entitlements.plist \
+            --timestamp \
+            "$APP_PATH"
+
+          # Verify signature
+          echo "=== Verifying signature ==="
+          codesign --verify --verbose=2 "$APP_PATH" && echo "Signature VALID" || echo "Signature verification failed"
+          codesign -d --entitlements - "$APP_PATH" 2>&1 | head -20
+
+          # Package as IPA
+          echo "=== Packaging IPA ==="
+          IPA_STAGING="$RUNNER_TEMP/ipa_staging"
+          mkdir -p "$IPA_STAGING/Payload"
+          cp -r "$APP_PATH" "$IPA_STAGING/Payload/"
+          IPA_PATH="$RUNNER_TEMP/ipa/BitPlayPro.ipa"
+          mkdir -p "$RUNNER_TEMP/ipa"
+          cd "$IPA_STAGING"
+          zip -qr "$IPA_PATH" Payload/
+          echo "=== IPA created ==="
+          ls -lh "$IPA_PATH"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
@@ -154,7 +236,6 @@ jobs:
           name: xcodebuild-logs
           path: |
             ${{ runner.temp }}/xcodebuild-archive.log
-            ${{ runner.temp }}/xcodebuild-export.log
           retention-days: 7
 
       - name: Clean up keychain
