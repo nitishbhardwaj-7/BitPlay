@@ -360,7 +360,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = L99G6M8D7G;
-				PROVISIONING_PROFILE_SPECIFIER = "BitPlayPro AppStore";
+				PROVISIONING_PROFILE_SPECIFIER = "a6acd01d-d401-4ace-9933-0c3d68a38d9d";
 				INFOPLIST_FILE = BitPlayPro/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = BitPlayPro;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";

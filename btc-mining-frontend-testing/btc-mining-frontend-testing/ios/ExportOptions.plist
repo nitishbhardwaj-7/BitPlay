@@ -13,7 +13,7 @@
   <key>provisioningProfiles</key>
   <dict>
     <key>com.bitplaypro.bitplaypro</key>
-    <string>BitPlayPro AppStore</string>
+    <string>a6acd01d-d401-4ace-9933-0c3d68a38d9d</string>
   </dict>
   <key>uploadBitcode</key>
   <false/>
