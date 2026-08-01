@@ -33,56 +33,63 @@ jobs:
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing/ios
         run: pod install --repo-update
 
-      - name: Patch fmt for Xcode 26 Clang 17
+      - name: Patch source files for Xcode 26 compatibility
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing
         run: |
-          # Disable consteval in fmt to fix Clang 17 C++20 breakage
-          FMT_FILE="ios/Pods/Headers/Public/fmt/format.h"
+          # Disable consteval in fmt (Clang 17 C++20 breaking change)
+          FMT_FILE="ios/Pods/fmt/include/fmt/format-inl.h"
           if [ -f "$FMT_FILE" ]; then
-            sed -i '' 's/#define FMT_USE_CONSTEVAL 1/#define FMT_USE_CONSTEVAL 0/' "$FMT_FILE" || true
+            sed -i '' 's/FMT_USE_CONSTEVAL/0 \&\& FMT_USE_CONSTEVAL/g' "$FMT_FILE" || true
           fi
-          # Also patch via xcconfig approach - add preprocessor define to Pods project
-          PODS_DEBUG="ios/Pods/Pods.xcodeproj/xcuserdata"
-          # Patch MMKVCore memset_s issue
+          FMT_HEADER="ios/Pods/Headers/Public/fmt/format.h"
+          if [ -f "$FMT_HEADER" ]; then
+            sed -i '' 's/#define FMT_USE_CONSTEVAL 1/#define FMT_USE_CONSTEVAL 0/' "$FMT_HEADER" || true
+          fi
+          # Fix MMKVCore memset_s on iOS 26 SDK
           MMKV_FILE="ios/Pods/MMKVCore/Core/aes/AESCrypt.cpp"
           if [ -f "$MMKV_FILE" ]; then
-            sed -i '' 's/(void)memset_s(ptr, len, 0, len);/volatile uint8_t *vp = (volatile uint8_t*)ptr; for(size_t i=0;i<len;i++) vp[i]=0;/' "$MMKV_FILE" || true
+            sed -i '' 's/(void)memset_s(ptr, len, 0, len);/{ volatile uint8_t *vp = (volatile uint8_t*)ptr; for(size_t _i=0;_i<(size_t)len;_i++) vp[_i]=0; }/' "$MMKV_FILE" || true
           fi
 
-      - name: Import distribution certificate
+      - name: Import distribution certificate and provisioning profile
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
+          # Create keychain
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # Import Distribution certificate
           echo "$APPLE_CERTIFICATE_BASE64" | base64 -D > $RUNNER_TEMP/certificate.p12
-          security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" \
+          security import $RUNNER_TEMP/certificate.p12 \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
             -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH $(security list-keychain -d user | tr -d '"')
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          echo "Certificates imported:"
+
+          echo "=== Certificates in keychain ==="
           security find-identity -v -p codesigning $KEYCHAIN_PATH
 
-      - name: Install ASC API key
-        env:
-          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
-          ASC_API_KEY_CONTENT: ${{ secrets.ASC_API_KEY_CONTENT }}
-        run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$ASC_API_KEY_CONTENT" | base64 -D > \
-            ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
-          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
-          echo "ASC API key installed: AuthKey_${ASC_API_KEY_ID}.p8"
-          ls -la ~/.appstoreconnect/private_keys/
+          # Install provisioning profile
+          PROFILE_B64="btc-mining-frontend-testing/btc-mining-frontend-testing/ios/BitPlayPro.mobileprovision.b64"
+          PROFILE_PATH="$RUNNER_TEMP/BitPlayPro.mobileprovision"
+          cat "$PROFILE_B64" | base64 -D -o "$PROFILE_PATH"
+          echo "Profile size: $(wc -c < $PROFILE_PATH) bytes"
+          if [ "$(wc -c < $PROFILE_PATH)" -lt 1000 ]; then
+            echo "ERROR: Profile too small, base64 decode failed"
+            exit 1
+          fi
+          PROFILE_UUID="a6acd01d-d401-4ace-9933-0c3d68a38d9d"
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/"$PROFILE_UUID".mobileprovision
+          echo "=== Provisioning profiles installed ==="
+          ls ~/Library/MobileDevice/Provisioning\ Profiles/
 
       - name: Archive
-        env:
-          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
-          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing
         run: |
           set -o pipefail
@@ -92,11 +99,9 @@ jobs:
             -configuration Release \
             -destination generic/platform=iOS \
             -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8 \
-            -authenticationKeyID "$ASC_API_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_API_ISSUER_ID" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="BitPlayPro AppStore" \
             DEVELOPMENT_TEAM=L99G6M8D7G \
             archive 2>&1 | tee $RUNNER_TEMP/xcodebuild-archive.log | xcpretty --color
           ARCHIVE_EXIT=${PIPESTATUS[0]}
@@ -105,13 +110,10 @@ jobs:
             tail -200 $RUNNER_TEMP/xcodebuild-archive.log
             exit $ARCHIVE_EXIT
           fi
-          echo "Archive succeeded:"
+          echo "=== Archive succeeded ==="
           ls -la $RUNNER_TEMP/BitPlayPro.xcarchive
 
       - name: Export IPA
-        env:
-          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
-          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
         run: |
           mkdir -p $RUNNER_TEMP/ipa
           set -o pipefail
@@ -120,10 +122,6 @@ jobs:
             -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
             -exportOptionsPlist btc-mining-frontend-testing/btc-mining-frontend-testing/ios/ExportOptions.plist \
             -exportPath $RUNNER_TEMP/ipa \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8 \
-            -authenticationKeyID "$ASC_API_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_API_ISSUER_ID" \
             2>&1 | tee $RUNNER_TEMP/xcodebuild-export.log | xcpretty --color
           EXPORT_EXIT=${PIPESTATUS[0]}
           if [ "$EXPORT_EXIT" -ne 0 ]; then
@@ -131,7 +129,7 @@ jobs:
             tail -150 $RUNNER_TEMP/xcodebuild-export.log
             exit $EXPORT_EXIT
           fi
-          echo "Export succeeded:"
+          echo "=== Export succeeded ==="
           ls -la $RUNNER_TEMP/ipa/
 
       - name: Upload IPA artifact
