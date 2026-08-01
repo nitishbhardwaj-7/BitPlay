@@ -89,47 +89,81 @@ jobs:
           echo "Archive succeeded:"
           ls -la $RUNNER_TEMP/BitPlayPro.xcarchive
 
+      - name: Install provisioning profile
+        run: |
+          # Install the provisioning profile from the repo for manual export signing
+          PROFILE_B64_PATH="btc-mining-frontend-testing/btc-mining-frontend-testing/ios/BitPlayPro.mobileprovision.b64"
+          if [ -f "$PROFILE_B64_PATH" ]; then
+            base64 --decode "$PROFILE_B64_PATH" > $RUNNER_TEMP/BitPlayPro.mobileprovision
+            PROFILE_SIZE=$(wc -c < $RUNNER_TEMP/BitPlayPro.mobileprovision)
+            echo "Profile decoded: $PROFILE_SIZE bytes"
+            if [ "$PROFILE_SIZE" -lt 1000 ]; then
+              echo "ERROR: Profile too small ($PROFILE_SIZE bytes), likely truncated"
+              exit 1
+            fi
+            # Install to MobileDevice Provisioning Profiles
+            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+            PROFILE_UUID=$(security cms -D -i $RUNNER_TEMP/BitPlayPro.mobileprovision 2>/dev/null | \
+              /usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin 2>/dev/null || \
+              python3 -c "
+import subprocess, plistlib, sys
+result = subprocess.run(['security', 'cms', '-D', '-i', '$RUNNER_TEMP/BitPlayPro.mobileprovision'], capture_output=True)
+plist = plistlib.loads(result.stdout)
+print(plist.get('UUID', ''))
+")
+            echo "Profile UUID: $PROFILE_UUID"
+            cp $RUNNER_TEMP/BitPlayPro.mobileprovision \
+               "$HOME/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
+            echo "Profile installed to: $HOME/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
+            ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/"
+          else
+            echo "No b64 profile file found at $PROFILE_B64_PATH, will rely on cloud signing"
+          fi
+
       - name: Export IPA
-        env:
-          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
-          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
         run: |
           set -o pipefail
+          # Use manual signing with local profile — avoids "Cloud signing permission error"
           cat > $RUNNER_TEMP/ExportOptions.plist << 'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>app-store-connect</string>
-            <key>teamID</key>
-            <string>L99G6M8D7G</string>
-            <key>signingStyle</key>
-            <string>automatic</string>
-            <key>uploadBitcode</key>
-            <false/>
-            <key>compileBitcode</key>
-            <false/>
-            <key>uploadSymbols</key>
-            <true/>
-          </dict>
-          </plist>
-          PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>app-store-connect</string>
+  <key>teamID</key>
+  <string>L99G6M8D7G</string>
+  <key>signingStyle</key>
+  <string>manual</string>
+  <key>signingCertificate</key>
+  <string>Apple Distribution</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>com.bitplaypro.bitplaypro</key>
+    <string>BitPlayPro AppStore</string>
+  </dict>
+  <key>uploadBitcode</key>
+  <false/>
+  <key>compileBitcode</key>
+  <false/>
+  <key>uploadSymbols</key>
+  <true/>
+</dict>
+</plist>
+PLIST
+          echo "ExportOptions.plist:"
+          cat $RUNNER_TEMP/ExportOptions.plist
           mkdir -p $RUNNER_TEMP/ipa
           xcodebuild \
             -exportArchive \
             -archivePath $RUNNER_TEMP/BitPlayPro.xcarchive \
             -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
             -exportPath $RUNNER_TEMP/ipa \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8 \
-            -authenticationKeyID "$ASC_API_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_API_ISSUER_ID" \
             2>&1 | tee $RUNNER_TEMP/xcodebuild-export.log | xcpretty --color
           EXPORT_EXIT=${PIPESTATUS[0]}
           if [ "$EXPORT_EXIT" -ne 0 ]; then
-            echo "--- Last 50 lines of export log ---"
-            tail -50 $RUNNER_TEMP/xcodebuild-export.log
+            echo "--- Last 80 lines of export log ---"
+            tail -80 $RUNNER_TEMP/xcodebuild-export.log
             exit $EXPORT_EXIT
           fi
           echo "Export succeeded:"
