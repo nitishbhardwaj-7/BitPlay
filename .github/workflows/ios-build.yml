@@ -62,12 +62,12 @@ jobs:
             echo "ERROR: Profile too small ($PROFILE_SIZE bytes) - corrupted"
             exit 1
           fi
-          PROFILE_UUID=$(security cms -D -i $RUNNER_TEMP/BitPlayPro.mobileprovision | \
-            /usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin)
+          PROFILE_UUID="a6acd01d-d401-4ace-9933-0c3d68a38d9d"
           echo "Profile UUID: $PROFILE_UUID"
           cp $RUNNER_TEMP/BitPlayPro.mobileprovision \
              "$HOME/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
-          echo "Profile installed successfully"
+          echo "Profile installed at: $HOME/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
+          ls -la "$HOME/Library/MobileDevice/Provisioning Profiles/"
 
       - name: Archive
         env:
