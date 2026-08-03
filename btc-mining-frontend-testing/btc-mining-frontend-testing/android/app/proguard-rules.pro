@@ -19,6 +19,7 @@
 -dontwarn com.google.android.gms.ads.*
 
 # Apptrove SDK & Retrofit / Reflection Rules
+-dontshrink
 -dontoptimize
 -dontobfuscate
 -keepattributes Signature, InnerClasses, EnclosingMethod, RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations, AnnotationDefault
