@@ -24,6 +24,10 @@
 -dontobfuscate
 -keepattributes Signature, InnerClasses, EnclosingMethod, RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations, AnnotationDefault
 
+# Kotlin Coroutines
+-keep class kotlin.coroutines.Continuation { *; }
+-keep class kotlin.coroutines.jvm.internal.BaseContinuationImpl { *; }
+
 -keep class retrofit2.** { *; }
 -keep interface retrofit2.** { *; }
 -keepclassmembers class retrofit2.** { *; }

@@ -31,3 +31,12 @@ subprojects { p ->
     }
     // Removed Windows-only C:/tmp/build override — cross-platform build compatibility
 }
+
+allprojects {
+    repositories {
+        maven {
+            url "$rootDir/../node_modules/@notifee/react-native/android/libs"
+        }
+    }
+}
+
