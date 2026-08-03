@@ -81,3 +81,8 @@
 # OkHttp (networking)
 -dontwarn okhttp3.**
 -dontwarn okio.**
+
+# Missing optional dependencies referenced by Google Tink (used by Firebase/RevenueCat)
+-dontwarn com.google.api.client.**
+-dontwarn org.joda.time.**
+-dontwarn com.google.crypto.tink.**
