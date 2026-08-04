@@ -36,6 +36,7 @@ workflows:
         track: internal
         submit_as_draft: true
 
+  # iOS Release workflow builds IPA and pushes to TestFlight using App Store Connect integration
   ios-release:
     name: iOS Release (IPA)
     max_build_duration: 90
