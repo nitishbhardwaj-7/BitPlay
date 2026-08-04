@@ -1,52 +1,91 @@
 <%- include('partials/header', { title }) %>
-<%- include('partials/sidebar', { user }) %>
+<%- include('partials/sidebar', { title, user }) %>
 
-<div class="main-content">
-  <div class="card-container">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <h2>FAQs</h2>
-      <div>
-        <input id="faqSearch" class="form-control d-inline me-2" placeholder="Search FAQs..." value="<%= searchQuery %>" style="width: 250px;" />
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createFaqModal">+ Add New</button>
-      </div>
+<div class="page-inner">
+
+  <!-- Page Hero -->
+  <div class="page-hero">
+    <div class="page-hero-text">
+      <h1>FAQs</h1>
+      <p>Manage all frequently asked questions shown inside the mobile application</p>
     </div>
+    <div class="page-hero-actions">
+      <div class="search-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="faqSearch" placeholder="Search FAQs..." value="<%= searchQuery %>" />
+      </div>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createFaqModal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add FAQ
+      </button>
+    </div>
+  </div>
 
-    <div class="table-responsive data-table">
-      <table class="table table-striped table-bordered align-middle">
-        <thead class="table-dark">
+  <!-- Table Card -->
+  <div class="data-card">
+    <div class="table-wrapper">
+      <table class="table table-hover align-middle">
+        <thead>
           <tr>
-            <th>#</th>
+            <th style="width:48px">#</th>
             <th>Question</th>
             <th>Answer</th>
             <th>Date</th>
-            <th>Action</th>
+            <th style="width:56px"></th>
           </tr>
         </thead>
         <tbody id="faqsTbody">
-          <% faqs.forEach((faq, index) => { %>
-            <tr data-id="<%= faq._id %>">
-              <td><%= (page - 1) * limit + index + 1 %></td>
-              <td><%= faq.name %></td>
-              <td><%= faq.message %></td>
-              <td><%= new Date(faq.date_created).toLocaleDateString() %></td>
-              <td><button class="btn btn-sm btn-danger delete-faq-btn">🗑</button></td>
-            </tr>
-          <% }) %>
+          <% if (faqs.length === 0) { %>
+            <tr><td colspan="5">
+              <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <h4>No FAQs yet</h4>
+                <p>Add your first FAQ to help users inside the app</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createFaqModal">Add First FAQ</button>
+              </div>
+            </td></tr>
+          <% } else { %>
+            <% faqs.forEach((faq, index) => { %>
+              <tr data-id="<%= faq._id %>">
+                <td style="color:var(--text-faint);font-size:12px"><%= (page - 1) * limit + index + 1 %></td>
+                <td style="font-weight:600;color:var(--text);max-width:240px"><%= faq.name %></td>
+                <td class="answer-cell">
+                  <div class="answer-clamp" id="ans-<%= faq._id %>"><%= faq.message %></div>
+                  <button class="answer-expand-btn" onclick="toggleAnswer('<%= faq._id %>')">Show more</button>
+                </td>
+                <td style="white-space:nowrap;color:var(--text-faint);font-size:12px"><%= new Date(faq.date_created).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %></td>
+                <td>
+                  <div class="action-menu-wrapper">
+                    <button class="action-menu-btn" onclick="toggleActionMenu(this)" aria-label="Actions">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                    </button>
+                    <div class="action-menu-dropdown">
+                      <button class="action-menu-item danger delete-faq-btn" data-id="<%= faq._id %>">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
         </tbody>
       </table>
     </div>
 
     <!-- Pagination -->
-    <div class="pagination mt-3">
+    <div class="pag-bar">
       <% if (page > 1) { %>
-        <a href="?page=<%= page - 1 %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %>" class="btn btn-outline-primary me-2">Prev</a>
+        <a href="?page=<%= page - 1 %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %>" class="btn btn-secondary btn-sm">&larr; Prev</a>
       <% } %>
-      <span>Page <%= page %></span>
+      <span class="pag-info">Page <%= page %></span>
       <% if (faqs.length === limit) { %>
-        <a href="?page=<%= page + 1 %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %>" class="btn btn-outline-primary ms-2">Next</a>
+        <a href="?page=<%= page + 1 %><%= searchQuery ? '&q=' + encodeURIComponent(searchQuery) : '' %>" class="btn btn-secondary btn-sm">Next &rarr;</a>
       <% } %>
     </div>
   </div>
+
 </div>
 
 <!-- Create Modal -->
@@ -59,76 +98,84 @@
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <label>Question</label>
+          <label class="form-label">Question</label>
           <input name="name" class="form-control" required />
         </div>
         <div class="mb-3">
-          <label>Answer</label>
+          <label class="form-label">Answer</label>
           <textarea name="message" class="form-control" rows="4" required></textarea>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary">Create</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary">Create FAQ</button>
       </div>
     </form>
   </div>
 </div>
 
 <script>
-  const faqSearch = document.getElementById('faqSearch');
-  const faqsTbody = document.getElementById('faqsTbody');
+function toggleAnswer(id) {
+  var el = document.getElementById('ans-' + id);
+  var btn = el.nextElementSibling;
+  var expanded = el.classList.toggle('expanded');
+  btn.textContent = expanded ? 'Show less' : 'Show more';
+}
 
-  faqSearch.addEventListener('input', async () => {
-    const query = faqSearch.value.trim();
-    const res = await fetch(`/admin/faqs?q=${encodeURIComponent(query)}&page=1`, {
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    });
+var faqSearch = document.getElementById('faqSearch');
+var faqsTbody = document.getElementById('faqsTbody');
 
-    const data = await res.json();
-    faqsTbody.innerHTML = '';
-
-    if (!data.faqs.length) {
-      faqsTbody.innerHTML = '<tr><td colspan="5">No FAQs found.</td></tr>';
-      return;
-    }
-
-    data.faqs.forEach((faq, index) => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${index + 1}</td>
-        <td>${faq.name}</td>
-        <td>${faq.message}</td>
-        <td>${new Date(faq.date_created).toLocaleDateString()}</td>
-        <td><button class="btn btn-sm btn-danger delete-faq-btn" data-id="${faq._id}">🗑</button></td>
-      `;
-      faqsTbody.appendChild(row);
-    });
-
-    attachDeleteHandlers();
+faqSearch.addEventListener('input', async function() {
+  var query = faqSearch.value.trim();
+  var res = await fetch('/admin/faqs?q=' + encodeURIComponent(query) + '&page=1', {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
   });
+  var data = await res.json();
+  faqsTbody.innerHTML = '';
 
-  function attachDeleteHandlers() {
-    document.querySelectorAll('.delete-faq-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const row = btn.closest('tr');
-        const id = row.dataset.id || btn.dataset.id;
-
-        if (!confirm('Delete this FAQ?')) return;
-
-        const res = await fetch(`/api/faqs/${id}`, {
-          method: 'DELETE'
-        });
-
-        if (res.ok) {
-          row.remove();
-        } else {
-          alert('Failed to delete');
-        }
-      });
-    });
+  if (!data.faqs.length) {
+    faqsTbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><h4>No FAQs found</h4><p>Try a different search term</p></div></td></tr>';
+    return;
   }
 
+  data.faqs.forEach(function(faq, index) {
+    var row = document.createElement('tr');
+    row.dataset.id = faq._id;
+    var date = new Date(faq.date_created).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    row.innerHTML =
+      '<td style="color:var(--text-faint);font-size:12px">' + (index+1) + '</td>' +
+      '<td style="font-weight:600;color:var(--text);max-width:240px">' + faq.name + '</td>' +
+      '<td class="answer-cell"><div class="answer-clamp" id="ans-' + faq._id + '">' + faq.message + '</div>' +
+        '<button class="answer-expand-btn" onclick="toggleAnswer(\'' + faq._id + '\')">Show more</button></td>' +
+      '<td style="white-space:nowrap;color:var(--text-faint);font-size:12px">' + date + '</td>' +
+      '<td><div class="action-menu-wrapper">' +
+        '<button class="action-menu-btn" onclick="toggleActionMenu(this)">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>' +
+        '</button>' +
+        '<div class="action-menu-dropdown">' +
+          '<button class="action-menu-item danger delete-faq-btn" data-id="' + faq._id + '">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+            'Delete' +
+          '</button>' +
+        '</div>' +
+      '</div></td>';
+    faqsTbody.appendChild(row);
+  });
   attachDeleteHandlers();
+});
+
+function attachDeleteHandlers() {
+  document.querySelectorAll('.delete-faq-btn').forEach(function(btn) {
+    btn.addEventListener('click', async function() {
+      var id = btn.dataset.id || btn.closest('tr').dataset.id;
+      if (!confirm('Delete this FAQ?')) return;
+      var res = await fetch('/api/faqs/' + id, { method: 'DELETE' });
+      if (res.ok) { btn.closest('tr').remove(); }
+      else { alert('Failed to delete'); }
+    });
+  });
+}
+attachDeleteHandlers();
 </script>
 
 <%- include('partials/footer') %>
