@@ -180,7 +180,9 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       usersCount: 0,
       users_diff,
       TransactionsCount,
-      transactions_diff
+      transactions_diff,
+      supportTicketsCount,
+      supportTicketsDiff
     });
   }
 });
