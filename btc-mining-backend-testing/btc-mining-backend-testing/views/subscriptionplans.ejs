@@ -1,9 +1,17 @@
 <%- include('partials/header', { title }) %>
-<%- include('partials/sidebar', { user }) %>
+<%- include('partials/sidebar', { title, user }) %>
 
-<div class="main-content">
+<div class="page-inner">
 
-    <div id="loading" style="display: none;">Searching...</div>
+  <!-- Page Hero -->
+  <div class="page-hero">
+    <div class="page-hero-text">
+      <h1>Subscription Plans</h1>
+      <p>Manage and configure available subscription tiers</p>
+    </div>
+  </div>
+
+    <div id="loading" style="display:none;color:var(--text-faint);font-size:13px;margin-bottom:12px">Searching…</div>
 
     <!-- Create Plan Modal -->
     <div class="modal fade" id="createPlanModal" tabindex="-1" aria-labelledby="createPlanLabel" aria-hidden="true">
@@ -220,5 +228,7 @@
             });
         });
     </script>
+
+</div><!-- /.page-inner -->
 
 <%- include('partials/footer') %>
