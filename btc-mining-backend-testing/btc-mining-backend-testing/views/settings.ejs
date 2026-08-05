@@ -1,51 +1,49 @@
 <%- include('partials/header', { title: 'Settings' }) %>
-<%- include('partials/sidebar', { title: 'Settings', user }) %>
+<%- include('partials/sidebar', { user }) %>
 
-<div class="page-inner">
+<div class="main-content p-4 text-light">
+  <h2 class="mb-4">System Settings</h2>
 
-  <div class="page-hero">
-    <div class="page-hero-text">
-      <h1>System Settings</h1>
-      <p>BitPlayPro admin panel configuration overview</p>
+  <div class="settings-card bg-dark rounded-4 p-4 mb-4 shadow-lg" style="background: linear-gradient(135deg, #0f172a, #1e293b);">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="setting-item p-3 bg-gradient rounded-3" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+          <h5 class="text-white mb-2">Site Name</h5>
+          <p class="text-muted mb-0">Bitcoin Mining Admin Panel</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="setting-item p-3 bg-gradient rounded-3" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+          <h5 class="text-white mb-2">Database Connection</h5>
+          <p class="text-success mb-0"><i class="fas fa-check-circle me-2"></i>MongoDB Atlas - Connected</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="setting-item p-3 bg-gradient rounded-3" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+          <h5 class="text-white mb-2">Session Timeout</h5>
+          <p class="text-muted mb-0">24 hours</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="setting-item p-3 bg-gradient rounded-3" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+          <h5 class="text-white mb-2">Default Password</h5>
+          <p class="text-muted mb-0">admin@123</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="setting-item p-3 bg-gradient rounded-3" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+          <h5 class="text-white mb-2">Server Status</h5>
+          <p class="text-success mb-0"><i class="fas fa-server me-2"></i>Running on Port 3001</p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="setting-item p-3 bg-gradient rounded-3" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+          <h5 class="text-white mb-2">Environment</h5>
+          <p class="text-warning mb-0"><i class="fas fa-code me-2"></i>Development Mode</p>
+        </div>
+      </div>
     </div>
   </div>
-
-  <div class="info-grid">
-    <div class="info-card">
-      <div class="label">Site Name</div>
-      <div class="value">Bitcoin Mining Admin Panel</div>
-    </div>
-    <div class="info-card">
-      <div class="label">Database Connection</div>
-      <div class="value success">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>
-        MongoDB Atlas — Connected
-      </div>
-    </div>
-    <div class="info-card">
-      <div class="label">Session Timeout</div>
-      <div class="value">24 hours</div>
-    </div>
-    <div class="info-card">
-      <div class="label">Default Password</div>
-      <div class="value" style="font-family:monospace;letter-spacing:0.5px">admin@123</div>
-    </div>
-    <div class="info-card">
-      <div class="label">Server Status</div>
-      <div class="value success">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>
-        Running on Port 3001
-      </div>
-    </div>
-    <div class="info-card">
-      <div class="label">Environment</div>
-      <div class="value warning">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:6px;vertical-align:middle"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-        Development Mode
-      </div>
-    </div>
-  </div>
-
 </div>
 
 <%- include('partials/footer') %>

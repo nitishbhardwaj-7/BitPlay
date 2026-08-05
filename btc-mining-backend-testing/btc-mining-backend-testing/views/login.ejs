@@ -1,66 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BitPlayPro Admin — Login</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="/css/style.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Bitplaypro Admin</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
 </head>
 <body class="login-body">
-
-  <div class="login-container">
-    <div class="login-card">
-
-      <div class="login-header">
-        <div class="login-logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-          </svg>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>Bitplaypro</h1>
+                <p>Admin Panel Login</p>
+            </div>
+            
+            <% if (error) { %>
+            <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
+                <%= error %>
+            </div>
+            <% } %>
+            
+            <form action="/admin/login" method="POST" class="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="login-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Login
+                </button>
+            </form>
         </div>
-        <h1>BitPlayPro</h1>
-        <p>Sign in to Admin Panel</p>
-      </div>
-
-      <% if (error) { %>
-      <div class="error-message">
-        <i class="fas fa-exclamation-circle"></i>
-        <%= error %>
-      </div>
-      <% } %>
-
-      <form action="/admin/login" method="POST" class="login-form">
-        <div class="form-group">
-          <label for="username">Username</label>
-          <div class="input-group">
-            <i class="fas fa-user"></i>
-            <input type="text" id="username" name="username" placeholder="Enter username" required autocomplete="username">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="password">Password</label>
-          <div class="input-group">
-            <i class="fas fa-lock"></i>
-            <input type="password" id="password" name="password" placeholder="Enter password" required autocomplete="current-password">
-          </div>
-        </div>
-
-        <button type="submit" class="login-btn">
-          <i class="fas fa-sign-in-alt"></i>
-          Sign In
-        </button>
-      </form>
-
-      <div class="login-footer">
-        &copy; <%= new Date().getFullYear() %> BitPlayPro. All rights reserved.
-      </div>
-
     </div>
-  </div>
-
 </body>
 </html>

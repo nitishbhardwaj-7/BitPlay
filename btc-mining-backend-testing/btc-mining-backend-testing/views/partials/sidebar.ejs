@@ -1,225 +1,77 @@
-<!-- ========================================================
-     BitPlayPro Sidebar
-     ======================================================== -->
-<aside class="sidebar" id="mainSidebar">
-
-  <!-- Brand -->
-  <div class="sidebar-brand">
-    <div class="sidebar-logo-mark">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-      </svg>
-    </div>
-    <div class="sidebar-brand-text">
-      <h2>BitPlayPro</h2>
-      <span>Admin Panel</span>
-    </div>
-    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M15 18l-6-6 6-6"/>
-      </svg>
-    </button>
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h3>Bitplaypro</h3>
   </div>
-
-  <!-- Nav -->
-  <nav class="sidebar-nav" role="navigation">
-
-    <!-- Main -->
-    <div class="sidebar-section-label">Main</div>
+  <nav class="sidebar-nav">
     <ul class="sidebar-ul">
       <li class="<%= title === 'Dashboard' ? 'active' : '' %>">
-        <a href="/admin/dashboard" data-label="Dashboard">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-          </svg>
-          <span>Dashboard</span>
-        </a>
+        <a href="/admin/dashboard"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a>
       </li>
       <li class="<%= title === 'Users' ? 'active' : '' %>">
-        <a href="/admin/users" data-label="Users">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          <span>Users</span>
-        </a>
+        <a href="/admin/users"><i class="fas fa-users"></i> <span>Users</span></a>
       </li>
-    </ul>
-
-    <!-- Subscriptions -->
-    <div class="sidebar-section-label">Subscriptions</div>
-    <ul class="sidebar-ul">
       <li class="<%= title === 'Subscription Plans' ? 'active' : '' %>">
-        <a href="/admin/subscriptionplans" data-label="Plans">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-          </svg>
-          <span>Subscription Plans</span>
+        <a href="/admin/subscriptionplans">
+          <i class="fas fa-cubes"></i> <span>Subscription Plans</span>
         </a>
       </li>
       <li class="<%= title === 'User Subscriptions' ? 'active' : '' %>">
-        <a href="/admin/usersubscriptions" data-label="User Subscriptions">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/>
-            <path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
-          </svg>
-          <span>User Subscriptions</span>
+        <a href="/admin/usersubscriptions">
+          <i class="fas fa-cubes"></i> <span>User Subscriptions</span>
         </a>
       </li>
       <li class="<%= title === 'Daily Rewards' ? 'active' : '' %>">
-        <a href="/admin/daily-rewards" data-label="Daily Rewards">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-          </svg>
-          <span>Daily Rewards</span>
+        <a href="/admin/daily-rewards">
+          <i class="fas fa-cubes"></i> <span>Daily Rewards</span>
         </a>
       </li>
-    </ul>
-
-    <!-- Finance -->
-    <div class="sidebar-section-label">Finance</div>
-    <ul class="sidebar-ul">
-      <li class="<%= title === 'Withdrawals' ? 'active' : '' %>">
-        <a href="/admin/withdrawals" data-label="Withdrawals">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23"/>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-          </svg>
-          <span>Withdrawals</span>
-        </a>
+      <li>
+        <a href="/admin/profile"><i class="fas fa-user"></i> <span>Profile</span></a>
       </li>
-      <li class="<%= title === 'Deposit' ? 'active' : '' %>">
-        <a href="/admin/deposit" data-label="Deposit">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 5v14M5 12l7 7 7-7"/>
-          </svg>
-          <span>Deposit</span>
-        </a>
+      <li>
+        <a href="/admin/settings"><i class="fas fa-cog"></i> <span>Settings</span></a>
       </li>
-      <li class="<%= title === 'Games History' ? 'active' : '' %>">
-        <a href="/admin/games-history" data-label="Games History">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
-            <line x1="8" y1="18" x2="21" y2="18"/>
-            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
-            <line x1="3" y1="18" x2="3.01" y2="18"/>
-          </svg>
-          <span>Games History</span>
-        </a>
-      </li>
-    </ul>
-
-    <!-- Support -->
-    <div class="sidebar-section-label">Support</div>
-    <ul class="sidebar-ul">
-      <li class="<%= title === 'Help' ? 'active' : '' %>">
-        <a href="/admin/help" data-label="Help">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-          <span>Help</span>
-        </a>
+      <li>
+        <a href="/admin/help"><i class="fas fa-question-circle"></i> <span>Help</span></a>
       </li>
       <li class="<%= title === 'FAQs' ? 'active' : '' %>">
-        <a href="/admin/faqs" data-label="FAQs">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-          <span>FAQs</span>
+        <a href="/admin/faqs">
+          <i class="fas fa-book-open"></i> <span>FAQs</span>
         </a>
       </li>
-      <li class="<%= title === 'Delete Requests' ? 'active' : '' %>">
-        <a href="/admin/delete_requests" data-label="Delete Requests">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-          </svg>
-          <span>Delete Requests</span>
-        </a>
+      <li>
+        <a href="/admin/withdrawals"><i class="fas fa-money-bill-wave"></i> <span>Withdrawals</span></a>
       </li>
-    </ul>
-
-    <!-- Account -->
-    <div class="sidebar-section-label">Account</div>
-    <ul class="sidebar-ul">
-      <li class="<%= title === 'Profile' ? 'active' : '' %>">
-        <a href="/admin/profile" data-label="Profile">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
-          <span>Profile</span>
-        </a>
+      <li>
+        <a href="/admin/deposit"><i class="fas fa-plus-circle"></i> <span>Deposit</span></a>
       </li>
-      <li class="<%= title === 'Settings' ? 'active' : '' %>">
-        <a href="/admin/settings" data-label="Settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
-            <path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>
-          </svg>
-          <span>Settings</span>
-        </a>
+      <li class="<%= title === 'Games History' ? 'active' : '' %>">
+        <a href="/admin/games-history"><i class="fas fa-gamepad"></i> <span>Games History</span></a>
+      </li>
+      <li>
+        <a href="/admin/delete_requests"><i class="fas fa-delete"></i> <span>Delete Requests</span></a>
       </li>
     </ul>
-
   </nav>
-
-  <!-- Logout -->
   <div class="sidebar-footer">
-    <a href="/admin/logout" data-label="Log Out">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-        <polyline points="16 17 21 12 16 7"/>
-        <line x1="21" y1="12" x2="9" y2="12"/>
-      </svg>
-      <span>Log Out</span>
+    <a href="/admin/logout" class="logout-btn">
+      <i class="fas fa-sign-out-alt"></i> Log Out
     </a>
   </div>
-
 </aside>
 
-<!-- Main content wrapper -->
-<div class="main-content" id="mainContent">
-
-  <!-- Topbar -->
-  <header class="topbar">
-    <button class="topbar-hamburger" id="sidebarHamburger" aria-label="Open menu">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="3" y1="12" x2="21" y2="12"/>
-        <line x1="3" y1="6"  x2="21" y2="6"/>
-        <line x1="3" y1="18" x2="21" y2="18"/>
-      </svg>
-    </button>
-
-    <div class="topbar-breadcrumb">
+<!-- Main Content -->
+<div class="main-content">
+  <header class="header">
+    <div class="header-left">
       <h1><%= title %></h1>
-      <p>BitPlayPro Admin</p>
     </div>
-
-    <div class="topbar-actions">
-      <a href="/admin/help" class="topbar-btn" title="Help">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
-      </a>
-      <div class="topbar-user">
-        <div class="topbar-avatar">
-          <%= (typeof user !== 'undefined' && user) ? user.charAt(0).toUpperCase() : 'A' %>
-        </div>
-        <div>
-          <div class="topbar-user-name"><%= (typeof user !== 'undefined' && user) ? user : 'Admin' %></div>
-          <div class="topbar-user-role">Administrator</div>
-        </div>
+    <div class="header-right">
+      <div class="user-info">
+        <span>Hello, <%= user %>!</span>
+        <i class="fas fa-user-circle user-profile-icon"></i>
       </div>
     </div>
   </header>
-
   <main class="page-content">

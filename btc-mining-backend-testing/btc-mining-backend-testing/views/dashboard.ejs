@@ -1,226 +1,126 @@
 <%- include('partials/header', { title }) %>
-<%- include('partials/sidebar', { title, user }) %>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <%- include('partials/sidebar', { title }) %>
 
-<div class="page-inner">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- KPI Cards -->
-<div class="stats-grid">
+  <div class="main-content">
 
-  <!-- Total Revenue -->
-  <div class="stat-card revenue">
-    <div class="stat-card-header">
-      <div class="stat-card-label">Total Revenue</div>
-      <div class="stat-icon indigo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="1" x2="12" y2="23"/>
-          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-        </svg>
-      </div>
-    </div>
-    <div class="stat-value">$<%= data.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></div>
-    <div class="stat-meta">
-      <% if (data.revenueChange !== null) { %>
-        <span class="stat-change <%= parseFloat(data.revenueChange) >= 0 ? 'positive' : 'negative' %>">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <% if (parseFloat(data.revenueChange) >= 0) { %>
-              <polyline points="18 15 12 9 6 15"/>
+    <main class="page-content">
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card revenue">
+          <div class="stat-info">
+            <h3>Total Revenue <i class="fas fa-dollar-sign cards-icon"></i></h3>
+            <p class="stat-value">$<%= data.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></p>
+            <% if (data.revenueChange !== null) { %>
+              <span class="stat-change <%= parseFloat(data.revenueChange) >= 0 ? 'positive' : 'negative' %>">
+                <%= parseFloat(data.revenueChange) >= 0 ? '+' : '' %><%= data.revenueChange %>% vs last month
+              </span>
             <% } else { %>
-              <polyline points="6 9 12 15 18 9"/>
+              <span class="stat-change">No prior month data</span>
             <% } %>
-          </svg>
-          <%= parseFloat(data.revenueChange) >= 0 ? '+' : '' %><%= data.revenueChange %>%
-        </span>
-        <span class="stat-period">vs last month</span>
-      <% } else { %>
-        <span class="stat-change neutral">No prior data</span>
-      <% } %>
-    </div>
-  </div>
-
-  <!-- Total Users -->
-  <div class="stat-card users">
-    <div class="stat-card-header">
-      <div class="stat-card-label">Total Users</div>
-      <div class="stat-icon green">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-      </div>
-    </div>
-    <div class="stat-value"><%= usersCount.toLocaleString() %></div>
-    <div class="stat-meta">
-      <span class="stat-change positive">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-        <%= users_diff %>
-      </span>
-      <span class="stat-period">since last week</span>
-    </div>
-  </div>
-
-  <!-- Transactions -->
-  <div class="stat-card transactions">
-    <div class="stat-card-header">
-      <div class="stat-card-label">Transactions</div>
-      <div class="stat-icon amber">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="5" width="20" height="14" rx="2"/>
-          <line x1="2" y1="10" x2="22" y2="10"/>
-        </svg>
-      </div>
-    </div>
-    <div class="stat-value"><%= TransactionsCount.toLocaleString() %></div>
-    <div class="stat-meta">
-      <span class="stat-change positive">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-        <%= transactions_diff %>
-      </span>
-      <span class="stat-period">since last week</span>
-    </div>
-  </div>
-
-  <!-- Support Tickets -->
-  <div class="stat-card support">
-    <div class="stat-card-header">
-      <div class="stat-card-label">Support Tickets</div>
-      <div class="stat-icon violet">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
-      </div>
-    </div>
-    <div class="stat-value"><%= supportTicketsCount.toLocaleString() %></div>
-    <div class="stat-meta">
-      <span class="stat-change neutral"><%= supportTicketsDiff %> since last week</span>
-    </div>
-  </div>
-
-</div>
-
-<!-- Revenue Chart -->
-<div class="chart-container">
-  <div class="chart-header">
-    <div>
-      <h3>Revenue Overview</h3>
-      <p>Last 12 months performance</p>
-    </div>
-    <div class="chart-tabs">
-      <button class="chart-tab active">Revenue</button>
-    </div>
-  </div>
-  <canvas id="performanceChart"></canvas>
-</div>
-
-<!-- Recent Activity -->
-<div class="transactions-container">
-  <div class="transactions-header">
-    <h3>Recent Activity</h3>
-  </div>
-  <div class="transactions-list">
-    <% if (recentTransactions.length === 0) { %>
-      <div class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-        <h4>No recent activity</h4>
-        <p>Activity will appear here once purchases or deposits are made</p>
-      </div>
-    <% } else { %>
-      <% recentTransactions.forEach(function(tx) { %>
-        <div class="transaction-item">
-          <div class="transaction-info">
-            <div class="rec-t-main"><%= tx.label %></div>
-            <div class="rec-t-sub"><%= tx.sub %></div>
           </div>
-          <div class="transaction-amount <%= tx.type %>"><%= tx.amount %></div>
         </div>
-      <% }); %>
-    <% } %>
+
+        <div class="stat-card users">
+          <div class="stat-info">
+            <h3>Total Users <i class="fas fa-users cards-icon"></i></h3>
+            <p class="stat-value"><%= usersCount.toLocaleString() %></p>
+            <span class="stat-change positive"><%= users_diff %> since last week</span>
+          </div>
+        </div>
+
+        <div class="stat-card transactions">
+          <div class="stat-info">
+            <h3>Transactions <i class="fas fa-credit-card cards-icon"></i></h3>
+            <p class="stat-value"><%= TransactionsCount.toLocaleString() %></p>
+            <span class="stat-change positive"><%= transactions_diff %> since last week</span>
+          </div>
+        </div>
+
+        <div class="stat-card support">
+          <div class="stat-info">
+            <h3>Support Tickets <i class="fas fa-headset cards-icon"></i></h3>
+            <p class="stat-value"><%= supportTicketsCount.toLocaleString() %></p>
+            <span class="stat-change positive"><%= supportTicketsDiff %> since last week</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance Chart -->
+      <div class="chart-container">
+        <div class="chart-header">
+          <h3>Revenue (Last 12 Months)</h3>
+        </div>
+        <canvas id="performanceChart"></canvas>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="transactions-container">
+        <div class="transactions-header">
+          <h3>Recent Activity</h3>
+        </div>
+        <div class="transactions-list">
+          <% if (recentTransactions.length === 0) { %>
+            <div class="transaction-item">
+              <div class="transaction-info">
+                <h4 class="rec-t-main">No recent transactions</h4>
+                <p class="rec-t-sub">Activity will appear here once purchases or deposits are made</p>
+              </div>
+            </div>
+          <% } else { %>
+            <% recentTransactions.forEach(tx => { %>
+              <div class="transaction-item">
+                <div class="transaction-info">
+                  <h4 class="rec-t-main"><%= tx.label %></h4>
+                  <p class="rec-t-sub"><%= tx.sub %></p>
+                </div>
+                <div class="transaction-amount <%= tx.type %>"><%= tx.amount %></div>
+              </div>
+            <% }) %>
+          <% } %>
+        </div>
+      </div>
+    </main>
   </div>
-</div>
 
-<script>
-(function() {
-  var labels = <%- chartLabels %>;
-  var dataPoints = <%- chartData %>;
-
-  var ctx = document.getElementById('performanceChart');
-  if (!ctx) return;
-
-  var gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 280);
-  gradient.addColorStop(0,   'rgba(99,102,241,0.25)');
-  gradient.addColorStop(1,   'rgba(99,102,241,0.00)');
-
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Revenue ($)',
-        data: dataPoints,
-        borderColor: '#6366F1',
-        backgroundColor: gradient,
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: '#6366F1',
-        pointBorderColor: '#070B14',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      animation: { duration: 600, easing: 'easeOutQuart' },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#121B2F',
-          borderColor: 'rgba(255,255,255,0.10)',
-          borderWidth: 1,
-          titleColor: 'rgba(241,245,249,0.65)',
-          bodyColor: '#F1F5F9',
-          padding: 12,
-          titleFont: { family: 'Inter', size: 12 },
-          bodyFont: { family: 'Inter', size: 14, weight: '700' },
-          callbacks: {
-            label: function(ctx) { return ' $' + ctx.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  <script>
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: <%- chartLabels %>,
+        datasets: [{
+          label: 'Revenue ($)',
+          data: <%- chartData %>,
+          borderColor: '#8B5CF6',
+          backgroundColor: 'rgba(139, 92, 246, 0.1)',
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        layout: { padding: { bottom: 30 } },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+            ticks: {
+              color: '#9CA3AF',
+              callback: (v) => '$' + v.toLocaleString()
+            }
+          },
+          x: {
+            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+            ticks: { color: '#9CA3AF' }
           }
         }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-          ticks: {
-            color: 'rgba(241,245,249,0.40)',
-            font: { family: 'Inter', size: 12 },
-            callback: function(v) { return '$' + v.toLocaleString(); }
-          },
-          border: { display: false }
-        },
-        x: {
-          grid: { display: false },
-          ticks: {
-            color: 'rgba(241,245,249,0.40)',
-            font: { family: 'Inter', size: 12 }
-          },
-          border: { display: false }
-        }
       }
-    }
-  });
-})();
-</script>
-
-</div><!-- /.page-inner -->
+    });
+  </script>
 
 <%- include('partials/footer') %>

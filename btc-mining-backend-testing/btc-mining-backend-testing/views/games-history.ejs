@@ -1,67 +1,82 @@
-<%- include('partials/header', { title: 'Games History' }) %>
-<%- include('partials/sidebar', { title: 'Games History', user }) %>
-
-<div class="page-inner">
-
-  <!-- Page Hero -->
-  <div class="page-hero">
-    <div class="page-hero-text">
-      <h1>Games History</h1>
-      <p>View all user game sessions and outcomes</p>
-    </div>
-    <div class="page-hero-actions">
-      <a href="/admin/games-history/export" class="btn btn-secondary">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Export CSV
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - Admin Panel</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+  <style>
+    .filter-bar { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+    .filter-bar select, .filter-bar input { padding:8px 12px; border-radius:6px; border:1px solid #ddd; font-size:14px; }
+    .stats-row { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+    .stat-card { background:#fff; border-radius:8px; padding:16px 24px; box-shadow:0 1px 4px rgba(0,0,0,.08); flex:1; min-width:140px; }
+    .stat-card .num { font-size:28px; font-weight:700; color:#4f46e5; }
+    .stat-card .lbl { font-size:12px; color:#6b7280; margin-top:4px; }
+    .badge-win { background:#d1fae5; color:#065f46; padding:2px 8px; border-radius:12px; font-size:12px; }
+    .badge-lose { background:#fee2e2; color:#991b1b; padding:2px 8px; border-radius:12px; font-size:12px; }
+    .badge-complete { background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:12px; font-size:12px; }
+    table { width:100%; border-collapse:collapse; }
+    th { background:#f9fafb; font-size:12px; text-transform:uppercase; color:#6b7280; padding:10px 14px; text-align:left; border-bottom:1px solid #e5e7eb; }
+    td { padding:10px 14px; border-bottom:1px solid #f3f4f6; font-size:14px; }
+    tr:hover td { background:#fafafa; }
+    .pagination { display:flex; gap:8px; justify-content:center; margin-top:20px; }
+    .pagination a { padding:6px 12px; border:1px solid #ddd; border-radius:6px; text-decoration:none; color:#374151; font-size:13px; }
+    .pagination a.active { background:#4f46e5; color:#fff; border-color:#4f46e5; }
+  </style>
+</head>
+<body>
+<div class="admin-container">
+  <%- include('partials/sidebar') %>
+  <main class="main-content">
+    <div class="content-header">
+      <h1><i class="fas fa-gamepad"></i> Games History</h1>
+      <a href="/admin/games-history/export" class="btn btn-sm" style="background:#4f46e5;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:13px;">
+        <i class="fas fa-download"></i> Export CSV
       </a>
     </div>
-  </div>
 
-  <!-- KPI Cards -->
-  <div class="stats-grid" style="margin-bottom:24px">
-    <div class="stat-card">
-      <div class="stat-card-label" style="margin-bottom:12px">Total Sessions</div>
-      <div class="stat-value" style="font-size:28px"><%= totalSessions %></div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="num"><%= totalSessions %></div>
+        <div class="lbl">Total Sessions</div>
+      </div>
+      <div class="stat-card">
+        <div class="num"><%= uniquePlayers %></div>
+        <div class="lbl">Unique Players</div>
+      </div>
+      <div class="stat-card">
+        <div class="num"><%= todaySessions %></div>
+        <div class="lbl">Today</div>
+      </div>
+      <div class="stat-card">
+        <div class="num"><%= mostPlayedGame %></div>
+        <div class="lbl">Most Played</div>
+      </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-card-label" style="margin-bottom:12px">Unique Players</div>
-      <div class="stat-value" style="font-size:28px"><%= uniquePlayers %></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-card-label" style="margin-bottom:12px">Today</div>
-      <div class="stat-value" style="font-size:28px"><%= todaySessions %></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-card-label" style="margin-bottom:12px">Most Played</div>
-      <div class="stat-value" style="font-size:18px;letter-spacing:-0.5px"><%= mostPlayedGame %></div>
-    </div>
-  </div>
 
-  <!-- Filters -->
-  <div class="data-card" style="margin-bottom:16px;padding:16px 20px">
-    <form method="GET" action="/admin/games-history" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <select name="gameName" class="form-select" style="max-width:200px" onchange="this.form.submit()">
-        <option value="">All Games</option>
-        <% games.forEach(function(g) { %>
-          <option value="<%= g %>" <%= selectedGame === g ? 'selected' : '' %>><%= g %></option>
-        <% }); %>
-      </select>
-      <select name="result" class="form-select" style="max-width:160px" onchange="this.form.submit()">
-        <option value="">All Results</option>
-        <option value="win"      <%= selectedResult === 'win'      ? 'selected' : '' %>>Win</option>
-        <option value="lose"     <%= selectedResult === 'lose'     ? 'selected' : '' %>>Lose</option>
-        <option value="complete" <%= selectedResult === 'complete' ? 'selected' : '' %>>Complete</option>
-      </select>
-      <input type="text" name="userId" class="form-control" style="max-width:200px" placeholder="Search User ID…" value="<%= selectedUser %>" />
-      <button type="submit" class="btn btn-primary">Filter</button>
-      <a href="/admin/games-history" class="btn btn-ghost">Reset</a>
-    </form>
-  </div>
+    <div class="filter-bar">
+      <form method="GET" action="/admin/games-history" style="display:flex;gap:12px;flex-wrap:wrap;">
+        <select name="gameName" onchange="this.form.submit()">
+          <option value="">All Games</option>
+          <% games.forEach(g => { %>
+            <option value="<%= g %>" <%= selectedGame === g ? 'selected' : '' %>><%= g %></option>
+          <% }); %>
+        </select>
+        <select name="result" onchange="this.form.submit()">
+          <option value="">All Results</option>
+          <option value="win" <%= selectedResult === 'win' ? 'selected' : '' %>>Win</option>
+          <option value="lose" <%= selectedResult === 'lose' ? 'selected' : '' %>>Lose</option>
+          <option value="complete" <%= selectedResult === 'complete' ? 'selected' : '' %>>Complete</option>
+        </select>
+        <input type="text" name="userId" placeholder="Search User ID..." value="<%= selectedUser %>" />
+        <button type="submit" class="btn" style="background:#4f46e5;color:#fff;padding:8px 16px;border-radius:6px;border:none;cursor:pointer;font-size:13px;">Filter</button>
+        <a href="/admin/games-history" style="padding:8px 16px;border:1px solid #ddd;border-radius:6px;text-decoration:none;color:#374151;font-size:13px;">Reset</a>
+      </form>
+    </div>
 
-  <!-- Table -->
-  <div class="data-card">
-    <div class="table-wrapper">
-      <table class="table table-hover align-middle">
+    <div class="card">
+      <table>
         <thead>
           <tr>
             <th>#</th>
@@ -76,49 +91,40 @@
         </thead>
         <tbody>
           <% if (sessions.length === 0) { %>
-            <tr><td colspan="8">
-              <div class="empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                <h4>No sessions found</h4>
-                <p>No game sessions match your current filters</p>
-              </div>
-            </td></tr>
+            <tr><td colspan="8" style="text-align:center;color:#9ca3af;padding:32px;">No game sessions recorded yet.</td></tr>
           <% } %>
-          <% sessions.forEach(function(s, i) { %>
+          <% sessions.forEach((s, i) => { %>
             <tr>
-              <td style="color:var(--text-faint);font-size:12px"><%= (page - 1) * limit + i + 1 %></td>
-              <td style="font-family:monospace;font-size:12px;color:var(--text-faint)"><%= s.userId %></td>
-              <td><span class="badge bg-primary"><%= s.gameName %></span></td>
-              <td style="font-weight:600"><%= s.score.toLocaleString() %></td>
+              <td style="color:#9ca3af;"><%= (page - 1) * limit + i + 1 %></td>
+              <td style="font-family:monospace;font-size:12px;"><%= s.userId %></td>
+              <td><strong><%= s.gameName %></strong></td>
+              <td><%= s.score.toLocaleString() %></td>
               <td>
-                <% if (s.result === 'win') { %>
-                  <span class="badge bg-success">Win</span>
-                <% } else if (s.result === 'lose') { %>
-                  <span class="badge bg-danger">Lose</span>
-                <% } else { %>
-                  <span class="badge bg-primary">Complete</span>
-                <% } %>
+                <% if (s.result === 'win') { %><span class="badge-win">Win</span>
+                <% } else if (s.result === 'lose') { %><span class="badge-lose">Lose</span>
+                <% } else { %><span class="badge-complete">Complete</span><% } %>
               </td>
-              <td style="color:var(--text-muted)"><%= s.durationSeconds %>s</td>
-              <td style="color:var(--text-faint)">#<%= s.roundNumber %></td>
-              <td style="white-space:nowrap;color:var(--text-faint);font-size:12px"><%= new Date(s.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %></td>
+              <td><%= s.durationSeconds %>s</td>
+              <td>#<%= s.roundNumber %></td>
+              <td style="color:#6b7280;font-size:12px;"><%= new Date(s.createdAt).toLocaleString() %></td>
             </tr>
           <% }); %>
         </tbody>
       </table>
-    </div>
 
-    <div class="pag-bar">
-      <% if (page > 1) { %>
-        <a href="?page=<%= page - 1 %>&gameName=<%= selectedGame %>&result=<%= selectedResult %>&userId=<%= selectedUser %>" class="btn btn-secondary btn-sm">&larr; Prev</a>
-      <% } %>
-      <span class="pag-info">Page <%= page %> of <%= totalPages %></span>
-      <% if (page < totalPages) { %>
-        <a href="?page=<%= page + 1 %>&gameName=<%= selectedGame %>&result=<%= selectedResult %>&userId=<%= selectedUser %>" class="btn btn-secondary btn-sm">Next &rarr;</a>
-      <% } %>
+      <div class="pagination">
+        <% if (page > 1) { %>
+          <a href="?page=<%= page - 1 %>&gameName=<%= selectedGame %>&result=<%= selectedResult %>&userId=<%= selectedUser %>">&laquo; Prev</a>
+        <% } %>
+        <% for (let p = Math.max(1, page - 2); p <= Math.min(totalPages, page + 2); p++) { %>
+          <a href="?page=<%= p %>&gameName=<%= selectedGame %>&result=<%= selectedResult %>&userId=<%= selectedUser %>" class="<%= p === page ? 'active' : '' %>"><%= p %></a>
+        <% } %>
+        <% if (page < totalPages) { %>
+          <a href="?page=<%= page + 1 %>&gameName=<%= selectedGame %>&result=<%= selectedResult %>&userId=<%= selectedUser %>">Next &raquo;</a>
+        <% } %>
+      </div>
     </div>
-  </div>
-
+  </main>
 </div>
-
-<%- include('partials/footer') %>
+</body>
+</html>

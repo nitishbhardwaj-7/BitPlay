@@ -1,66 +1,62 @@
 <%- include('partials/header', { title }) %>
-<%- include('partials/sidebar', { title, user }) %>
+<%- include('partials/sidebar', { user }) %>
 
-<div class="page-inner">
+<div class="main-content">
 
-  <div id="loading" style="display:none;color:var(--text-faint);font-size:13px;margin-bottom:12px">Searching…</div>
+    <div id="loading" style="display: none;">Searching...</div>
 
-  <!-- Page Hero -->
-  <div class="page-hero">
-    <div class="page-hero-text">
-      <h1>Delete Requests</h1>
-      <p>User account deletion requests requiring review</p>
-    </div>
-    <div class="page-hero-actions">
-      <div class="search-bar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="requestSearch" placeholder="Search by email…" value="<%= query || '' %>" />
-      </div>
-    </div>
-  </div>
+    <div class="card-container">
+        <div class="cards">
+            <div class="card-header d-flex align-items-center">
+                <h2>Delete Requests</h2>
 
-  <div class="data-card">
-    <div class="table-wrapper" id="requestsTableContainer">
-      <table class="table table-hover align-middle">
-        <thead>
-          <tr>
-            <th style="width:48px">#</th>
-            <th>User Email</th>
-            <th>Reason</th>
-            <th>Created At</th>
-          </tr>
-        </thead>
-        <tbody id="requestsTbody">
-          <% deleteRequests.forEach((reqItem, index) => { %>
-            <tr data-id="<%= reqItem._id %>">
-              <td style="color:var(--text-faint);font-size:12px"><%= (page - 1) * limit + index + 1 %></td>
-              <td style="font-weight:600;color:var(--text)"><%= reqItem.user ? reqItem.user.email : 'N/A' %></td>
-              <td style="color:var(--text-faint)"><%= reqItem.reason %></td>
-              <td style="white-space:nowrap;color:var(--text-faint);font-size:12px"><%= new Date(reqItem.createdAt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}) %></td>
-            </tr>
-          <% }) %>
-          <% if (deleteRequests.length === 0) { %>
-            <tr><td colspan="4">
-              <div class="empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                <h4>No delete requests</h4>
-                <p>There are currently no pending account deletion requests</p>
-              </div>
-            </td></tr>
-          <% } %>
-        </tbody>
-      </table>
+                <div class="right-aligned-tableheader">
+                    <input
+                        type="text"
+                        id="requestSearch"
+                        class="form-control"
+                        placeholder="Search by email..."
+                        value="<%= query || '' %>"
+                        style="max-width: 250px;"
+                    />
+                </div>
+            </div>
+
+            <div class="table-responsive data-table" id="requestsTableContainer">
+                <table class="table table-striped table-hover table-bordered align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>User Email</th>
+                            <th>Reason</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requestsTbody">
+                        <% deleteRequests.forEach((reqItem, index) => { %>
+                            <tr data-id="<%= reqItem._id %>">
+                                <td><%= (page - 1) * limit + index + 1 %></td>
+                                <td><%= reqItem.user ? reqItem.user.email : 'N/A' %></td>
+                                <td><%= reqItem.reason %></td>
+                                <td><%= new Date(reqItem.createdAt).toLocaleString() %></td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination mt-3">
+                <% if (page > 1) { %>
+                    <a href="?page=<%= page - 1 %><%= query ? '&q=' + encodeURIComponent(query) : '' %>" class="btn btn-outline-primary me-2">&laquo; Prev</a>
+                <% } %>
+                <span>Page <%= page %></span>
+                <% if (deleteRequests.length === limit) { %>
+                    <a href="?page=<%= page + 1 %><%= query ? '&q=' + encodeURIComponent(query) : '' %>" class="btn btn-outline-primary ms-2">Next &raquo;</a>
+                <% } %>
+            </div>
+        </div>
     </div>
-    <div class="pag-bar">
-      <% if (page > 1) { %>
-        <a href="?page=<%= page - 1 %><%= query ? '&q=' + encodeURIComponent(query) : '' %>" class="btn btn-secondary btn-sm">&larr; Prev</a>
-      <% } %>
-      <span class="pag-info">Page <%= page %></span>
-      <% if (deleteRequests.length === limit) { %>
-        <a href="?page=<%= page + 1 %><%= query ? '&q=' + encodeURIComponent(query) : '' %>" class="btn btn-secondary btn-sm">Next &rarr;</a>
-      <% } %>
-    </div>
-  </div>
 
     <script>
         const searchInput = document.getElementById('requestSearch');
@@ -107,7 +103,5 @@
             }, 300);
         });
     </script>
-
-</div><!-- /.page-inner -->
 
 <%- include('partials/footer') %>
