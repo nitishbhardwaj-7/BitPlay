@@ -1621,7 +1621,10 @@ const Page: React.FC = () => {
                   {isLoading ? (
                     <Text style={styles.balanceAmount}>Loading...</Text>
                   ) : (
-                    <OdometerCounter value={totalBtc} />
+                    <>
+                      <OdometerCounter value={totalBtc} />
+                      <Text style={styles.detailSubtitle}>Your total balance — safe, never resets</Text>
+                    </>
                   )}
                 </View>
               </View>
@@ -1667,7 +1670,7 @@ const Page: React.FC = () => {
               <Text style={styles.detailSubtitle}>
                 {previousDayEarnings > 0
                   ? 'Previous Day Earnings'
-                  : 'Past Accumulated'}
+                  : 'Saved Balance (Safe)'}
               </Text>
             </View>
 
