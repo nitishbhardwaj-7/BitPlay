@@ -273,6 +273,12 @@ const Page: React.FC = () => {
   const [userBalance, setUserWalletBalance] = useState(0);
   const [userBalanceBTC, setUserBTCWalletBalance] = useState(0); // Past accumulated mining (BTC_DEPOSIT)
   const [totalHistoricalBTC, setTotalHistoricalBTC] = useState(0); // Sum from Balance History
+  const [showBalanceHint, setShowBalanceHint] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowBalanceHint(false), 7000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const { hashPower, setHashPower, addHashPower, resetHashPower, purchasedHashpowerGh, setPurchasedHashpowerGh, setIsMiningActive } =
     useHashPower();
@@ -1623,7 +1629,9 @@ const Page: React.FC = () => {
                   ) : (
                     <>
                       <OdometerCounter value={totalBtc} />
-                      <Text style={styles.detailSubtitle}>Your total balance — safe, never resets</Text>
+                      {showBalanceHint && (
+                        <Text style={styles.detailSubtitle}>Your total balance — never resets</Text>
+                      )}
                     </>
                   )}
                 </View>
@@ -1670,7 +1678,7 @@ const Page: React.FC = () => {
               <Text style={styles.detailSubtitle}>
                 {previousDayEarnings > 0
                   ? 'Previous Day Earnings'
-                  : 'Saved Balance (Safe)'}
+                  : 'Saved Balance'}
               </Text>
             </View>
 
@@ -2635,6 +2643,7 @@ const Page: React.FC = () => {
                 requestNonPersonalizedAdsOnly: true,
               }}
               onAdFailedToLoad={(error) => {
+                console.warn('[HomeScreen] Banner ad failed to load:', error);
               }}
               onAllFailed={() => setBannerAdError(true)}
             />
