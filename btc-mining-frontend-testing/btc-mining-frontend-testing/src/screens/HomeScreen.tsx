@@ -1770,6 +1770,11 @@ const Page: React.FC = () => {
                   You reached max mining power ({MAX_FREE_USER_TOTAL_HASHPOWER_GH} Gh/s) for free users.
                 </Text>
               )}
+              {!isFreeUserCapReached && totalMiningPower <= 0 && !isMiningEnabled && (
+                <Text style={styles.maxMiningReachedLabel} numberOfLines={2}>
+                  Your BTC from yesterday is saved — claim your daily reward and activate mining to keep earning.
+                </Text>
+              )}
               {/* {stockGameBonus > 0 && (
                 <Text style={styles.stockGameBonusLabel} numberOfLines={2}>
                   +{stockGameBonus.toFixed(1)} GH/s total bonus from all games
