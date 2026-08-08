@@ -422,6 +422,14 @@ export default function TradingScreen() {
     direction: Direction;
   } | null>(null);
   const [bannerError, setBannerError] = useState(false);
+
+  // A single failed request shouldn't permanently switch to the house ad —
+  // retry AdMob periodically so we recover once it starts filling again.
+  useEffect(() => {
+    if (!bannerError) return;
+    const timer = setTimeout(() => setBannerError(false), 60000);
+    return () => clearTimeout(timer);
+  }, [bannerError]);
   const [rewardHistory, setRewardHistory] = useState<RewardHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [, bumpRender] = useState(0);

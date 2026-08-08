@@ -262,6 +262,14 @@ const SpinAndWinScreen: React.FC = () => {
   const [spinHistory, setSpinHistory] = useState<SpinHistoryItem[]>([]);
   const [bannerAdError, setBannerAdError] = useState(false);
 
+  // A single failed request shouldn't permanently switch to the house ad —
+  // retry AdMob periodically so we recover once it starts filling again.
+  useEffect(() => {
+    if (!bannerAdError) return;
+    const timer = setTimeout(() => setBannerAdError(false), 60000);
+    return () => clearTimeout(timer);
+  }, [bannerAdError]);
+
   const spinAnim = useRef(new Animated.Value(0)).current;
   const rotationRef = useRef(0);
   const pendingWinGh = useRef<number | null>(null);

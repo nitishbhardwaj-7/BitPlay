@@ -215,6 +215,14 @@ const Page: React.FC = () => {
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [bannerAdError, setBannerAdError] = useState(false);
 
+  // A single failed request shouldn't permanently switch to the house ad —
+  // retry AdMob periodically so we recover once it starts filling again.
+  useEffect(() => {
+    if (!bannerAdError) return;
+    const timer = setTimeout(() => setBannerAdError(false), 60000);
+    return () => clearTimeout(timer);
+  }, [bannerAdError]);
+
   // Start as false so we don't assume notifications are on until we've checked.
   // Otherwise users with notifications off can start mining without ever seeing the alert.
   const [isNotificationEnabled, setIsNotificationEnabled] = useState(false);
