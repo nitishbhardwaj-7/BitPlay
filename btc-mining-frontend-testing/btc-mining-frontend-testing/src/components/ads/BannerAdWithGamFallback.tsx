@@ -38,6 +38,7 @@ export function BannerAdWithGamFallback({
           requestOptions={requestOptions}
           onAdLoaded={() => setAdState('loaded')}
           onAdFailedToLoad={(error) => {
+            console.warn(`[BannerAd] Failed to load unitId=${primaryUnitId}: code=${(error as any)?.code} message=${error?.message}`);
             setAdState('failed');
             onAdFailedToLoad?.(error);
             onAllFailed?.(error);

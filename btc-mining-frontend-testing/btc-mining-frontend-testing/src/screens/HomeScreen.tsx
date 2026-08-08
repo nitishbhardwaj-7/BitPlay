@@ -281,6 +281,12 @@ const Page: React.FC = () => {
   const [userBalance, setUserWalletBalance] = useState(0);
   const [userBalanceBTC, setUserBTCWalletBalance] = useState(0); // Past accumulated mining (BTC_DEPOSIT)
   const [totalHistoricalBTC, setTotalHistoricalBTC] = useState(0); // Sum from Balance History
+  const [showBalanceHint, setShowBalanceHint] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowBalanceHint(false), 7000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const { hashPower, setHashPower, addHashPower, resetHashPower, purchasedHashpowerGh, setPurchasedHashpowerGh, setIsMiningActive } =
     useHashPower();
@@ -1629,7 +1635,12 @@ const Page: React.FC = () => {
                   {isLoading ? (
                     <Text style={styles.balanceAmount}>Loading...</Text>
                   ) : (
-                    <OdometerCounter value={totalBtc} />
+                    <>
+                      <OdometerCounter value={totalBtc} />
+                      {showBalanceHint && (
+                        <Text style={styles.detailSubtitle}>Your total balance — never resets</Text>
+                      )}
+                    </>
                   )}
                 </View>
               </View>
@@ -1675,7 +1686,7 @@ const Page: React.FC = () => {
               <Text style={styles.detailSubtitle}>
                 {previousDayEarnings > 0
                   ? 'Previous Day Earnings'
-                  : 'Past Accumulated'}
+                  : 'Saved Balance'}
               </Text>
             </View>
 
@@ -1776,6 +1787,11 @@ const Page: React.FC = () => {
               {isFreeUserCapReached && (
                 <Text style={styles.maxMiningReachedLabel} numberOfLines={2}>
                   You reached max mining power ({MAX_FREE_USER_TOTAL_HASHPOWER_GH} Gh/s) for free users.
+                </Text>
+              )}
+              {!isFreeUserCapReached && totalMiningPower <= 0 && !isMiningEnabled && (
+                <Text style={styles.maxMiningReachedLabel} numberOfLines={2}>
+                  Your BTC from yesterday is saved — claim your daily reward and activate mining to keep earning.
                 </Text>
               )}
               {/* {stockGameBonus > 0 && (
@@ -2635,6 +2651,7 @@ const Page: React.FC = () => {
                 requestNonPersonalizedAdsOnly: true,
               }}
               onAdFailedToLoad={(error) => {
+                console.warn('[HomeScreen] Banner ad failed to load:', error);
               }}
               onAllFailed={() => setBannerAdError(true)}
             />
