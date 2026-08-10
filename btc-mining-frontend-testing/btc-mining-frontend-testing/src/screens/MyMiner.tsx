@@ -402,9 +402,6 @@ const MyMiner = () => {
         <BannerAdWithGamFallback
           primaryUnitId={ads.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID}
           size={BannerAdSize.FULL_BANNER}
-          requestOptions={{
-            requestNonPersonalizedAdsOnly: true,
-          }}
         />
       </View>
     </View>

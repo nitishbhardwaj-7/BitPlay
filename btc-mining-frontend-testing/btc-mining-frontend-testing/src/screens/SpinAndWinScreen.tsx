@@ -556,7 +556,6 @@ const SpinAndWinScreen: React.FC = () => {
         <BannerAdWithGamFallback
           primaryUnitId={ads.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID}
           size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
         />
         <View style={styles.screenBody}>
           {isMiningActive === false && (
@@ -817,7 +816,6 @@ const SpinAndWinScreen: React.FC = () => {
                 <BannerAdWithGamFallback
                   primaryUnitId={ads.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID}
                   size={BannerAdSize.ADAPTIVE_BANNER}
-                  requestOptions={{ requestNonPersonalizedAdsOnly: true }}
                   onAllFailed={() => setBannerAdError(true)}
                 />
               )}

@@ -175,7 +175,6 @@ const DailyRewardsScreen = () => {
       <BannerAdWithGamFallback
         primaryUnitId={ads?.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-        requestOptions={{ requestNonPersonalizedAdsOnly: true }}
       />
       {/* Top Bar */}
       <View style={styles.topBar}>
@@ -227,7 +226,6 @@ const DailyRewardsScreen = () => {
       <BannerAdWithGamFallback
         primaryUnitId={ads?.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-        requestOptions={{ requestNonPersonalizedAdsOnly: true }}
       />
 
       {/* Claim Popup with Lottie */}

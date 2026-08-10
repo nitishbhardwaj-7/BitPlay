@@ -2647,9 +2647,6 @@ const Page: React.FC = () => {
             <BannerAdWithGamFallback
               primaryUnitId={ads.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID}
               size={BannerAdSize.ADAPTIVE_BANNER}
-              requestOptions={{
-                requestNonPersonalizedAdsOnly: true,
-              }}
               onAdFailedToLoad={(error) => {
                 console.warn('[HomeScreen] Banner ad failed to load:', error);
               }}

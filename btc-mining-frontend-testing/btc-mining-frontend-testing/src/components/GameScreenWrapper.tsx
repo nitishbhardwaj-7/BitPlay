@@ -62,7 +62,6 @@ export default function GameScreenWrapper({
           <BannerAdWithGamFallback
             primaryUnitId={DEFAULT_ADMOB_BANNER_ID}
             size={BannerAdSize.BANNER}
-            requestOptions={{ requestNonPersonalizedAdsOnly: true }}
           />
         </View>
 
@@ -87,7 +86,6 @@ export default function GameScreenWrapper({
           <BannerAdWithGamFallback
             primaryUnitId={DEFAULT_ADMOB_BANNER_ID}
             size={BannerAdSize.ADAPTIVE_BANNER}
-            requestOptions={{ requestNonPersonalizedAdsOnly: true }}
           />
         </View>
       </SafeAreaView>

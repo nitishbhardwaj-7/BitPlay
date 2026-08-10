@@ -13,7 +13,11 @@ export type BannerAdWithGamFallbackProps = {
 export function BannerAdWithGamFallback({
   primaryUnitId,
   size,
-  requestOptions = { requestNonPersonalizedAdsOnly: true },
+  // No forced NPA-only default — once AdsConsent.gatherConsent() (App.tsx) has
+  // run, the SDK reads the on-device TCF consent signal automatically and
+  // requests personalized ads where the user/region allows it. Only pass
+  // requestOptions explicitly if you need to force a specific behavior.
+  requestOptions,
   onAdFailedToLoad,
   onAllFailed,
 }: BannerAdWithGamFallbackProps) {

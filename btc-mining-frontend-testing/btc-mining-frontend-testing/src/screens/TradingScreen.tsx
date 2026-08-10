@@ -1076,7 +1076,6 @@ export default function TradingScreen() {
               <BannerAdWithGamFallback
                 primaryUnitId={ads.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID}
                 size={BannerAdSize.ADAPTIVE_BANNER}
-                requestOptions={{ requestNonPersonalizedAdsOnly: true }}
                 onAllFailed={() => setBannerError(true)}
               />
             )}
