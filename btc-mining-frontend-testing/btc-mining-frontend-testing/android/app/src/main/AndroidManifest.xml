@@ -71,7 +71,7 @@
         <!-- Google Mobile Ads -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3104867990912654~8146280682"
+            android:value="ca-app-pub-9138199693214957~9953363636"
             tools:replace="android:value" />
 
         <!-- Facebook Login -->
