@@ -1104,6 +1104,10 @@ const Page: React.FC = () => {
   }, []);
 
   const lastFetchRef = useRef<number>(0);
+  // Only the very first load should blank the screen with the full-page
+  // loader. Refocus refetches (e.g. switching tabs and back) update data
+  // silently in the background so navigation doesn't feel like a reload.
+  const hasLoadedOnceRef = useRef(false);
 
 
   useFocusEffect(
@@ -1117,8 +1121,10 @@ const Page: React.FC = () => {
         const now = Date.now();
         if (now - lastFetchRef.current < 30_000) return;
         lastFetchRef.current = now;
+        const isFirstLoad = !hasLoadedOnceRef.current;
+        hasLoadedOnceRef.current = true;
         try {
-          setIsLoading(true);
+          if (isFirstLoad) setIsLoading(true);
           await logToFile('Home focused - reloading data');
           const local_time = formatMiningLocalTimeForApi(new Date());
           const [balanceRes, userRes, txnsRes, refRes, referralRewardsRes] = await Promise.all([
