@@ -526,36 +526,42 @@ export function trackViewItemList(listName: string, itemCount: number): void {
   safeTrack(event);
 }
 
-/** Fire when a user views a specific product/plan — fires VIEW_ITEM + PRODUCT_VIEW predefined IDs. */
+/**
+ * Fire when a user views a specific product/plan — fires VIEW_ITEM + PRODUCT_VIEW predefined IDs.
+ * No revenue/currency attached — viewing isn't buying. Real revenue is only recorded in
+ * trackCheckoutCompleted, after a purchase actually succeeds.
+ */
 export function trackViewItem(itemId: string, itemName: string, price: number, currency: string = 'USD'): void {
   [EVENTS.VIEW_ITEM, EVENTS.PRODUCT_VIEW].forEach(id => {
     const event = new ApptroveEvent(id);
     event.param1 = itemId;
     event.param2 = itemName;
-    event.revenue = price;
-    event.currency = currency;
     safeTrack(event);
   });
 }
 
-/** Fire when a user selects/taps a specific product/plan. param1 = item_id, param2 = item_name. */
+/**
+ * Fire when a user selects/taps a specific product/plan. param1 = item_id, param2 = item_name.
+ * No revenue/currency attached — selecting isn't buying. Real revenue is only recorded in
+ * trackCheckoutCompleted, after a purchase actually succeeds.
+ */
 export function trackSelectItem(itemId: string, itemName: string, price: number, currency: string = 'USD'): void {
   const event = new ApptroveEvent(EVENTS.SELECT_ITEM);
   event.param1 = itemId;
   event.param2 = itemName;
-  event.revenue = price;
-  event.currency = currency;
   safeTrack(event);
 }
 
-/** Fire when a user initiates checkout/purchase — fires BEGIN_CHECKOUT + CHECKOUT_STARTED predefined IDs. */
+/**
+ * Fire when a user initiates checkout/purchase — fires BEGIN_CHECKOUT + CHECKOUT_STARTED predefined IDs.
+ * No revenue/currency attached — opening the buy sheet isn't a completed sale (payment can still
+ * fail or be cancelled). Real revenue is only recorded in trackCheckoutCompleted.
+ */
 export function trackBeginCheckout(itemId: string, itemName: string, price: number, currency: string = 'USD'): void {
   [EVENTS.BEGIN_CHECKOUT, EVENTS.CHECKOUT_STARTED].forEach(id => {
     const event = new ApptroveEvent(id);
     event.param1 = itemId;
     event.param2 = itemName;
-    event.revenue = price;
-    event.currency = currency;
     safeTrack(event);
   });
 }
