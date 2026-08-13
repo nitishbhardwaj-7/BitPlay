@@ -11,7 +11,6 @@ import {
   ImageBackground,
   Modal,
   Linking,
-  Image,
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import LinearGradient from 'react-native-linear-gradient';
@@ -20,8 +19,9 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../components/types';
 import { useAuth } from '../auth/AuthProvider';
-import { get_data_uri, API_BASE_URL } from '../config/api';
+import { get_data_uri } from '../config/api';
 import InviteFriendsModal from '../components/InviteFriendsModal';
+import InitialsAvatar from '../components/InitialsAvatar';
 import { formatMiningLocalTimeForApi } from '../utils/miningTime';
 
 function getDeviceIanaTimezone(): string | null {
@@ -159,21 +159,7 @@ const MyProfileScreen = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Profile Avatar + ID Section */}
         <View style={styles.avatarSection}>
-          <TouchableOpacity onPress={() => navigation.navigate('MyProfileEditScreen' as any)} activeOpacity={0.85}>
-            {user?.profileImage ? (
-              <Image
-                source={{ uri: `${API_BASE_URL.replace('/mobile_api', '')}${user.profileImage}` }}
-                style={styles.avatarImage}
-              />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Icon name="account" size={44} color="#22D3EE" />
-              </View>
-            )}
-            <View style={styles.avatarEditBadge}>
-              <Icon name="pencil" size={12} color="#fff" />
-            </View>
-          </TouchableOpacity>
+          <InitialsAvatar name={user?.name} size={90} />
         </View>
 
         {/* ID Section - No Background Box */}
@@ -415,36 +401,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 4,
     zIndex: 1,
-  },
-  avatarImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 3,
-    borderColor: '#22D3EE',
-  },
-  avatarPlaceholder: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#1a2942',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#22D3EE',
-  },
-  avatarEditBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#22D3EE',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#0A1628',
   },
   idSection: {
     flexDirection: 'row',

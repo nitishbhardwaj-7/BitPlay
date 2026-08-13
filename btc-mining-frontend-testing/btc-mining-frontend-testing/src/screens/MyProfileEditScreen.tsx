@@ -13,23 +13,19 @@ import {
   ActivityIndicator,
   useColorScheme,
   KeyboardAvoidingView,
-  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../components/types';
 import { Picker } from '@react-native-picker/picker';
-import { apiRequest, API_ENDPOINTS, get_data_uri, getMobileSecurityHeaders, API_BASE_URL, SERVER_BASE_URL } from '../config/api';
+import { apiRequest, API_ENDPOINTS } from '../config/api';
 import { getSession } from '../auth/auth';
 import { useAuth } from '../auth/AuthProvider';
-import { launchImageLibrary } from 'react-native-image-picker';
 import { trackProfileUpdate } from '../services/apptroveAnalytics';
+import InitialsAvatar from '../components/InitialsAvatar';
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'MyProfileEditScreen'>;
-
-// Profile image endpoint lives on /api (direct, not via /mobile_api proxy)
-const PROFILE_IMAGE_UPLOAD_URL = `${SERVER_BASE_URL}/api/profile-image/upload`;
 
 const MyProfileEditScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -40,8 +36,6 @@ const MyProfileEditScreen = () => {
   const [hasChanges, setHasChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -86,63 +80,11 @@ const MyProfileEditScreen = () => {
         };
         setFormData(userData);
         setOriginalData(userData);
-        if (response.user.profileImage) {
-          const serverBase = API_BASE_URL.replace('/mobile_api', '');
-          setProfileImageUri(`${serverBase}${response.user.profileImage}`);
-        }
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to load profile data');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handlePickImage = async () => {
-    launchImageLibrary(
-      { mediaType: 'photo', quality: 0.8, maxWidth: 800, maxHeight: 800 },
-      async (response) => {
-        if (response.didCancel || response.errorCode) return;
-        const asset = response.assets?.[0];
-        if (!asset?.uri) return;
-
-        setProfileImageUri(asset.uri);
-        await uploadProfileImage(asset);
-      }
-    );
-  };
-
-  const uploadProfileImage = async (asset: { uri?: string; type?: string; fileName?: string }) => {
-    if (!user?.id || !asset.uri) return;
-    try {
-      setIsUploadingImage(true);
-      const formData = new FormData();
-      formData.append('userId', user.id);
-      formData.append('profileImage', {
-        uri: asset.uri,
-        type: asset.type || 'image/jpeg',
-        name: asset.fileName || 'profile.jpg',
-      } as any);
-
-      const res = await fetch(PROFILE_IMAGE_UPLOAD_URL, {
-        method: 'POST',
-        headers: getMobileSecurityHeaders(),
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.success) {
-        const serverBase = API_BASE_URL.replace('/mobile_api', '');
-        const fullUrl = `${serverBase}${data.profileImage}`;
-        setProfileImageUri(fullUrl);
-        await updateUser({ ...user, profileImage: data.profileImage });
-        Alert.alert('Success', 'Profile picture updated!');
-      } else {
-        Alert.alert('Error', data.message || 'Upload failed');
-      }
-    } catch (err: any) {
-      Alert.alert('Error', 'Failed to upload profile picture');
-    } finally {
-      setIsUploadingImage(false);
     }
   };
 
@@ -220,24 +162,10 @@ const MyProfileEditScreen = () => {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           <View style={styles.profileCard}>
-            {/* Profile Picture */}
-            <TouchableOpacity style={styles.profileImageContainer} onPress={handlePickImage} activeOpacity={0.8}>
-              {profileImageUri ? (
-                <Image source={{ uri: profileImageUri }} style={styles.profileImage} />
-              ) : (
-                <View style={styles.profileIconCircle}>
-                  <Icon name="account" size={60} color="#22D3EE" />
-                </View>
-              )}
-              <View style={styles.cameraOverlay}>
-                {isUploadingImage ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Icon name="camera" size={18} color="#fff" />
-                )}
-              </View>
-            </TouchableOpacity>
-            <Text style={styles.changePhotoText}>Tap to change photo</Text>
+            {/* Profile Avatar */}
+            <View style={styles.profileImageContainer}>
+              <InitialsAvatar name={formData.name || user?.name} size={110} />
+            </View>
 
             {/* Form Fields */}
             <View style={styles.formSection}>
@@ -389,22 +317,7 @@ const getStyles = (isDarkMode: boolean) => StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: isDarkMode ? 0.3 : 0.1, shadowRadius: 8, elevation: 4,
   },
-  profileImageContainer: { alignItems: 'center', marginBottom: 8, position: 'relative', alignSelf: 'center' },
-  profileImage: { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: '#22D3EE' },
-  profileIconCircle: {
-    width: 110, height: 110, borderRadius: 55,
-    backgroundColor: isDarkMode ? '#0A1628' : '#F3F4F6',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 3, borderColor: '#22D3EE',
-  },
-  cameraOverlay: {
-    position: 'absolute', bottom: 0, right: 0,
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: '#22D3EE',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: isDarkMode ? '#1a2942' : '#fff',
-  },
-  changePhotoText: { color: '#22D3EE', fontSize: 12, textAlign: 'center', marginBottom: 20 },
+  profileImageContainer: { alignItems: 'center', marginBottom: 20, alignSelf: 'center' },
   formSection: { marginBottom: 24 },
   fieldContainer: { marginBottom: 16 },
   fieldLabel: { color: isDarkMode ? '#E5E7EB' : '#374151', fontSize: 14, fontWeight: '600', marginBottom: 8, marginLeft: 4 },
