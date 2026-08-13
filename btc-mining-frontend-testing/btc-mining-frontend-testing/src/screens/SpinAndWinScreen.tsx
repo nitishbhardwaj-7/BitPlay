@@ -164,7 +164,7 @@ type WheelSlice = {
 };
 
 /** Six slices — two “Try again” for higher miss rate; 2× awards 1 Gh/s. */
-const SLICES: WheelSlice[] = [
+export const SLICES: WheelSlice[] = [
   { key: '5', kind: 'gh', gh: 5, line1: '5', line2: 'GH', weight: 14, fill: '#2A1548', fillAlt: '#321A55' },
   { key: 't1', kind: 'try_again', gh: 0, line1: 'TRY', line2: 'AGAIN', weight: 26, fill: '#352050', fillAlt: '#3D2558' },
   { key: '10', kind: 'gh', gh: 5, line1: '5', line2: 'GH', weight: 12, fill: '#2A1548', fillAlt: '#321A55' },

@@ -22,7 +22,7 @@ type Nav = StackNavigationProp<RootStackParamList, 'MemoryCardMatch'>;
 type TokenItem = { key: string; label: string; bg: string; border: string; image: any };
 type Card = { id: string; tokenKey: string; label: string; bg: string; border: string; image: any; isFlipped: boolean; isMatched: boolean };
 
-const WIN_REWARD_GH = 5;
+export const WIN_REWARD_GH = 5;
 const MEMORIZE_MS = 1500;
 const ROUND_TIME = 45;
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, Animated, Dimensions, Platform, Image,
+  TextInput, Animated, Dimensions, Image, NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -15,31 +15,39 @@ import { BannerAdWithGamFallback } from '../components/ads/BannerAdWithGamFallba
 import { BannerAdSize } from 'react-native-google-mobile-ads';
 import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
 import { trackProductSearch, trackSearch } from '../services/apptroveAnalytics';
+import { WIN_GH_REWARD as TRADING_WIN_GH } from './TradingScreen';
+import { WIN_REWARD_GH as MEMORY_WIN_GH } from './MemoryCardMatchScreen';
+import { SLICES as SPIN_SLICES } from './SpinAndWinScreen';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 const { width: W } = Dimensions.get('window');
+
+// Real per-game reward, sourced from each game's own reward constant/table —
+// never hand-typed here, so this can't drift out of sync with what a player
+// actually earns.
+const SPIN_MAX_GH = Math.max(...SPIN_SLICES.filter(s => s.gh > 0).map(s => s.gh));
 
 interface GameEntry {
   name: string;
   icon: string;
   iconImage?: any;
   color: string;
-  gradient: [string, string];
   route: keyof RootStackParamList;
   category: string;
   desc: string;
-  emoji: string;
+  /** Human-readable reward label, derived from the game's real reward constant(s). */
+  rewardLabel: string;
 }
 
 const GAMES: GameEntry[] = [
-  { name: 'BTC Trading', icon: 'bitcoin', iconImage: require('../assets/images/icon_btc_trading.png'), color: '#f59e0b', gradient: ['#f59e0b', '#d97706'], route: 'TradingScreen', category: 'Featured', desc: 'Trade BTC and earn rewards', emoji: '₿' },
-  { name: 'Spin & Win', icon: 'rotate-3d-variant', iconImage: require('../assets/images/icon_spin_win.png'), color: '#22d3ee', gradient: ['#0e7490', '#164e63'], route: 'SpinAndWin', category: 'Featured', desc: 'Spin the wheel, win rewards', emoji: '🎡' },
-  { name: 'Memory Match', icon: 'cards', iconImage: require('../assets/images/icon_memory_match.png'), color: '#7c3aed', gradient: ['#7c3aed', '#6d28d9'], route: 'MemoryCardMatch', category: 'Featured', desc: 'Match all the pairs', emoji: '🃏' },
+  { name: 'BTC Trading', icon: 'bitcoin', iconImage: require('../assets/images/icon_btc_trading.png'), color: '#f59e0b', route: 'TradingScreen', category: 'Featured', desc: 'Trade BTC and earn rewards', rewardLabel: `+${TRADING_WIN_GH} GH/s` },
+  { name: 'Spin & Win', icon: 'rotate-3d-variant', iconImage: require('../assets/images/icon_spin_win.png'), color: '#22d3ee', route: 'SpinAndWin', category: 'Featured', desc: 'Spin the wheel, win rewards', rewardLabel: `Up to ${SPIN_MAX_GH} GH/s` },
+  { name: 'Memory Match', icon: 'cards', iconImage: require('../assets/images/icon_memory_match.png'), color: '#7c3aed', route: 'MemoryCardMatch', category: 'Featured', desc: 'Match all the pairs', rewardLabel: `+${MEMORY_WIN_GH} GH/s` },
 ];
 
 const CATEGORIES = [
-  { key: 'All', emoji: '🎮' },
-  { key: 'Featured', emoji: '⭐' },
+  { key: 'All' },
+  { key: 'Featured' },
 ];
 
 interface PopularGame {
@@ -47,6 +55,22 @@ interface PopularGame {
   totalSessions: number;
   uniquePlayers: number;
   popularityScore: number;
+}
+
+/** Wraps any pressable in a gentle scale-down/spring-back — the app's one shared press micro-interaction. */
+function PressScale({
+  children, onPress, style, disabled,
+}: { children: React.ReactNode; onPress?: () => void; style?: any; disabled?: boolean }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const onPressIn = () => Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, speed: 40, bounciness: 6 }).start();
+  const onPressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40, bounciness: 6 }).start();
+  return (
+    <Animated.View style={[{ transform: [{ scale }] }, style]}>
+      <TouchableOpacity activeOpacity={0.85} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} disabled={disabled}>
+        {children}
+      </TouchableOpacity>
+    </Animated.View>
+  );
 }
 
 function SkeletonCard() {
@@ -67,10 +91,10 @@ function SkeletonCard() {
 }
 
 const sk = StyleSheet.create({
-  card: { width: '47%', backgroundColor: '#1e293b', borderRadius: 16, padding: 14, marginBottom: 14 },
-  iconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#334155', marginBottom: 10 },
-  line1: { height: 14, backgroundColor: '#334155', borderRadius: 6, marginBottom: 6, width: '70%' },
-  line2: { height: 10, backgroundColor: '#2d3748', borderRadius: 6, width: '90%' },
+  card: { width: '47%', backgroundColor: '#0B111D', borderRadius: 16, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+  iconBox: { width: '100%', height: 88, borderRadius: 12, backgroundColor: '#101827', marginBottom: 10 },
+  line1: { height: 14, backgroundColor: '#101827', borderRadius: 6, marginBottom: 6, width: '70%' },
+  line2: { height: 10, backgroundColor: '#0E1522', borderRadius: 6, width: '90%' },
 });
 
 export default function GameZoneScreen() {
@@ -81,6 +105,7 @@ export default function GameZoneScreen() {
   const [popular, setPopular] = useState<PopularGame[]>([]);
   const [sessionCounts, setSessionCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [featuredIndex, setFeaturedIndex] = useState(0);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSearch = useCallback((text: string) => {
@@ -97,6 +122,7 @@ export default function GameZoneScreen() {
 
   const headerAnim = useRef(new Animated.Value(0)).current;
   const gridAnim = useRef(new Animated.Value(0)).current;
+  const hotAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -125,6 +151,14 @@ export default function GameZoneScreen() {
 
   useFocusEffect(useCallback(() => { fetchPopular(); }, [fetchPopular]));
 
+  // Fade the hot-games row in the moment real data actually arrives, rather
+  // than animating on mount against still-empty state.
+  useEffect(() => {
+    if (popular.length > 0) {
+      Animated.timing(hotAnim, { toValue: 1, duration: 450, useNativeDriver: true }).start();
+    }
+  }, [popular.length, hotAnim]);
+
   const hotNames = new Set(popular.map(g => g.gameName));
   const filtered = GAMES.filter(g => {
     const matchCat = activeCategory === 'All' || g.category === activeCategory;
@@ -132,26 +166,35 @@ export default function GameZoneScreen() {
     return matchCat && matchSearch;
   });
 
-  const MEDAL = ['🥇', '🥈', '🥉'];
+  const RANK_COLOR = ['#FFD24C', '#C7CEDA', '#D68A4C'];
+
+  const onFeaturedScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const idx = Math.round(e.nativeEvent.contentOffset.x / W);
+    if (idx !== featuredIndex) setFeaturedIndex(idx);
+  };
+
+  const showFeaturedCarousel = activeCategory === 'Featured' && filtered.length > 0;
 
   return (
-    <LinearGradient colors={['#0f172a', '#1e1b4b', '#0f172a']} style={styles.gradient}>
+    <View style={styles.root}>
+      <LinearGradient colors={['#050914', '#0A0F1C']} style={StyleSheet.absoluteFill} />
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
 
         {/* Header */}
         <Animated.View style={[styles.header, { opacity: headerAnim, transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-            <View style={styles.backCircle}>
-              <MaterialCommunityIcons name="arrow-left" size={20} color="#f8fafc" />
-            </View>
+            <MaterialCommunityIcons name="arrow-left" size={22} color="#F5F7FA" />
           </TouchableOpacity>
           <View style={styles.headerText}>
-            <Text style={styles.headerTitle}>🎮 Game Zone</Text>
-            <Text style={styles.headerSub}>{GAMES.length} games · win GH/s</Text>
+            <Text style={styles.headerTitle}>Game Zone</Text>
+            <Text style={styles.headerSub}>
+              {GAMES.length} games <Text style={styles.headerSubDot}>&middot;</Text> <Text style={styles.accent}>win GH/s</Text>
+            </Text>
           </View>
-          <View style={styles.countBadge}>
-            <Text style={styles.countBadgeTxt}>{GAMES.length}</Text>
+          <View style={styles.statusCapsule}>
+            <MaterialCommunityIcons name="lightning-bolt" size={13} color="#18D4F2" />
+            <Text style={styles.statusCapsuleTxt}>{GAMES.length}</Text>
           </View>
         </Animated.View>
 
@@ -163,13 +206,16 @@ export default function GameZoneScreen() {
           />
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}>
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}>
 
           {/* Hot / Popular section */}
           {(loading || popular.length > 0) && (
             <View style={styles.hotSection}>
               <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>🔥 Most Played This Month</Text>
+                <View style={styles.sectionTitleWithIcon}>
+                  <MaterialCommunityIcons name="fire" size={15} color="#f59e0b" />
+                  <Text style={styles.hotSectionTitle}>Most Played This Month</Text>
+                </View>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hotRow}>
                 {loading ? (
@@ -178,149 +224,218 @@ export default function GameZoneScreen() {
                       <Animated.View style={{ flex: 1, opacity: headerAnim }} />
                     </View>
                   ))
-                ) : popular.map((p, idx) => {
-                  const game = GAMES.find(g => g.name === p.gameName);
-                  if (!game) return null;
-                  return (
-                    <TouchableOpacity
-                      key={game.route}
-                      activeOpacity={0.8}
-                      onPress={() => navigation.navigate(game.route as any)}
-                    >
-                      <LinearGradient
-                        colors={[game.gradient[0] + 'cc', game.gradient[1] + 'cc']}
-                        style={styles.hotCard}
-                      >
-                        <View style={styles.hotMedal}>
-                          <Text style={styles.hotMedalTxt}>{MEDAL[idx]}</Text>
-                        </View>
-                        <View style={[styles.hotIconBg, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-                          <MaterialCommunityIcons name={game.icon} size={28} color="#fff" />
-                        </View>
-                        <Text style={styles.hotName} numberOfLines={1}>{game.name}</Text>
-                        <Text style={styles.hotPlays}>{p.totalSessions.toLocaleString()} plays</Text>
-                        <View style={styles.playNowBadge}>
-                          <Text style={styles.playNowTxt}>PLAY</Text>
-                        </View>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  );
-                })}
+                ) : (
+                  <Animated.View style={[styles.hotRow, { opacity: hotAnim, transform: [{ translateY: hotAnim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}>
+                    {popular.map((p, idx) => {
+                      const game = GAMES.find(g => g.name === p.gameName);
+                      if (!game) return null;
+                      return (
+                        <PressScale key={game.route} onPress={() => navigation.navigate(game.route as any)}>
+                          <View style={styles.hotCard}>
+                            <View style={[styles.hotRankBadge, { backgroundColor: RANK_COLOR[idx] + '22', borderColor: RANK_COLOR[idx] + '55' }]}>
+                              <Text style={[styles.hotRankTxt, { color: RANK_COLOR[idx] }]}>#{idx + 1}</Text>
+                            </View>
+                            <View style={[styles.hotIconBg, { backgroundColor: game.color + '1c' }]}>
+                              {game.iconImage ? (
+                                <Image source={game.iconImage} style={styles.hotIconImg} resizeMode="cover" />
+                              ) : (
+                                <MaterialCommunityIcons name={game.icon} size={26} color={game.color} />
+                              )}
+                            </View>
+                            <Text style={styles.hotName} numberOfLines={1}>{game.name}</Text>
+                            <Text style={styles.hotPlays}>{p.totalSessions.toLocaleString()} plays</Text>
+                            <View style={styles.hotPlayPill}>
+                              <MaterialCommunityIcons name="play" size={11} color="#18D4F2" />
+                              <Text style={styles.hotPlayTxt}>PLAY</Text>
+                            </View>
+                          </View>
+                        </PressScale>
+                      );
+                    })}
+                  </Animated.View>
+                )}
               </ScrollView>
             </View>
           )}
 
           {/* Search */}
           <View style={styles.searchWrap}>
-            <MaterialCommunityIcons name="magnify" size={18} color="#64748b" style={styles.searchIcon} />
+            <MaterialCommunityIcons name="magnify" size={17} color="#7E8CA3" style={styles.searchIcon} />
             <TextInput
               style={styles.search}
               placeholder="Search games..."
-              placeholderTextColor="#475569"
+              placeholderTextColor="#556277"
               value={search}
               onChangeText={handleSearch}
             />
             {search.length > 0 && (
               <TouchableOpacity onPress={() => setSearch('')}>
-                <MaterialCommunityIcons name="close-circle" size={16} color="#64748b" />
+                <MaterialCommunityIcons name="close-circle" size={16} color="#7E8CA3" />
               </TouchableOpacity>
             )}
           </View>
 
-          {/* Category filter */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll} contentContainerStyle={styles.catRow}>
-            {CATEGORIES.map(cat => (
-              <TouchableOpacity
-                key={cat.key}
-                style={[styles.catChip, activeCategory === cat.key && styles.catChipActive]}
-                onPress={() => setActiveCategory(cat.key)}
-                activeOpacity={0.75}
-              >
-                <Text style={styles.catEmoji}>{cat.emoji}</Text>
-                <Text style={[styles.catText, activeCategory === cat.key && styles.catTextActive]}>
-                  {cat.key}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          {/* Category tabs */}
+          <View style={styles.tabsRow}>
+            {CATEGORIES.map(cat => {
+              const active = activeCategory === cat.key;
+              return (
+                <TouchableOpacity
+                  key={cat.key}
+                  onPress={() => setActiveCategory(cat.key)}
+                  activeOpacity={0.75}
+                  style={styles.tab}
+                >
+                  <Text style={[styles.tabTxt, active && styles.tabTxtActive]}>{cat.key === 'All' ? 'All Games' : cat.key}</Text>
+                  {active && <View style={styles.tabUnderline} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <View style={styles.tabsDivider} />
 
           {/* Section label */}
           <View style={styles.sectionTitleRow}>
-            <Text style={styles.sectionTitle}>
-              {activeCategory === 'All' ? '🕹️ All Games' : `${CATEGORIES.find(c => c.key === activeCategory)?.emoji} ${activeCategory}`}
-            </Text>
+            <Text style={styles.sectionTitle}>{activeCategory === 'All' ? 'All Games' : 'Featured'}</Text>
             <Text style={styles.sectionCount}>{filtered.length} games</Text>
           </View>
 
-          {/* Game grid */}
-          <Animated.View style={[styles.grid, { opacity: gridAnim, transform: [{ translateY: gridAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }]}>
-            {loading ? (
+          {loading ? (
+            <View style={styles.grid}>
               <View style={styles.skeletonRow}>
                 {[0, 1, 2, 3, 4, 5].map(i => <SkeletonCard key={i} />)}
               </View>
-            ) : (
+            </View>
+          ) : showFeaturedCarousel ? (
+            /* Featured: large spotlight cards, one game at a time, swipeable */
+            <Animated.View style={{ opacity: gridAnim }}>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={onFeaturedScroll}
+                scrollEventThrottle={16}
+              >
+                {filtered.map(game => {
+                  const plays = sessionCounts[game.name];
+                  return (
+                    <View key={game.route} style={{ width: W - 32, paddingHorizontal: 16 }}>
+                      <View style={styles.featuredCard}>
+                        <View style={[styles.featuredArt, { backgroundColor: game.color + '10' }]}>
+                          <View style={[styles.featuredGlow, { backgroundColor: game.color + '30' }]} />
+                          {game.iconImage ? (
+                            <Image source={game.iconImage} style={styles.featuredIconImg} resizeMode="cover" />
+                          ) : (
+                            <MaterialCommunityIcons name={game.icon} size={64} color={game.color} />
+                          )}
+                        </View>
+                        <View style={styles.featuredBody}>
+                          <View style={styles.featuredTag}>
+                            <Text style={styles.featuredTagTxt}>FEATURED</Text>
+                          </View>
+                          <Text style={styles.featuredTitle}>{game.name}</Text>
+                          <Text style={styles.featuredDesc}>{game.desc}</Text>
+                          <View style={styles.featuredFooter}>
+                            <View style={styles.rewardRow}>
+                              <MaterialCommunityIcons name="lightning-bolt" size={14} color="#18D4F2" />
+                              <Text style={styles.rewardTxt}>{game.rewardLabel}</Text>
+                            </View>
+                            {plays != null && plays > 0 && (
+                              <Text style={styles.playsText}>{plays >= 1000 ? `${(plays / 1000).toFixed(1)}k` : plays} plays</Text>
+                            )}
+                          </View>
+                          <PressScale onPress={() => navigation.navigate(game.route as any)} style={{ alignSelf: 'flex-start' }}>
+                            <View style={styles.playNowBtn}>
+                              <Text style={styles.playNowTxt}>Play Now</Text>
+                              <MaterialCommunityIcons name="arrow-right" size={15} color="#18D4F2" />
+                            </View>
+                          </PressScale>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+              {filtered.length > 1 && (
+                <View style={styles.dots}>
+                  {filtered.map((_, i) => (
+                    <View key={i} style={[styles.dot, i === featuredIndex && styles.dotActive]} />
+                  ))}
+                </View>
+              )}
+            </Animated.View>
+          ) : (
+            /* All Games: compact grid */
+            <Animated.View style={[styles.grid, { opacity: gridAnim, transform: [{ translateY: gridAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }]}>
               <View style={styles.cardRow}>
                 {filtered.map(game => {
                   const isHot = hotNames.has(game.name);
                   const plays = sessionCounts[game.name];
                   return (
-                    <TouchableOpacity
-                      key={game.route}
-                      style={styles.card}
-                      activeOpacity={0.82}
-                      onPress={() => navigation.navigate(game.route as any)}
-                    >
-                      {/* Top color bar */}
-                      <LinearGradient colors={[game.gradient[0], game.gradient[1]]} style={styles.cardTopBar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
-
-                      {/* HOT badge */}
-                      {isHot && (
-                        <View style={styles.hotBadge}>
-                          <Text style={styles.hotBadgeTxt}>🔥</Text>
-                        </View>
-                      )}
-
-                      {/* Icon */}
-                      <View style={[styles.iconBox, { backgroundColor: '#0a0f1d', borderWidth: 1, borderColor: '#d97706', overflow: 'hidden' }]}>
+                    <PressScale key={game.route} onPress={() => navigation.navigate(game.route as any)} style={styles.card}>
+                      <View style={[styles.gameArt, { backgroundColor: game.color + '10' }]}>
+                        {isHot && (
+                          <View style={styles.hotBadge}>
+                            <Text style={styles.hotBadgeTxt}>HOT</Text>
+                          </View>
+                        )}
                         {game.iconImage ? (
-                          <Image source={game.iconImage} style={{ width: '100%', height: '100%', borderRadius: 10 }} resizeMode="cover" />
+                          <Image source={game.iconImage} style={styles.gameArtImg} resizeMode="cover" />
                         ) : (
-                          <MaterialCommunityIcons name={game.icon} size={26} color={game.color} />
+                          <MaterialCommunityIcons name={game.icon} size={40} color={game.color} />
                         )}
                       </View>
-
-                      <Text style={styles.cardName} numberOfLines={1}>{game.name}</Text>
-                      <Text style={styles.cardDesc} numberOfLines={2}>{game.desc}</Text>
-
-                      <View style={styles.cardFooter}>
-                        <View style={[styles.catTag, { backgroundColor: game.color + '15' }]}>
-                          <Text style={[styles.catTagTxt, { color: game.color }]}>{game.emoji}</Text>
+                      <View style={styles.cardInfo}>
+                        <Text style={styles.cardName} numberOfLines={1}>{game.name}</Text>
+                        <Text style={styles.cardDesc} numberOfLines={2}>{game.desc}</Text>
+                        <View style={styles.cardFooter}>
+                          <View style={styles.rewardRow}>
+                            <MaterialCommunityIcons name="lightning-bolt" size={12} color="#18D4F2" />
+                            <Text style={styles.cardRewardTxt}>{game.rewardLabel}</Text>
+                          </View>
+                          <View style={styles.playCircle}>
+                            <MaterialCommunityIcons name="play" size={12} color="#18D4F2" />
+                          </View>
                         </View>
                         {plays != null && plays > 0 && (
                           <Text style={styles.playsText}>{plays >= 1000 ? `${(plays / 1000).toFixed(1)}k` : plays} plays</Text>
                         )}
                       </View>
-
-                      <View style={styles.playArrow}>
-                        <MaterialCommunityIcons name="play-circle-outline" size={18} color={game.color} />
-                      </View>
-                    </TouchableOpacity>
+                    </PressScale>
                   );
                 })}
               </View>
-            )}
 
-            {!loading && filtered.length === 0 && (
-              <View style={styles.emptyWrap}>
-                <Text style={styles.emptyIcon}>🔍</Text>
-                <Text style={styles.emptyTitle}>No games found</Text>
-                <Text style={styles.emptyDesc}>Try a different search or category</Text>
-                <TouchableOpacity style={styles.clearBtn} onPress={() => { setSearch(''); setActiveCategory('All'); }}>
-                  <Text style={styles.clearBtnTxt}>Clear filters</Text>
-                </TouchableOpacity>
+              {filtered.length === 0 && (
+                <View style={styles.emptyWrap}>
+                  <MaterialCommunityIcons name="magnify" size={40} color="#556277" style={{ marginBottom: 12 }} />
+                  <Text style={styles.emptyTitle}>No games found</Text>
+                  <Text style={styles.emptyDesc}>Try a different search or category</Text>
+                  <PressScale onPress={() => { setSearch(''); setActiveCategory('All'); }}>
+                    <View style={styles.clearBtn}>
+                      <Text style={styles.clearBtnTxt}>Clear filters</Text>
+                    </View>
+                  </PressScale>
+                </View>
+              )}
+            </Animated.View>
+          )}
+
+          {/* Play More, Earn More */}
+          <View style={styles.promo}>
+            <View style={styles.promoIcon}>
+              <MaterialCommunityIcons name="gift-outline" size={19} color="#C084FC" />
+            </View>
+            <View style={styles.promoText}>
+              <Text style={styles.promoTitle}>Play More, Earn More</Text>
+              <Text style={styles.promoDesc}>Play games and earn GH/s to boost your mining power.</Text>
+            </View>
+            <PressScale onPress={() => navigation.navigate('FAQScreen' as never)}>
+              <View style={styles.promoBtn}>
+                <Text style={styles.promoBtnTxt}>How it works</Text>
               </View>
-            )}
-          </Animated.View>
+            </PressScale>
+          </View>
         </ScrollView>
 
         {/* Bottom banner ad */}
@@ -331,110 +446,172 @@ export default function GameZoneScreen() {
           />
         </View>
       </SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 }
 
+const CYAN = '#18D4F2';
+const TEXT = '#F5F7FA';
+const TEXT_DIM = '#7E8CA3';
+const TEXT_MUTED = '#556277';
+const SURFACE = '#0B111D';
+const SURFACE_2 = '#101827';
+const BORDER = 'rgba(255,255,255,0.08)';
+const BORDER_SOFT = 'rgba(255,255,255,0.05)';
+
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
+  root: { flex: 1, backgroundColor: '#050914' },
   safe: { flex: 1 },
 
   header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
+    flexDirection: 'row', alignItems: 'flex-start',
+    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16,
   },
-  backBtn: { padding: 4, marginRight: 10 },
-  backCircle: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center', justifyContent: 'center',
-  },
+  backBtn: { padding: 4, marginRight: 12, marginTop: 2 },
   headerText: { flex: 1 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#f8fafc', letterSpacing: 0.3 },
-  headerSub: { fontSize: 12, color: '#64748b', marginTop: 1 },
-  countBadge: {
-    backgroundColor: '#22d3ee', borderRadius: 20,
-    paddingHorizontal: 10, paddingVertical: 4,
+  headerTitle: { fontSize: 26, fontWeight: '800', color: TEXT, letterSpacing: -0.3 },
+  headerSub: { fontSize: 13.5, color: TEXT_DIM, marginTop: 4, fontWeight: '500' },
+  headerSubDot: { color: TEXT_MUTED },
+  accent: { color: CYAN },
+  statusCapsule: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: BORDER,
+    borderRadius: 20, paddingHorizontal: 13, paddingVertical: 8, marginTop: 2,
   },
-  countBadgeTxt: { color: '#0f172a', fontWeight: '900', fontSize: 13 },
+  statusCapsuleTxt: { color: TEXT, fontWeight: '700', fontSize: 14 },
 
   bannerTop: { alignItems: 'center', marginVertical: 4 },
 
-  hotSection: { paddingTop: 16, paddingHorizontal: 16 },
-  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 10, marginTop: 8 },
-  sectionTitle: { fontSize: 14, fontWeight: '800', color: '#f59e0b' },
-  sectionCount: { fontSize: 12, color: '#64748b', fontWeight: '600' },
-  hotRow: { flexDirection: 'row', gap: 12, paddingBottom: 4 },
+  hotSection: { paddingTop: 4, paddingBottom: 4 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 12, marginTop: 4 },
+  sectionTitleWithIcon: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  hotSectionTitle: { fontSize: 13.5, fontWeight: '700', color: TEXT_DIM },
+  sectionTitle: { fontSize: 19, fontWeight: '800', color: TEXT, letterSpacing: -0.2 },
+  sectionCount: { fontSize: 12, color: TEXT_MUTED, fontWeight: '600' },
+
+  hotRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 20, paddingBottom: 4 },
   hotCard: {
-    width: 130, borderRadius: 16, padding: 14, alignItems: 'center',
-    position: 'relative', overflow: 'hidden',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    width: 132, borderRadius: 16, padding: 14, alignItems: 'center',
+    backgroundColor: SURFACE, borderWidth: 1, borderColor: BORDER,
   },
-  hotCardSkeleton: { width: 130, height: 150, borderRadius: 16, backgroundColor: '#1e293b' },
-  hotMedal: { position: 'absolute', top: 8, left: 8 },
-  hotMedalTxt: { fontSize: 18 },
-  hotIconBg: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  hotName: { fontSize: 12, fontWeight: '700', color: '#fff', textAlign: 'center', marginBottom: 2 },
-  hotPlays: { fontSize: 10, color: 'rgba(255,255,255,0.7)', marginBottom: 8 },
-  playNowBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
-  playNowTxt: { fontSize: 10, fontWeight: '800', color: '#fff', letterSpacing: 1 },
+  hotCardSkeleton: { width: 132, height: 158, borderRadius: 16, backgroundColor: SURFACE, marginLeft: 20 },
+  hotRankBadge: { position: 'absolute', top: 10, left: 10, borderRadius: 8, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 2 },
+  hotRankTxt: { fontSize: 10, fontWeight: '800' },
+  hotIconBg: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10, overflow: 'hidden' },
+  hotIconImg: { width: '100%', height: '100%' },
+  hotName: { fontSize: 12.5, fontWeight: '700', color: TEXT, textAlign: 'center', marginBottom: 3 },
+  hotPlays: { fontSize: 10.5, color: TEXT_MUTED, marginBottom: 10, fontVariant: ['tabular-nums'] },
+  hotPlayPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(24,212,242,0.12)', borderWidth: 1, borderColor: 'rgba(24,212,242,0.25)',
+    paddingHorizontal: 11, paddingVertical: 4, borderRadius: 12,
+  },
+  hotPlayTxt: { fontSize: 10, fontWeight: '800', color: CYAN, letterSpacing: 0.5 },
 
   searchWrap: {
-    marginHorizontal: 16, marginVertical: 10,
+    marginHorizontal: 20, marginTop: 18, marginBottom: 18,
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1e293b', borderRadius: 14,
-    paddingHorizontal: 12, paddingVertical: Platform.OS === 'ios' ? 12 : 4,
-    borderWidth: 1, borderColor: '#334155',
+    backgroundColor: SURFACE_2, borderRadius: 14,
+    paddingHorizontal: 16, height: 52,
+    borderWidth: 1, borderColor: BORDER_SOFT,
   },
-  searchIcon: { marginRight: 8 },
-  search: { flex: 1, color: '#f8fafc', fontSize: 14 },
+  searchIcon: { marginRight: 10 },
+  search: { flex: 1, color: TEXT, fontSize: 15 },
 
-  catScroll: { maxHeight: 48 },
-  catRow: { paddingHorizontal: 16, paddingVertical: 4, gap: 8, flexDirection: 'row' },
-  catChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 12, paddingVertical: 7,
-    borderRadius: 20, backgroundColor: '#1e293b',
-    borderWidth: 1, borderColor: '#334155',
+  tabsRow: { flexDirection: 'row', gap: 28, paddingHorizontal: 20 },
+  tab: { paddingBottom: 12 },
+  tabTxt: { fontSize: 15.5, fontWeight: '600', color: TEXT_MUTED },
+  tabTxtActive: { color: TEXT },
+  tabUnderline: { position: 'absolute', left: 0, right: 0, bottom: -1, height: 2, borderRadius: 2, backgroundColor: CYAN },
+  tabsDivider: { height: 1, backgroundColor: BORDER_SOFT, marginHorizontal: 20, marginBottom: 20 },
+
+  featuredCard: {
+    borderRadius: 20, borderWidth: 1, borderColor: BORDER,
+    backgroundColor: SURFACE, overflow: 'hidden', minHeight: 320,
   },
-  catChipActive: { backgroundColor: '#22d3ee', borderColor: '#22d3ee' },
-  catEmoji: { fontSize: 12 },
-  catText: { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
-  catTextActive: { color: '#0f172a', fontWeight: '700' },
+  featuredArt: {
+    height: 168, alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
+  },
+  featuredGlow: { position: 'absolute', width: 200, height: 200, borderRadius: 100 },
+  featuredIconImg: { width: 84, height: 84, borderRadius: 20 },
+  featuredBody: { padding: 20 },
+  featuredTag: {
+    alignSelf: 'flex-start', backgroundColor: 'rgba(24,212,242,0.12)', borderWidth: 1, borderColor: 'rgba(24,212,242,0.3)',
+    borderRadius: 7, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 12,
+  },
+  featuredTagTxt: { fontSize: 10.5, fontWeight: '700', color: CYAN, letterSpacing: 0.8 },
+  featuredTitle: { fontSize: 24, fontWeight: '800', color: TEXT, letterSpacing: -0.3, marginBottom: 8 },
+  featuredDesc: { fontSize: 14, color: TEXT_DIM, lineHeight: 20, marginBottom: 18 },
+  featuredFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  rewardRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  rewardTxt: { fontSize: 14, fontWeight: '700', color: CYAN, fontVariant: ['tabular-nums'] },
+  playNowBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderWidth: 1.5, borderColor: CYAN, borderRadius: 12,
+    paddingHorizontal: 20, paddingVertical: 11,
+  },
+  playNowTxt: { fontSize: 14, fontWeight: '700', color: CYAN },
 
-  grid: { paddingHorizontal: 12, paddingTop: 4 },
+  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 14 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: TEXT_MUTED, opacity: 0.5 },
+  dotActive: { width: 16, backgroundColor: CYAN, opacity: 1 },
+
+  grid: { paddingHorizontal: 20, paddingTop: 4 },
   skeletonRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   cardRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   card: {
-    width: '47%', backgroundColor: '#1e293b', borderRadius: 16,
-    marginBottom: 14, overflow: 'hidden', position: 'relative',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25, shadowRadius: 6, elevation: 4,
-    paddingHorizontal: 12, paddingBottom: 12, paddingTop: 16,
+    width: '47.5%', backgroundColor: SURFACE, borderRadius: 16,
+    marginBottom: 14, overflow: 'hidden',
+    borderWidth: 1, borderColor: BORDER,
   },
-  cardTopBar: { position: 'absolute', top: 0, left: 0, right: 0, height: 4 },
-  hotBadge: { position: 'absolute', top: 8, right: 8 },
-  hotBadgeTxt: { fontSize: 14 },
-  iconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  cardName: { fontSize: 14, fontWeight: '700', color: '#f1f5f9', marginBottom: 4 },
-  cardDesc: { fontSize: 11, color: '#64748b', lineHeight: 16, marginBottom: 10, flex: 1 },
+  gameArt: {
+    height: 118, alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
+  },
+  gameArtImg: { width: '58%', height: '58%', borderRadius: 14 },
+  hotBadge: {
+    position: 'absolute', top: 9, right: 9,
+    backgroundColor: 'rgba(245,158,11,0.16)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.35)',
+    borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
+  },
+  hotBadgeTxt: { fontSize: 9, fontWeight: '800', color: '#f59e0b', letterSpacing: 0.4 },
+  cardInfo: { padding: 13 },
+  cardName: { fontSize: 14.5, fontWeight: '700', color: TEXT, marginBottom: 3 },
+  cardDesc: { fontSize: 11.5, color: TEXT_DIM, lineHeight: 15.5, marginBottom: 10, minHeight: 31 },
   cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  catTag: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  catTagTxt: { fontSize: 14 },
-  playsText: { fontSize: 10, color: '#475569', fontWeight: '600' },
-  playArrow: { position: 'absolute', bottom: 10, right: 10 },
+  cardRewardTxt: { fontSize: 12, fontWeight: '700', color: CYAN, fontVariant: ['tabular-nums'] },
+  playCircle: {
+    width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, borderColor: CYAN,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  playsText: { fontSize: 10, color: TEXT_MUTED, fontWeight: '600', marginTop: 6, fontVariant: ['tabular-nums'] },
 
   emptyWrap: { alignItems: 'center', paddingTop: 60, paddingBottom: 40 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#f8fafc', marginBottom: 6 },
-  emptyDesc: { fontSize: 14, color: '#64748b', marginBottom: 20 },
-  clearBtn: { backgroundColor: '#22d3ee', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20 },
-  clearBtnTxt: { color: '#0f172a', fontWeight: '700', fontSize: 14 },
+  emptyTitle: { fontSize: 17, fontWeight: '700', color: TEXT, marginBottom: 6 },
+  emptyDesc: { fontSize: 13.5, color: TEXT_DIM, marginBottom: 20 },
+  clearBtn: { backgroundColor: CYAN, paddingHorizontal: 22, paddingVertical: 11, borderRadius: 12 },
+  clearBtnTxt: { color: '#050914', fontWeight: '700', fontSize: 13.5 },
+
+  promo: {
+    flexDirection: 'row', alignItems: 'center', gap: 13,
+    backgroundColor: SURFACE, borderWidth: 1, borderColor: BORDER, borderRadius: 16,
+    padding: 15, marginHorizontal: 20, marginTop: 6,
+  },
+  promoIcon: {
+    width: 40, height: 40, borderRadius: 11,
+    backgroundColor: 'rgba(192,132,252,0.14)', borderWidth: 1, borderColor: 'rgba(192,132,252,0.3)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  promoText: { flex: 1 },
+  promoTitle: { fontSize: 13.5, fontWeight: '700', color: TEXT },
+  promoDesc: { fontSize: 11, color: TEXT_DIM, marginTop: 3, lineHeight: 15 },
+  promoBtn: {
+    borderWidth: 1.5, borderColor: CYAN, borderRadius: 10,
+    paddingHorizontal: 13, paddingVertical: 9,
+  },
+  promoBtnTxt: { fontSize: 11.5, fontWeight: '700', color: CYAN },
 
   bottomBanner: {
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
-    backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center',
+    borderTopWidth: 1, borderTopColor: BORDER_SOFT,
+    backgroundColor: 'rgba(5,9,20,0.5)', alignItems: 'center',
   },
 });
