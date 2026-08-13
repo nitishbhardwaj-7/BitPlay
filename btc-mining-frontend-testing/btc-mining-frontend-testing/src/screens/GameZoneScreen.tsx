@@ -46,8 +46,8 @@ const GAMES: GameEntry[] = [
 ];
 
 const CATEGORIES = [
-  { key: 'All' },
   { key: 'Featured' },
+  { key: 'All' },
 ];
 
 interface PopularGame {
@@ -101,7 +101,7 @@ export default function GameZoneScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [activeCategory, setActiveCategory] = useState('Featured');
   const [popular, setPopular] = useState<PopularGame[]>([]);
   const [sessionCounts, setSessionCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -189,7 +189,7 @@ export default function GameZoneScreen() {
           <View style={styles.headerText}>
             <Text style={styles.headerTitle}>Game Zone</Text>
             <Text style={styles.headerSub}>
-              {GAMES.length} games <Text style={styles.headerSubDot}>&middot;</Text> <Text style={styles.accent}>win GH/s</Text>
+              {GAMES.length} games <Text style={styles.headerSubDot}>&middot;</Text> <Text style={styles.accent}>Earn GH/s</Text>
             </Text>
           </View>
           <View style={styles.statusCapsule}>
@@ -321,12 +321,14 @@ export default function GameZoneScreen() {
                   return (
                     <View key={game.route} style={{ width: W - 32, paddingHorizontal: 16 }}>
                       <View style={styles.featuredCard}>
-                        <View style={[styles.featuredArt, { backgroundColor: game.color + '10' }]}>
-                          <View style={[styles.featuredGlow, { backgroundColor: game.color + '30' }]} />
+                        {/* Artwork bleeds off the right edge — matches the reference's side-by-side layout */}
+                        <View style={styles.featuredArt}>
                           {game.iconImage ? (
                             <Image source={game.iconImage} style={styles.featuredIconImg} resizeMode="cover" />
                           ) : (
-                            <MaterialCommunityIcons name={game.icon} size={64} color={game.color} />
+                            <View style={[styles.featuredArtFallback, { backgroundColor: game.color + '12' }]}>
+                              <MaterialCommunityIcons name={game.icon} size={64} color={game.color} />
+                            </View>
                           )}
                         </View>
                         <View style={styles.featuredBody}>
@@ -335,15 +337,13 @@ export default function GameZoneScreen() {
                           </View>
                           <Text style={styles.featuredTitle}>{game.name}</Text>
                           <Text style={styles.featuredDesc}>{game.desc}</Text>
-                          <View style={styles.featuredFooter}>
-                            <View style={styles.rewardRow}>
-                              <MaterialCommunityIcons name="lightning-bolt" size={14} color="#18D4F2" />
-                              <Text style={styles.rewardTxt}>{game.rewardLabel}</Text>
-                            </View>
-                            {plays != null && plays > 0 && (
-                              <Text style={styles.playsText}>{plays >= 1000 ? `${(plays / 1000).toFixed(1)}k` : plays} plays</Text>
-                            )}
+                          <View style={styles.rewardRow}>
+                            <MaterialCommunityIcons name="lightning-bolt" size={14} color="#18D4F2" />
+                            <Text style={styles.rewardTxt}>{game.rewardLabel}</Text>
                           </View>
+                          {plays != null && plays > 0 && (
+                            <Text style={styles.playsText}>{plays >= 1000 ? `${(plays / 1000).toFixed(1)}k` : plays} plays</Text>
+                          )}
                           <PressScale onPress={() => navigation.navigate(game.route as any)} style={{ alignSelf: 'flex-start' }}>
                             <View style={styles.playNowBtn}>
                               <Text style={styles.playNowTxt}>Play Now</Text>
@@ -527,28 +527,26 @@ const styles = StyleSheet.create({
 
   featuredCard: {
     borderRadius: 20, borderWidth: 1, borderColor: BORDER,
-    backgroundColor: SURFACE, overflow: 'hidden', minHeight: 320,
+    backgroundColor: SURFACE, overflow: 'hidden', position: 'relative', height: 300,
   },
-  featuredArt: {
-    height: 168, alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
-  },
-  featuredGlow: { position: 'absolute', width: 200, height: 200, borderRadius: 100 },
+  /* Artwork bleeds off the right edge, full card height — mirrors the reference's side-by-side split */
+  featuredArt: { position: 'absolute', top: 0, right: 0, bottom: 0, width: '54%' },
+  featuredArtFallback: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   featuredIconImg: { width: '100%', height: '100%' },
-  featuredBody: { padding: 20 },
+  featuredBody: { padding: 20, paddingRight: 12, maxWidth: '62%' },
   featuredTag: {
     alignSelf: 'flex-start', backgroundColor: 'rgba(24,212,242,0.12)', borderWidth: 1, borderColor: 'rgba(24,212,242,0.3)',
-    borderRadius: 7, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 12,
+    borderRadius: 7, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 14,
   },
   featuredTagTxt: { fontSize: 10.5, fontWeight: '700', color: CYAN, letterSpacing: 0.8 },
   featuredTitle: { fontSize: 24, fontWeight: '800', color: TEXT, letterSpacing: -0.3, marginBottom: 8 },
-  featuredDesc: { fontSize: 14, color: TEXT_DIM, lineHeight: 20, marginBottom: 18 },
-  featuredFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  rewardRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  featuredDesc: { fontSize: 13.5, color: TEXT_DIM, lineHeight: 19 },
+  rewardRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 16 },
   rewardTxt: { fontSize: 14, fontWeight: '700', color: CYAN, fontVariant: ['tabular-nums'] },
   playNowBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     borderWidth: 1.5, borderColor: CYAN, borderRadius: 12,
-    paddingHorizontal: 20, paddingVertical: 11,
+    paddingHorizontal: 20, paddingVertical: 11, marginTop: 16,
   },
   playNowTxt: { fontSize: 14, fontWeight: '700', color: CYAN },
 

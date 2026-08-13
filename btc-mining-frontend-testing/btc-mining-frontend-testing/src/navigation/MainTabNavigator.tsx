@@ -24,11 +24,12 @@ export default function MainTabNavigator() {
       initialRouteName="Home"
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#22D3EE',
-        tabBarInactiveTintColor: '#CBD5E1',
+        tabBarActiveTintColor: '#18D4F2',
+        tabBarInactiveTintColor: '#556277',
         tabBarStyle: {
-          backgroundColor: '#1A202C',
-          borderTopWidth: 0,
+          backgroundColor: '#0B111D',
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(255,255,255,0.05)',
         },
       }}
     >
@@ -37,7 +38,7 @@ export default function MainTabNavigator() {
         component={HomeScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home" color={color} size={size} />
+            <MaterialCommunityIcons name="home-outline" color={color} size={size} />
           ),
         }}
       />
@@ -46,7 +47,7 @@ export default function MainTabNavigator() {
         component={WalletNewScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="wallet" color={color} size={size} />
+            <MaterialCommunityIcons name="wallet-outline" color={color} size={size} />
           ),
         }}
       />
@@ -55,7 +56,7 @@ export default function MainTabNavigator() {
         component={GameZoneScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="gamepad-variant" color={color} size={size} />
+            <MaterialCommunityIcons name="gamepad-variant-outline" color={color} size={size} />
           ),
         }}
       />
@@ -64,7 +65,7 @@ export default function MainTabNavigator() {
         component={StoreScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="shopping" color={color} size={size} />
+            <MaterialCommunityIcons name="shopping-outline" color={color} size={size} />
           ),
         }}
       />
@@ -74,7 +75,7 @@ export default function MainTabNavigator() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons
-              name="account-circle"
+              name="account-circle-outline"
               color={color}
               size={size}
             />
