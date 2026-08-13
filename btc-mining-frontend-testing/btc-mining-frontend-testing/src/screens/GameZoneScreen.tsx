@@ -480,7 +480,11 @@ const styles = StyleSheet.create({
   },
   statusCapsuleTxt: { color: TEXT, fontWeight: '700', fontSize: 14 },
 
-  bannerTop: { alignItems: 'center', marginVertical: 4 },
+  bannerTop: {
+    alignItems: 'center', paddingVertical: 6,
+    borderBottomWidth: 1, borderBottomColor: BORDER_SOFT,
+    backgroundColor: 'rgba(11,17,29,0.4)',
+  },
 
   hotSection: { paddingTop: 4, paddingBottom: 4 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 12, marginTop: 4 },

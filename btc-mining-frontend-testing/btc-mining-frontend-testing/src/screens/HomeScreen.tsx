@@ -129,12 +129,12 @@ const GradientButtonB: React.FC<GradientButtonProps> = React.memo(({ icon, text,
     onPress={onPress}
   >
     <LinearGradient
-      colors={['#22D3EE', '#C084FC']}
+      colors={['#18D4F2', '#C084FC']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 0 }}
       style={styles.gradientButton}
     >
-      {icon && <Icon name={icon} size={18} color="#fff" style={styles.buttonIcon} />}
+      {icon && <Icon name={icon} size={18} color="#F5F7FA" style={styles.buttonIcon} />}
       <Text style={styles.buttonText}>{text}</Text>
     </LinearGradient>
   </TouchableOpacity>
@@ -149,7 +149,7 @@ const GradientButton: React.FC<GradientButtonProp> = React.memo(({ text, onPress
   >
     {enabled ? (
       <LinearGradient
-        colors={['#22D3EE', '#C084FC']}
+        colors={['#18D4F2', '#C084FC']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={{ ...styles.gradientClaimButton, ...gradientStyleProps }}
@@ -160,10 +160,10 @@ const GradientButton: React.FC<GradientButtonProp> = React.memo(({ text, onPress
       <View
         style={[
           styles.gradientClaimButton,
-          { backgroundColor: '#9CA3AF', justifyContent: 'center', alignItems: 'center' } // gray tone
+          { backgroundColor: '#7E8CA3', justifyContent: 'center', alignItems: 'center' } // gray tone
         ]}
       >
-        <Text style={[styles.buttonText, { color: '#E5E7EB' }]}>{text}</Text>
+        <Text style={[styles.buttonText, { color: '#F5F7FA' }]}>{text}</Text>
       </View>
     )}
   </TouchableOpacity>
@@ -1624,7 +1624,7 @@ const Page: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#111827" translucent={false} />
+      <StatusBar barStyle="light-content" backgroundColor="#050914" translucent={false} />
       <ScrollView
         style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
@@ -1699,7 +1699,7 @@ const Page: React.FC = () => {
             <Icon
               name="chevron-right"
               size={20}
-              color="#9CA3AF"
+              color="#7E8CA3"
               style={styles.detailArrow}
             />
           </TouchableOpacity>
@@ -1743,7 +1743,7 @@ const Page: React.FC = () => {
             <Icon
               name="chevron-right"
               size={20}
-              color="#9CA3AF"
+              color="#7E8CA3"
               style={styles.detailArrow}
             />
           </TouchableOpacity>
@@ -1754,7 +1754,7 @@ const Page: React.FC = () => {
           <Icon
             name="volume-high"
             size={20}
-            color="#22D3EE"
+            color="#18D4F2"
             style={{ marginRight: 8 }}
           />
           <Text style={styles.notificationText} numberOfLines={1}>
@@ -1767,7 +1767,7 @@ const Page: React.FC = () => {
           {/* Header Row */}
           <View style={styles.miningHeader}>
             <View style={styles.miningTitleContainer}>
-              <Icon name="pickaxe" size={15} color="#22D3EE" />
+              <Icon name="pickaxe" size={15} color="#18D4F2" />
               <Text style={styles.miningTitle}>Mining Power</Text>
             </View>
 
@@ -1940,7 +1940,7 @@ const Page: React.FC = () => {
             {/* Watch Ads to Offset Loss */}
             <View style={styles.watchAdsSection}>
               <View style={styles.watchAdsContent}>
-                <Icon name="video" size={20} color="#22D3EE" />
+                <Icon name="video" size={20} color="#18D4F2" />
                 <Text style={styles.watchAdsText}>
                   Watch{' '}
                   <Text style={styles.watchAdsHighlight}>
@@ -1978,7 +1978,7 @@ const Page: React.FC = () => {
                 <Icon
                   name="play-circle"
                   size={14}
-                  color="#22D3EE"
+                  color="#18D4F2"
                   style={styles.adsProgressIcon}
                 />
                 <Text style={styles.adsProgressText}>
@@ -1995,7 +1995,7 @@ const Page: React.FC = () => {
           dailyProgress.hasActiveSubscription && (
             <View style={styles.dailyProgressSection}>
               <View style={styles.dailyProgressHeader}>
-                <Icon name="video-check" size={18} color="#22D3EE" />
+                <Icon name="video-check" size={18} color="#18D4F2" />
                 <Text style={styles.dailyProgressTitle}>
                   Daily Video Requirement
                 </Text>
@@ -2069,7 +2069,7 @@ const Page: React.FC = () => {
             {/* Top Row */}
             <View style={styles.claimTopRow}>
               <View style={styles.iconCorner}>
-                <Icon name="gift" size={16} color="#fff" />
+                <Icon name="gift" size={16} color="#F5F7FA" />
               </View>
               <TouchableOpacity
                 style={styles.infoButton}
@@ -2080,7 +2080,7 @@ const Page: React.FC = () => {
                   )
                 }
               >
-                <Icon name="information" size={14} color="#9CA3AF" />
+                <Icon name="information" size={14} color="#7E8CA3" />
               </TouchableOpacity>
             </View>
 
@@ -2141,7 +2141,7 @@ const Page: React.FC = () => {
             {/* Top Row */}
             <View style={styles.claimTopRow}>
               <View style={styles.iconCorner}>
-                <Icon name="video" size={16} color="#fff" />
+                <Icon name="video" size={16} color="#F5F7FA" />
               </View>
               <TouchableOpacity
                 style={styles.infoButton}
@@ -2152,7 +2152,7 @@ const Page: React.FC = () => {
                   )
                 }
               >
-                <Icon name="information" size={14} color="#9CA3AF" />
+                <Icon name="information" size={14} color="#7E8CA3" />
               </TouchableOpacity>
             </View>
 
@@ -2226,7 +2226,7 @@ const Page: React.FC = () => {
                           resizeMode="cover"
                         />
                       ) : (
-                        <Icon name="gamepad-variant-outline" size={32} color="#22d3ee" />
+                        <Icon name="gamepad-variant-outline" size={32} color="#18D4F2" />
                       )}
                     </View>
                     <Text style={[styles.gamesPlayEarnIconName, pressed && styles.gamesPlayEarnIconTextPressed]} numberOfLines={1}>
@@ -2350,14 +2350,14 @@ const Page: React.FC = () => {
                   <Text style={styles.streakMaxLabel}>Max streak bonus reached!</Text>
                 )}
               </View>
-              <Icon name="chevron-right" size={20} color="#9CA3AF" />
+              <Icon name="chevron-right" size={20} color="#7E8CA3" />
             </TouchableOpacity>
           );
         })()}
 
         {/* <View style={styles.FAQHeading}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <HelpCircle size={22} color="#06b6d4" style={{ marginRight: 6 }} />
+            <HelpCircle size={22} color="#18D4F2" style={{ marginRight: 6 }} />
             <Text style={styles.sectionTitle}>FAQ</Text>
           </View>
         </View> */}
@@ -2478,7 +2478,7 @@ const Page: React.FC = () => {
               style={styles.modalCloseButton}
               onPress={() => setShowNewcomerModal(false)}
             >
-              <Icon name="close-circle" size={28} color="#64748b" />
+              <Icon name="close-circle" size={28} color="#7E8CA3" />
             </TouchableOpacity>
 
             {/* Newcomer Badge */}
@@ -2495,7 +2495,7 @@ const Page: React.FC = () => {
               <Icon
                 name="pickaxe"
                 size={60}
-                color="#22D3EE"
+                color="#18D4F2"
                 style={{ position: 'absolute', right: 40, bottom: 40 }}
               />
               <View style={styles.x2Badge}>
@@ -2516,7 +2516,7 @@ const Page: React.FC = () => {
               <View style={styles.offerDetailsRow}>
                 <View style={styles.offerDetailItem}>
                   <View style={styles.iconCircle}>
-                    <Icon name="pickaxe" size={18} color="#22D3EE" />
+                    <Icon name="pickaxe" size={18} color="#18D4F2" />
                   </View>
                   <Text
                     style={styles.offerDetailText}
@@ -2530,7 +2530,7 @@ const Page: React.FC = () => {
                 </View>
                 <View style={styles.offerDetailItem}>
                   <View style={styles.iconCircle}>
-                    <Icon name="calendar-clock" size={18} color="#22D3EE" />
+                    <Icon name="calendar-clock" size={18} color="#18D4F2" />
                   </View>
                   <Text
                     style={styles.offerDetailText}
@@ -2546,7 +2546,7 @@ const Page: React.FC = () => {
               <View style={styles.offerDetailsRow}>
                 <View style={styles.offerDetailItem}>
                   <View style={styles.iconCircle}>
-                    <Icon name="cash" size={18} color="#22D3EE" />
+                    <Icon name="cash" size={18} color="#18D4F2" />
                   </View>
                   <Text
                     style={styles.offerDetailText}
@@ -2562,7 +2562,7 @@ const Page: React.FC = () => {
                 </View>
                 <View style={styles.offerDetailItem}>
                   <View style={styles.iconCircle}>
-                    <Icon name="gift" size={18} color="#22D3EE" />
+                    <Icon name="gift" size={18} color="#18D4F2" />
                   </View>
                   <Text
                     style={styles.offerDetailText}
@@ -2583,7 +2583,7 @@ const Page: React.FC = () => {
                 disabled={!offerMiningPlan || purchasing}
               >
                 <LinearGradient
-                  colors={['#22D3EE', '#C084FC']}
+                  colors={['#18D4F2', '#C084FC']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.priceButtonGradient}
@@ -2598,7 +2598,7 @@ const Page: React.FC = () => {
                     >
                       <ActivityIndicator
                         size="small"
-                        color="#fff"
+                        color="#F5F7FA"
                         style={{ marginRight: 8 }}
                       />
                       <Text style={styles.priceButtonText}>Processing...</Text>
@@ -2677,7 +2677,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   splashText: {
-    color: '#fff',
+    color: '#F5F7FA',
     marginTop: 16,
     fontSize: 16,
   },
@@ -2685,7 +2685,7 @@ const styles = StyleSheet.create({
     transform: [{ scaleX: 0.5 }, { scaleY: 0.5 }]
   },
   iconBox: {
-    backgroundColor: '#fff',
+    backgroundColor: '#F5F7FA',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2707,7 +2707,7 @@ const styles = StyleSheet.create({
   notificationBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0B111D',
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -2717,7 +2717,7 @@ const styles = StyleSheet.create({
 
   notificationText: {
     flex: 1,
-    color: '#fff',
+    color: '#F5F7FA',
     fontSize: 14,
   },
 
@@ -2731,7 +2731,7 @@ const styles = StyleSheet.create({
     borderColor: '#D08A13',
     position: 'relative',
     overflow: 'visible',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0B111D',
   },
   gamesPlayEarnSectionImage: {
     borderRadius: 16,
@@ -2753,10 +2753,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderLeftWidth: 1,
     borderColor: '#D08A13',
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0B111D',
   },
   gamesPlayEarnTitle: {
-    color: '#E2E8F0',
+    color: '#F5F7FA',
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.35,
@@ -2788,7 +2788,7 @@ const styles = StyleSheet.create({
     height: 72,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0a0f1d',
+    backgroundColor: '#050914',
     shadowColor: '#D08A13',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.35,
@@ -2801,7 +2801,7 @@ const styles = StyleSheet.create({
   },
   gamesPlayEarnIconCirclePressed: {
     transform: [{ scale: 0.94 }],
-    shadowColor: '#22D3EE',
+    shadowColor: '#18D4F2',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.5,
     shadowRadius: 12,
@@ -2850,7 +2850,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(34, 211, 238, 0.35)',
   },
   exploreGameZoneBtnText: {
-    color: '#22d3ee',
+    color: '#18D4F2',
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.3,
@@ -2858,7 +2858,7 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: '#050914',
   },
   scrollContainer: {
     flex: 1,
@@ -2879,17 +2879,17 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#F5F7FA',
     marginBottom: 4,
   },
   subWelcomeText: {
     fontSize: 16,
-    color: '#94A3B8',
+    color: '#7E8CA3',
   },
   menuButton: {
     padding: 8,
     borderRadius: 12,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0B111D',
   },
   balanceContent: {
     flexDirection: 'row',
@@ -2918,7 +2918,7 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 14,
-    color: '#E2E8F0',
+    color: '#F5F7FA',
     marginBottom: 4,
   },
 
@@ -2939,7 +2939,7 @@ const styles = StyleSheet.create({
   balanceAmount: {
     fontSize: 20,
     fontWeight: 500,
-    color: '#fff',
+    color: '#F5F7FA',
     textAlign: 'center',
     includeFontPadding: false,
     textAlignVertical: 'center',
@@ -2956,7 +2956,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Menlo',
   },
   miningSection: {
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0B111D',
     padding: 20,
     borderRadius: 16,
     // marginBottom: 16,
@@ -2978,12 +2978,12 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 17,
     fontWeight: '600',
-    color: '#fff',
+    color: '#F5F7FA',
   },
 
   toggleLabel: {
     fontSize: 13,
-    color: '#fff',
+    color: '#F5F7FA',
     fontWeight: '500',
   },
 
@@ -3007,7 +3007,7 @@ const styles = StyleSheet.create({
   hashrateValue: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#F5F7FA',
   },
 
   switchWrapperSmall: {
@@ -3029,11 +3029,11 @@ const styles = StyleSheet.create({
   },
   customToggleTrackOn: {
     backgroundColor: '#0e7490',
-    borderColor: '#22D3EE',
+    borderColor: '#18D4F2',
   },
   customToggleTrackOff: {
-    backgroundColor: '#1F2937',
-    borderColor: '#374151',
+    backgroundColor: '#0B111D',
+    borderColor: '#232B3A',
   },
 
   customToggleThumb: {
@@ -3045,14 +3045,14 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   customToggleThumbOn: {
-    backgroundColor: '#22D3EE',
-    shadowColor: '#22D3EE',
+    backgroundColor: '#18D4F2',
+    shadowColor: '#18D4F2',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 4,
   },
   customToggleThumbOff: {
-    backgroundColor: '#6B7280',
+    backgroundColor: '#556277',
   },
 
   customToggleThumbIcon: {
@@ -3065,7 +3065,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0B111D',
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',
@@ -3073,12 +3073,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#F5F7FA',
     marginVertical: 6,
   },
   statLabel: {
     fontSize: 14,
-    color: '#fff',
+    color: '#F5F7FA',
   },
   actionButtonsRow: {
     flexDirection: 'row',
@@ -3100,7 +3100,7 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#F5F7FA',
   },
   premiumCard: {
     marginBottom: 24,
@@ -3126,12 +3126,12 @@ const styles = StyleSheet.create({
   premiumTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: '#F5F7FA',
     marginBottom: 4,
   },
   premiumSubtitle: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#7E8CA3',
   },
   portfolioSection: {
     marginBottom: 24,
@@ -3139,10 +3139,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#F5F7FA',
   },
   chartContainer: {
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0B111D',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -3152,13 +3152,13 @@ const styles = StyleSheet.create({
   },
   chartText: {
     fontSize: 16,
-    color: '#fff',
+    color: '#F5F7FA',
     marginTop: 12,
     fontWeight: '600',
   },
   chartSubtext: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#7E8CA3',
     marginTop: 4,
   },
   quickActionsRow: {
@@ -3168,14 +3168,14 @@ const styles = StyleSheet.create({
   },
   quickActionCard: {
     flex: 1,
-    backgroundColor: '#334155',
+    backgroundColor: '#232B3A',
     borderRadius: 24,
     padding: 20,
     alignItems: 'center',
   },
   quickActionText: {
     fontSize: 13,
-    color: '#fff',
+    color: '#F5F7FA',
     marginTop: 8,
     fontWeight: 'bold',
   },
@@ -3183,25 +3183,25 @@ const styles = StyleSheet.create({
     marginBottom: Platform.OS === 'ios' ? 65 : 110
   },
   emptyActivity: {
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0B111D',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
   },
   emptyActivityText: {
     fontSize: 18,
-    color: '#fff',
+    color: '#F5F7FA',
     marginTop: 16,
     fontWeight: '600',
   },
   emptyActivitySubtext: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#7E8CA3',
     marginTop: 4,
     textAlign: 'center',
   },
   activityList: {
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0B111D',
     borderRadius: 12,
     padding: 16,
   },
@@ -3210,13 +3210,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: '#232B3A',
   },
   activityIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#374151',
+    backgroundColor: '#232B3A',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -3227,12 +3227,12 @@ const styles = StyleSheet.create({
   activityType: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#F5F7FA',
     marginBottom: 2,
   },
   activityCrypto: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#7E8CA3',
   },
   activityAmount: {
     fontSize: 16,
@@ -3244,7 +3244,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
+    backgroundColor: '#F5F7FA',
     paddingHorizontal: 0,
     alignItems: 'center',
   },
@@ -3258,7 +3258,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   buttonText: {
-    color: '#fff',
+    color: '#F5F7FA',
     fontWeight: '600',
     alignSelf: "center",
   },
@@ -3316,7 +3316,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexShrink: 1,
     minWidth: '48%',
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0B111D',
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -3330,7 +3330,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexShrink: 1,
     minWidth: '48%',
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0B111D',
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -3350,19 +3350,19 @@ const styles = StyleSheet.create({
   },
 
   detailBTCNumber: {
-    color: '#FFFFFF',
+    color: '#F5F7FA',
     fontWeight: 'bold',
     fontSize: 16.5,
   },
 
   detailBTCUnit: {
-    color: '#9CA3AF',
+    color: '#7E8CA3',
     fontWeight: '600',
     fontSize: 15,
   },
 
   detailSubtitle: {
-    color: '#9CA3AF',
+    color: '#7E8CA3',
     fontSize: 12,
     marginTop: 5,
   },
@@ -3384,7 +3384,7 @@ const styles = StyleSheet.create({
 
   claimBox: {
     flex: 1,
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0B111D',
     borderRadius: 14,
     padding: 8,
     justifyContent: 'space-between',
@@ -3404,7 +3404,7 @@ const styles = StyleSheet.create({
   iconCorner: {
     width: 28,
     height: 28,
-    backgroundColor: '#22D3EE',
+    backgroundColor: '#18D4F2',
     borderTopLeftRadius: 12,
     borderBottomRightRadius: 24,
     justifyContent: 'center',
@@ -3445,7 +3445,7 @@ const styles = StyleSheet.create({
   },
 
   claimButtonText: {
-    color: '#fff',
+    color: '#F5F7FA',
     fontWeight: '600',
     fontSize: 13,
   },
@@ -3457,13 +3457,13 @@ const styles = StyleSheet.create({
   },
 
   powerValue: {
-    color: '#fff',
+    color: '#F5F7FA',
     fontSize: 18,
     fontWeight: '700',
   },
 
   powerUnit: {
-    color: '#9CA3AF',
+    color: '#7E8CA3',
     fontSize: 12,
     marginLeft: 4,
     fontWeight: '500',
@@ -3471,7 +3471,7 @@ const styles = StyleSheet.create({
 
   coolingTooltipText: {
     fontSize: 10,
-    color: '#9CA3AF',
+    color: '#7E8CA3',
     marginTop: 4,
     marginBottom: 2,
   },
@@ -3484,7 +3484,7 @@ const styles = StyleSheet.create({
 
   scrollView: {
     flex: 1,
-    backgroundColor: "#1E293B",
+    backgroundColor: "#0B111D",
     borderRadius: 20,
     paddingTop: 30
   },
@@ -3495,10 +3495,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
     borderTopWidth: 1,
-    borderTopColor: '#202024ff',
+    borderTopColor: '#0B111D',
   },
   answerText: {
-    color: '#b0b0b0',
+    color: '#7E8CA3',
     fontSize: 14,
     lineHeight: 20,
     marginTop: 15,
@@ -3510,7 +3510,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   questionText: {
-    color: '#ffffff',
+    color: '#F5F7FA',
     fontSize: 16,
     fontWeight: '600',
     flex: 1,
@@ -3519,11 +3519,11 @@ const styles = StyleSheet.create({
   faqItem: {
     marginBottom: 15,
     borderRadius: 12,
-    backgroundColor: '#2d2d44',
+    backgroundColor: '#0B111D',
     overflow: 'hidden',
   },
   expandIcon: {
-    color: '#00d4ff',
+    color: '#18D4F2',
     fontSize: 14,
     fontWeight: 'bold',
     transform: [{ rotate: '0deg' }],
@@ -3550,7 +3550,7 @@ const styles = StyleSheet.create({
   },
 
   loadingText: {
-    color: '#9CA3AF',
+    color: '#7E8CA3',
     fontSize: 14,
     textAlign: 'center',
     marginTop: 10,
@@ -3558,7 +3558,7 @@ const styles = StyleSheet.create({
 
   faqContainer: {
     overflow: 'scroll',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0B111D',
     borderRadius: 14,
   },
 
@@ -3582,19 +3582,19 @@ const styles = StyleSheet.create({
   },
 
   faqHeaderText: {
-    color: '#FFFFFF',
+    color: '#F5F7FA',
     fontSize: 16,
     fontWeight: '600',
   },
 
   faqArrow: {
-    color: '#9CA3AF',
+    color: '#7E8CA3',
     fontSize: 16,
   },
 
   faqExpandedArea: {
     overflow: 'hidden',
-    backgroundColor: '#334155',
+    backgroundColor: '#232B3A',
     marginBottom: -30,
     borderBottomLeftRadius: 14,
     borderBottomRightRadius: 14,
@@ -3616,12 +3616,12 @@ const styles = StyleSheet.create({
 
   hashrateUnit: {
     fontSize: 15,
-    color: '#9CA3AF',
+    color: '#7E8CA3',
     fontWeight: 'normal',
   },
   stockGameBonusLabel: {
     fontSize: 11,
-    color: '#2EE8FF',
+    color: '#18D4F2',
     fontWeight: '600',
     marginTop: 2,
   },
@@ -3644,12 +3644,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0B111D',
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: '#374151',
+    borderColor: '#232B3A',
   },
 
   rewardIcon: {
@@ -3664,30 +3664,30 @@ const styles = StyleSheet.create({
   },
 
   rewardTitle: {
-    color: '#F3F4F6',
+    color: '#F5F7FA',
     fontSize: 15,
     fontWeight: '600',
   },
 
   rewardSubtitle: {
-    color: '#9CA3B8',
+    color: '#7E8CA3',
     fontSize: 13,
     marginTop: 2,
   },
 
   NewClaimButton: {
-    backgroundColor: '#334155',
+    backgroundColor: '#232B3A',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: '#556277',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   NewClaimButtonText: {
-    color: '#E2E8F0',
+    color: '#F5F7FA',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -3719,13 +3719,13 @@ const styles = StyleSheet.create({
   },
 
   detailTitle: {
-    color: '#F3F4F6',
+    color: '#F5F7FA',
     fontSize: 13,
     fontWeight: '600',
   },
 
   detailReferralSubtitle: {
-    color: '#9CA3AF',
+    color: '#7E8CA3',
     fontSize: 11,
     marginTop: 2,
   },
@@ -3735,7 +3735,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0B111D',
     borderRadius: 16,
     paddingVertical: 18,
     paddingHorizontal: 16,
@@ -3755,14 +3755,14 @@ const styles = StyleSheet.create({
   },
 
   offerLabel: {
-    color: '#9CA3AF',
+    color: '#7E8CA3',
     fontSize: 12,
     fontWeight: '500',
     marginBottom: 4,
   },
 
   offerTitle: {
-    color: '#FFFFFF',
+    color: '#F5F7FA',
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 10,
@@ -3771,14 +3771,14 @@ const styles = StyleSheet.create({
 
   offerButton: {
     borderWidth: 1,
-    borderColor: '#9CA3AF',
+    borderColor: '#7E8CA3',
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 25,
   },
 
   offerButtonText: {
-    color: '#E5E7EB',
+    color: '#F5F7FA',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -3795,7 +3795,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0B111D',
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 16,
@@ -3825,7 +3825,7 @@ const styles = StyleSheet.create({
   },
 
   bestOfferTitle: {
-    color: '#FFFFFF',
+    color: '#F5F7FA',
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 12,
@@ -3862,7 +3862,7 @@ const styles = StyleSheet.create({
   },
 
   modalContainer: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0B111D',
     borderRadius: 24,
     width: '90%',
     maxWidth: 400,
@@ -3874,7 +3874,7 @@ const styles = StyleSheet.create({
     elevation: 10,
     position: 'relative',
     borderWidth: 2,
-    borderColor: '#22D3EE',
+    borderColor: '#18D4F2',
   },
 
   modalCloseButton: {
@@ -3885,21 +3885,21 @@ const styles = StyleSheet.create({
   },
 
   newcomerBadge: {
-    backgroundColor: '#22D3EE',
+    backgroundColor: '#18D4F2',
     paddingHorizontal: 40,
     paddingVertical: 12,
     borderRadius: 28,
     marginBottom: 16,
     borderWidth: 3,
     borderColor: '#C084FC',
-    shadowColor: '#22D3EE',
+    shadowColor: '#18D4F2',
     shadowOpacity: 0.5,
     shadowRadius: 8,
     elevation: 6,
   },
 
   newcomerText: {
-    color: '#1E293B',
+    color: '#0B111D',
     fontSize: 20,
     fontWeight: '800',
     letterSpacing: 1,
@@ -3908,7 +3908,7 @@ const styles = StyleSheet.create({
   oneTimeText: {
     fontSize: 28,
     fontWeight: '900',
-    color: '#22D3EE',
+    color: '#18D4F2',
     marginBottom: 24,
     letterSpacing: 2,
     textShadowColor: 'rgba(34, 211, 238, 0.6)',
@@ -3917,7 +3917,7 @@ const styles = StyleSheet.create({
   },
 
   miningMachineContainer: {
-    backgroundColor: '#374151',
+    backgroundColor: '#232B3A',
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
@@ -3925,7 +3925,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
     borderWidth: 2,
-    borderColor: '#22D3EE',
+    borderColor: '#18D4F2',
   },
 
   miningMachineImage: {
@@ -3944,13 +3944,13 @@ const styles = StyleSheet.create({
   },
 
   x2Text: {
-    color: '#FFFFFF',
+    color: '#F5F7FA',
     fontSize: 16,
     fontWeight: '900',
   },
 
   bonusHashpowerText: {
-    color: '#22D3EE',
+    color: '#18D4F2',
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 16,
@@ -3978,16 +3978,16 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0B111D',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
     borderWidth: 1,
-    borderColor: '#22D3EE',
+    borderColor: '#18D4F2',
   },
 
   offerDetailText: {
-    color: '#E5E7EB',
+    color: '#F5F7FA',
     fontSize: 14,
     fontWeight: '600',
     flex: 1,
@@ -3998,10 +3998,10 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 16,
     borderWidth: 2,
-    borderColor: '#22D3EE',
+    borderColor: '#18D4F2',
     borderRadius: 20,
-    backgroundColor: '#374151',
-    shadowColor: '#22D3EE',
+    backgroundColor: '#232B3A',
+    shadowColor: '#18D4F2',
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
@@ -4019,14 +4019,14 @@ const styles = StyleSheet.create({
 
   priceButtonText: {
     paddingVertical: 16,
-    color: '#FFFFFF',
+    color: '#F5F7FA',
     fontSize: 20,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
 
   originalPriceText: {
-    color: '#9CA3AF',
+    color: '#7E8CA3',
     fontSize: 18,
     fontWeight: '600',
     textDecorationLine: 'line-through',
@@ -4035,13 +4035,13 @@ const styles = StyleSheet.create({
 
   // NEW: Loss Tracking Styles
   lossTrackingSection: {
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0B111D',
     borderRadius: 16,
     padding: 16,
     marginTop: 16,
     // marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#374151',
+    borderColor: '#232B3A',
   },
 
   lossPercentagesRow: {
@@ -4069,20 +4069,20 @@ const styles = StyleSheet.create({
   },
 
   lossLabel: {
-    color: '#94A3B8',
+    color: '#7E8CA3',
     fontSize: 10,
     textAlign: 'center',
   },
 
   lossLabeldown: {
-    color: '#94A3B8',
+    color: '#7E8CA3',
     paddingTop: 4,
     fontSize: 11,
     textAlign: 'center',
   },
 
   lossLabeldownValue: {
-    color: '#22d3eeff',
+    color: '#18D4F2',
     fontWeight: '700',
   },
 
@@ -4104,7 +4104,7 @@ const styles = StyleSheet.create({
   },
 
   offsetLabel: {
-    color: '#94A3B8',
+    color: '#7E8CA3',
     fontSize: 10,
     textAlign: 'center',
   },
@@ -4113,7 +4113,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0B111D',
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,
@@ -4127,21 +4127,21 @@ const styles = StyleSheet.create({
   },
 
   watchAdsText: {
-    color: '#E5E7EB',
+    color: '#F5F7FA',
     fontSize: 13,
     marginLeft: 10,
     flex: 1,
   },
 
   watchAdsHighlight: {
-    color: '#22d3eeff',
+    color: '#18D4F2',
     fontWeight: '700',
   },
 
   ticketBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#374151',
+    backgroundColor: '#232B3A',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -4161,7 +4161,7 @@ const styles = StyleSheet.create({
   adsProgressBar: {
     width: '100%',
     height: 8,
-    backgroundColor: '#374151',
+    backgroundColor: '#232B3A',
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 8,
@@ -4169,12 +4169,12 @@ const styles = StyleSheet.create({
 
   adsProgressFill: {
     height: '100%',
-    backgroundColor: '#22D3EE',
+    backgroundColor: '#18D4F2',
     borderRadius: 4,
   },
 
   adsProgressText: {
-    color: '#9CA3AF',
+    color: '#7E8CA3',
     fontSize: 12,
     textAlign: 'center',
   },
@@ -4185,7 +4185,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: '#111827',
+    backgroundColor: '#050914',
     marginTop: 2,
   },
 
@@ -4195,13 +4195,13 @@ const styles = StyleSheet.create({
 
   // NEW: Daily Progress Styles
   dailyProgressSection: {
-    backgroundColor: '#1F2937',
+    backgroundColor: '#0B111D',
     borderRadius: 16,
     padding: 16,
     marginTop: 16,
     // marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#374151',
+    borderColor: '#232B3A',
   },
 
   dailyProgressHeader: {
@@ -4211,7 +4211,7 @@ const styles = StyleSheet.create({
   },
 
   dailyProgressTitle: {
-    color: '#fff',
+    color: '#F5F7FA',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -4224,7 +4224,7 @@ const styles = StyleSheet.create({
   progressBarBackground: {
     width: '100%',
     height: 8,
-    backgroundColor: '#374151',
+    backgroundColor: '#232B3A',
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 8,
@@ -4232,12 +4232,12 @@ const styles = StyleSheet.create({
 
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#22D3EE',
+    backgroundColor: '#18D4F2',
     borderRadius: 4,
   },
 
   progressText: {
-    color: '#9CA3B8',
+    color: '#7E8CA3',
     fontSize: 14,
     textAlign: 'center',
     fontWeight: '500',
@@ -4316,7 +4316,7 @@ const styles = StyleSheet.create({
   //   borderRadius: 8,
   // },
   // settingsButtonText: {
-  //   color: '#FFFFFF',
+  //   color: '#F5F7FA',
   //   fontSize: 12,
   //   fontWeight: 'bold',
   // },
@@ -4324,12 +4324,12 @@ const styles = StyleSheet.create({
   streakBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0B111D',
     marginTop: 16,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#232B3A',
   },
   streakBannerLeft: {
     flex: 1,
@@ -4339,13 +4339,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   streakBannerDays: {
-    color: '#FFFFFF',
+    color: '#F5F7FA',
     fontSize: 20,
     fontWeight: 'bold',
     marginLeft: 6,
   },
   streakBannerDaysLabel: {
-    color: '#9CA3AF',
+    color: '#7E8CA3',
     fontSize: 14,
   },
   streakBannerBonus: {
@@ -4359,7 +4359,7 @@ const styles = StyleSheet.create({
   },
   streakProgressBarBg: {
     height: 5,
-    backgroundColor: '#334155',
+    backgroundColor: '#232B3A',
     borderRadius: 3,
     overflow: 'hidden',
     width: '80%',
@@ -4370,7 +4370,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   streakNextLabel: {
-    color: '#9CA3AF',
+    color: '#7E8CA3',
     fontSize: 11,
     marginTop: 4,
   },
