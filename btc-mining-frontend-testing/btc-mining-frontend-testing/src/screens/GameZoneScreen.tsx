@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
     height: 168, alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
   },
   featuredGlow: { position: 'absolute', width: 200, height: 200, borderRadius: 100 },
-  featuredIconImg: { width: 84, height: 84, borderRadius: 20 },
+  featuredIconImg: { width: '100%', height: '100%' },
   featuredBody: { padding: 20 },
   featuredTag: {
     alignSelf: 'flex-start', backgroundColor: 'rgba(24,212,242,0.12)', borderWidth: 1, borderColor: 'rgba(24,212,242,0.3)',
@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
   gameArt: {
     height: 118, alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
   },
-  gameArtImg: { width: '58%', height: '58%', borderRadius: 14 },
+  gameArtImg: { width: '100%', height: '100%' },
   hotBadge: {
     position: 'absolute', top: 9, right: 9,
     backgroundColor: 'rgba(245,158,11,0.16)', borderWidth: 1, borderColor: 'rgba(245,158,11,0.35)',
