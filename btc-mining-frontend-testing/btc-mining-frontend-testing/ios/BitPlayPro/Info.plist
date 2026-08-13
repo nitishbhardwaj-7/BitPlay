@@ -53,7 +53,7 @@
 	<key>NSUserTrackingUsageDescription</key>
 	<string>We use this identifier to provide you with personalized content and measure the effectiveness of ads.</string>
 	<key>RCTNewArchEnabled</key>
-	<false/>
+	<true/>
 	<key>UIAppFonts</key>
 	<array>
 		<string>AntDesign.ttf</string>
