@@ -15,6 +15,16 @@ const router = express.Router();
 // Use a single key everywhere (set in your env file)
 const SPEED_API_KEY = process.env.SPEED_API_KEY;
 
+// Per-withdrawal BTC limits. The mobile app already fetches these from
+// GET /limits (below) and caps its own UI to them — but that endpoint didn't
+// exist until now, so every client was silently falling back to these exact
+// values anyway (see DEFAULT_MIN_BTC/DEFAULT_MAX_BTC in
+// WithdrawalScreenNew.tsx). Enforcing the same numbers server-side changes
+// nothing for a genuine user; it just makes sure a request built outside the
+// app can't skip the cap the app itself already enforces.
+const MIN_WITHDRAW_BTC = 0.0000005;
+const MAX_WITHDRAW_BTC = 0.000009;
+
 // Lightning client config
 const rpcPath = "/home/pi/.lightning/bitcoin";
 const client = new Client(rpcPath);
@@ -160,6 +170,16 @@ router.get("/user/:userId", async (req, res) => {
 });
 
 /**
+ * GET withdrawal limits (mobile app)
+ * WithdrawalScreenNew.tsx already calls this to cap its own UI; it 404'd
+ * previously so every client silently fell back to its own hardcoded
+ * defaults, which happen to equal MIN_WITHDRAW_BTC/MAX_WITHDRAW_BTC above.
+ */
+router.get("/limits", (req, res) => {
+  res.json({ minBtc: MIN_WITHDRAW_BTC, maxBtc: MAX_WITHDRAW_BTC });
+});
+
+/**
  * POST create new withdrawal (mobile app — on-chain BTC method)
  * Status will be PENDING by default.
  *
@@ -181,6 +201,11 @@ router.post("/", async (req, res) => {
     const btcAmountNum = Number(amountBtc);
     if (!Number.isFinite(btcAmountNum) || btcAmountNum <= 0) {
       return res.status(400).json({ error: "Invalid BTC amount" });
+    }
+    if (btcAmountNum < MIN_WITHDRAW_BTC || btcAmountNum > MAX_WITHDRAW_BTC) {
+      return res.status(400).json({
+        error: `Amount must be between ${MIN_WITHDRAW_BTC} and ${MAX_WITHDRAW_BTC} BTC`,
+      });
     }
 
     // Force asset to USDT for all withdrawals
@@ -478,6 +503,12 @@ router.post("/create-speed-payment", async (req, res) => {
       return res
         .status(400)
         .json({ error: "Base amount is required and must be positive" });
+    }
+
+    if (Number(baseAmount) < MIN_WITHDRAW_BTC || Number(baseAmount) > MAX_WITHDRAW_BTC) {
+      return res.status(400).json({
+        error: `Amount must be between ${MIN_WITHDRAW_BTC} and ${MAX_WITHDRAW_BTC} BTC`,
+      });
     }
 
     if (!metadata?.user_id) {
