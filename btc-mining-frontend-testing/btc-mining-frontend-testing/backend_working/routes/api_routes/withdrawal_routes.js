@@ -38,12 +38,17 @@ function getSpeedAuthHeader() {
  * @param {Object} session - MongoDB session for transaction
  * @returns {Promise<Object>} Updated balance
  */
-async function deductBTCDepositBalance(userId, baseAmount) {
+async function deductBTCDepositBalance(userId, baseAmount, session) {
   if (baseAmount === undefined || baseAmount === null || isNaN(baseAmount)) {
     throw new Error("baseAmount is required and must be a valid number");
   }
   const baseAmountStr = typeof baseAmount === 'string' ? baseAmount : baseAmount.toString();
   const negativeAmountStr = baseAmountStr.startsWith('-') ? baseAmountStr : '-' + baseAmountStr;
+  // Atomic compare-and-swap: the $gte guard means this only matches (and only
+  // decrements) if the user's real BTC_DEPOSIT actually covers baseAmount.
+  // A request for more than the user has simply matches no document, and we
+  // throw below — this is what actually stops a fabricated withdrawal amount
+  // from ever being accepted, regardless of what the client claims.
   const balance = await Balance.findOneAndUpdate(
     {
       user: userId,
@@ -58,6 +63,7 @@ async function deductBTCDepositBalance(userId, baseAmount) {
     },
     {
       new: true,
+      session,
       runValidators: true,
     }
   );
@@ -154,31 +160,63 @@ router.get("/user/:userId", async (req, res) => {
 });
 
 /**
- * POST create new withdrawal (mobile app)
- * Status will be PENDING by default
+ * POST create new withdrawal (mobile app — on-chain BTC method)
+ * Status will be PENDING by default.
+ *
+ * amountBtc is validated against the user's real BTC_DEPOSIT balance and
+ * atomically reserved (deducted) here, in the same transaction as the
+ * withdrawal record itself, so a request can never be created for more than
+ * the user actually has. Reserved funds are given back via
+ * restoreBTCDepositBalance if the withdrawal is later rejected.
  */
 router.post("/", async (req, res) => {
+  const session = await mongoose.startSession();
   try {
-    let { userId, asset, chain, toAddress, amountNumeric } = req.body;
+    let { userId, asset, chain, toAddress, amountNumeric, amountBtc } = req.body;
 
-    if (!userId || !chain || !toAddress || !amountNumeric) {
+    if (!userId || !chain || !toAddress || !amountNumeric || !amountBtc) {
       return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const btcAmountNum = Number(amountBtc);
+    if (!Number.isFinite(btcAmountNum) || btcAmountNum <= 0) {
+      return res.status(400).json({ error: "Invalid BTC amount" });
     }
 
     // Force asset to USDT for all withdrawals
     asset = "USDT";
     chain = "USDT";
 
-    const withdrawal = await Withdrawal.create({
-      userId,
-      asset,
-      chain,
-      toAddress,
-      amountNumeric,
-    });
+    let updatedBalance, withdrawal;
+    await session.startTransaction();
+    try {
+      updatedBalance = await deductBTCDepositBalance(userId, btcAmountNum, session);
+
+      const created = await Withdrawal.create(
+        [{
+          userId,
+          asset,
+          chain,
+          toAddress,
+          amountNumeric,
+          defaultAmountNumeric: btcAmountNum,
+        }],
+        { session }
+      );
+      withdrawal = created[0];
+
+      await session.commitTransaction();
+    } catch (innerErr) {
+      await session.abortTransaction();
+      if (innerErr.message?.includes("Insufficient BTC_DEPOSIT balance")) {
+        return res.status(400).json({ error: "Insufficient BTC deposit balance" });
+      }
+      throw innerErr;
+    }
 
     res.status(201).json({
       message: "Withdrawal request created successfully",
+      remaining_btc_deposit: updatedBalance.BTC_DEPOSIT,
       withdrawal,
     });
   } catch (err) {
@@ -186,6 +224,8 @@ router.post("/", async (req, res) => {
     res
       .status(400)
       .json({ error: err.message || "Failed to create withdrawal" });
+  } finally {
+    await session.endSession();
   }
 });
 
@@ -283,35 +323,20 @@ router.patch("/:id/approve", async (req, res) => {
       });
     }
 
-    // 4. Update withdrawal record after successful payment
+    // 4. Update withdrawal record after successful payment.
+    // Balance was already verified and atomically reserved (deducted) when
+    // this withdrawal was created — see deductBTCDepositBalance in the POST
+    // handlers above — so there is nothing left to check or deduct here.
+    // (Previously this deducted a second time *after* the Speed API call,
+    // meaning money could already be sent before an insufficient-balance
+    // error was found, and that error was then silently reported as
+    // success. Removed.)
     withdrawal.status = "SENT";
     withdrawal.txHash = responsespeed.data.id; // Speed instant_send id
     withdrawal.approvedBy = req.user?.id || "system";
     withdrawal.approvedAt = new Date();
     withdrawal.action = responsespeed.data;
     await withdrawal.save();
-
-      try {
-        await deductBTCDepositBalance(
-          withdrawal.userId,
-          String(withdrawal?.defaultAmountNumeric)
-        );
-      } catch (err) {
-        if (
-          err instanceof Error &&
-          err.message === "baseAmount is required and must be a valid number"
-        ) {
-          // Treat as success for frontend
-          return res.json({
-            message: "Transaction successfully completed",
-            withdrawal,
-            speed: responsespeed.data,
-            skippedBaseAmountError: true
-          });
-        } else {
-          throw err;
-        }
-      }
     // 5. Respond
     return res.json({
       message: "Withdrawal approved and sent",
@@ -332,6 +357,35 @@ router.patch("/:id/reject", async (req, res) => {
     const withdrawal = await Withdrawal.findById(req.params.id);
     if (!withdrawal) {
       return res.status(404).json({ error: "Withdrawal not found" });
+    }
+
+    // Only PENDING withdrawals can be rejected — critically, this stops an
+    // already-SENT withdrawal from being "rejected" and incorrectly
+    // re-crediting a balance for funds that were already paid out.
+    if (withdrawal.status !== "PENDING") {
+      return res.status(400).json({
+        error: `Cannot reject withdrawal with status: ${withdrawal.status}`,
+      });
+    }
+
+    // Give back the balance that was reserved when this withdrawal was
+    // created, since the user won't be paid. Guard against legacy/malformed
+    // records (created before balance reservation was restored) that never
+    // had a valid reserved amount — there's nothing to give back for those.
+    const reservedRaw = withdrawal.defaultAmountNumeric;
+    const reserved = reservedRaw != null
+      ? Number(reservedRaw.toString?.() ?? reservedRaw)
+      : 0;
+    if (Number.isFinite(reserved) && reserved > 0) {
+      try {
+        await restoreBTCDepositBalance(withdrawal.userId, reserved);
+      } catch (restoreErr) {
+        console.error("Failed to restore balance on reject:", restoreErr);
+        return res.status(500).json({
+          error: "Failed to restore user balance — withdrawal was not rejected",
+          details: restoreErr.message,
+        });
+      }
     }
 
     withdrawal.status = "FAILED";
@@ -438,15 +492,18 @@ router.post("/create-speed-payment", async (req, res) => {
     await session.startTransaction();
     let updatedBalance, createdWithdrawal;
     try {
-      // 1. Check and deduct balance first
-      // const updatedBalance = await deductBTCDepositBalance(
-      //   metadata.user_id,
-      //   baseAmount,
-      //   session
-      // );
-      // console.log(
-      //   `Balance deducted for user ${metadata.user_id}: ${baseAmount} from BTC_DEPOSIT`
-      // );
+      // 1. Check and deduct balance first — atomically reserves baseAmount
+      // against the user's real BTC_DEPOSIT. This was previously commented
+      // out, which let a request for any amount (regardless of the user's
+      // actual balance) go straight through to a PENDING withdrawal.
+      updatedBalance = await deductBTCDepositBalance(
+        metadata.user_id,
+        baseAmount,
+        session
+      );
+      console.log(
+        `Balance deducted for user ${metadata.user_id}: ${baseAmount} from BTC_DEPOSIT`
+      );
       // 2. Create withdrawal record
       const withdrawalArr = await Withdrawal.create(
         [
