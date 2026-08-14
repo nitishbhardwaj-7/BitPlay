@@ -71,6 +71,7 @@ import SpinAndWinScreen from './src/screens/SpinAndWinScreen';
 import MemoryCardMatchScreen from './src/screens/MemoryCardMatchScreen';
 import GameErrorBoundary from './src/components/GameErrorBoundary';
 import GameZoneScreen from './src/screens/GameZoneScreen';
+import SuperPrivilegesScreen from './src/screens/SuperPrivilegesScreen';
 import ForceUpdateModal from './src/components/ForceUpdateModal';
 import { checkForceUpdate, type ForceUpdateResult } from './src/services/versionCheckService';
 import { initializeGoogleAds } from './src/services/googleAds';
@@ -137,6 +138,7 @@ const AppNavigator = () => {
           <RootStack.Screen name="MemoryCardMatch">{p => <GameErrorBoundary><MemoryCardMatchScreen {...p} /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="GameZone">{p => <GameErrorBoundary><GameZoneScreen {...p} /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="ApptroveDebug" component={ApptroveDebugScreen} />
+          <RootStack.Screen name="SuperPrivileges" component={SuperPrivilegesScreen} />
         </>
       ) : (
         <>

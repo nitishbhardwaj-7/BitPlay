@@ -53,4 +53,5 @@ export type RootStackParamList = {
   MemoryCardMatch: undefined;
   GameZone: undefined;
   ApptroveDebug: undefined;
+  SuperPrivileges: undefined;
 };

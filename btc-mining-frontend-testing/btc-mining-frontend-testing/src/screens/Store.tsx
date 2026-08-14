@@ -28,6 +28,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { getPlanDetails, formatGain } from '../data/planDetailsMapping';
 import { formatMiningLocalTimeForApi } from '../utils/miningTime';
 import { capFreeUserTotalMiningPowerGh } from '../utils/miningPowerCap';
+import { usePrivilegeMultiplier } from '../hooks/usePrivilegeMultiplier';
 import {
   trackSubscriptionStarted,
   trackPaywallViewed,
@@ -92,6 +93,8 @@ const StoreScreen = () => {
   const scrollViewRef = useRef<ScrollView>(null);
   const { hashPower, setHashPower, addHashPower, purchasedHashpowerGh, setPurchasedHashpowerGh } = useHashPower();
   const { user } = useAuth();
+  // Called unconditionally here (before the `loading` early-return below) per Rules of Hooks.
+  const privilegeMultiplier = usePrivilegeMultiplier(user?.id);
 
   type SubscriptionResponse = {
     success: boolean;
@@ -377,7 +380,7 @@ const StoreScreen = () => {
 
   // Use localHashPower (base hashpower) for display, fallback to fetchedHashPower or hashPower
   const rawCurrentPower = localHashPower > 0 ? localHashPower : (fetchedHashPower !== null ? fetchedHashPower : hashPower);
-  const currentPower = capFreeUserTotalMiningPowerGh(rawCurrentPower, purchasedHashpowerGh);
+  const currentPower = capFreeUserTotalMiningPowerGh(rawCurrentPower, purchasedHashpowerGh, privilegeMultiplier > 1);
   const selectedPlan = SubscriptionData[selectedPlanIndex];
   // const currentPower = hashPower; // Current mining power from useHashPower hook
   const selectedHashrate = selectedPlan ? selectedPlan.hashrate : 0;

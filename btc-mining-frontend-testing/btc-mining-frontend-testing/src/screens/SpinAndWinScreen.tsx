@@ -28,6 +28,7 @@ import { useRewardedVideoAd } from '../services/googleAds';
 import { useAdConfig } from '../providers/AdConfigProvider';
 import { get_data_uri } from '../config/api';
 import { capFreeUserTotalMiningPowerGh } from '../utils/miningPowerCap';
+import { usePrivilegeMultiplier } from '../hooks/usePrivilegeMultiplier';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BannerAdWithGamFallback } from '../components/ads/BannerAdWithGamFallback';
 import { BannerAdSize } from 'react-native-google-mobile-ads';
@@ -224,10 +225,11 @@ const SpinAndWinScreen: React.FC = () => {
   const { user } = useAuth();
   const { hashPower, addHashPower, setHashPower, purchasedHashpowerGh, setPurchasedHashpowerGh, isMiningActive: storeMiningActive } = useHashPower();
   const { ads } = useAdConfig();
+  const privilegeMultiplier = usePrivilegeMultiplier(user?.id);
 
   const displayMiningPowerGh = useMemo(
-    () => capFreeUserTotalMiningPowerGh(hashPower, purchasedHashpowerGh),
-    [hashPower, purchasedHashpowerGh],
+    () => capFreeUserTotalMiningPowerGh(hashPower, purchasedHashpowerGh, privilegeMultiplier > 1),
+    [hashPower, purchasedHashpowerGh, privilegeMultiplier],
   );
 
   const [isMiningActive, setIsMiningActive] = useState<boolean | null>(storeMiningActive);

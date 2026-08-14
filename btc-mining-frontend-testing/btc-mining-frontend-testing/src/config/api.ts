@@ -140,6 +140,7 @@ export const DATA_ENDPOINTS = {
   MEMORY_HISTORY_CLAIM: '/api/user_mining/memory-history/claim',
   USERDAILYREWARD: '/api/claim_daily_miner',
   SYNC_PURCHASE: '/api/purchases',
+  PRIVILEGES: '/api/privileges',
 
   NOTIFICATION_PREFS: '/api/notification-preferences',
 

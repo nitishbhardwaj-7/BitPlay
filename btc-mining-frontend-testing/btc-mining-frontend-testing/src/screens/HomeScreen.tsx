@@ -292,6 +292,9 @@ const Page: React.FC = () => {
     useHashPower();
   const [adsWatched, setAdsWatched] = useState(0);
   const [threeGhAdsWatched, setThreeGhAdsWatched] = useState(0);
+  // Effective multiplier from active Super Privileges (1 = no boost). Only applies
+  // to the special/threeGh ad-watch track — see AdMultiplierPrivilege on the backend.
+  const [privilegeMultiplier, setPrivilegeMultiplier] = useState(1);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [endTime, setEndTime] = useState<number | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(true);
@@ -1128,18 +1131,29 @@ const Page: React.FC = () => {
           if (isFirstLoad) setIsLoading(true);
           await logToFile('Home focused - reloading data');
           const local_time = formatMiningLocalTimeForApi(new Date());
-          const [balanceRes, userRes, txnsRes, refRes, referralRewardsRes] = await Promise.all([
+          const [balanceRes, userRes, txnsRes, refRes, referralRewardsRes, privilegesRes] = await Promise.all([
             fetch(`${get_data_uri("GET_WALLET_BALANCE")}?userId=${user.id}`),
             fetch(`${get_data_uri("USERMININGDETAILS")}/${user.id}?local_time=${encodeURIComponent(local_time)}`),
             fetch(`${get_data_uri("GET_RECENT_TRANSACTIONS")}/${user.id}`),
             fetch(`${get_data_uri("REFERRALS")}?code=${encodeURIComponent(user.referralCode)}`),
-            fetch(`${get_data_uri("REFERRAL_REWARDS")}/${user.id}`)
+            fetch(`${get_data_uri("REFERRAL_REWARDS")}/${user.id}`),
+            fetch(`${get_data_uri("PRIVILEGES")}/${user.id}`).catch(() => null),
           ]);
           const balanceData = await balanceRes.json();
           const userData = await userRes.json();
           const txnsData = await txnsRes.json();
           const refData = await refRes.json();
           const referralRewardsData = await referralRewardsRes.json();
+          if (privilegesRes) {
+            try {
+              const privilegesData = await privilegesRes.json();
+              if (privilegesData?.success) {
+                setPrivilegeMultiplier(privilegesData.effective_multiplier ?? 1);
+              }
+            } catch {
+              // Non-critical — leave multiplier at its previous value.
+            }
+          }
 
           if (!isMounted) return;
 
@@ -1197,7 +1211,8 @@ const Page: React.FC = () => {
               if (isSameLocalDay(start, now)) {
                 const initTotalPower = capFreeUserTotalMiningPowerGh(
                   effectiveHp + serverStockBonus,
-                  purchasedPh
+                  purchasedPh,
+                  privilegeMultiplier > 1
                 );
                 const elapsedSec = Math.max(0, (now.getTime() - startTimeMs) / 1000);
                 const miningDurationSec = Math.min(elapsedSec, MAX_MINING_DURATION / 1000);
@@ -1321,7 +1336,8 @@ const Page: React.FC = () => {
 
   const totalMiningPower = capFreeUserTotalMiningPowerGh(
     hashPower + stockGameBonus,
-    purchasedHashpowerGh
+    purchasedHashpowerGh,
+    privilegeMultiplier > 1
   );
   const isFreeUserCapReached =
     purchasedHashpowerGh <= 0 && totalMiningPower >= MAX_FREE_USER_TOTAL_HASHPOWER_GH;
@@ -1926,7 +1942,7 @@ const Page: React.FC = () => {
                 <Text style={styles.lossLabel}>Cumulative Loss</Text>
                 <Text style={styles.lossLabeldown}>Effective:{' '}
                   <Text style={styles.lossLabeldownValue}>
-                    {capFreeUserTotalMiningPowerGh(effectiveHashPower ?? 0, purchasedHashpowerGh).toFixed(1)}
+                    {capFreeUserTotalMiningPowerGh(effectiveHashPower ?? 0, purchasedHashpowerGh, privilegeMultiplier > 1).toFixed(1)}
                   </Text>{' '}Gh/s</Text>
 
               </View>
@@ -2261,11 +2277,18 @@ const Page: React.FC = () => {
             />
             {/* Center Texts */}
             <View style={styles.rewardTextContainer}>
-              <View style={{ ...styles.bonusTag, marginLeft: 0 }}>
-                <Text style={{ ...styles.bonusTagText }}>+100% Claim</Text>
-              </View>
+              <Pressable
+                style={{ ...styles.bonusTag, marginLeft: 0 }}
+                onPress={() => navigation.navigate('SuperPrivileges' as any)}
+              >
+                <Text style={{ ...styles.bonusTagText }}>
+                  {privilegeMultiplier > 1 ? `Super Ad Miner x${privilegeMultiplier}` : '+100% Claim'}
+                </Text>
+              </Pressable>
               <View style={styles.powerRow}>
-                <Text style={styles.powerValue}>5</Text>
+                <Text style={styles.powerValue}>
+                  {(BASE_HASHPOWER_PER_AD * privilegeMultiplier).toFixed(1)}
+                </Text>
                 <Text style={styles.powerUnit}> Gh/s</Text>
               </View>
             </View>
