@@ -56,6 +56,7 @@ export function useRewardedVideoAd(
     setLoaded(false);
     setLoading(true);
     trackAdRequest(admobId);
+    let reloadTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const unsubLoaded = instance.addAdEventListener(
       RewardedAdEventType.LOADED,
@@ -86,13 +87,21 @@ export function useRewardedVideoAd(
       trackAdClosed(admobId);
       setLoaded(false);
       setLoading(true);
-      instance.load();
-      trackAdRequest(admobId);
       if (!didEarn) {
         const screen = navigationRef.getCurrentRoute()?.name ?? 'Unknown';
         trackAdWatchSkipped(screen);
       }
       onAdClosedRef.current?.();
+      // Don't call instance.load() synchronously here — the ad's native
+      // Activity is still tearing down and control is still returning to
+      // MainActivity. Reloading immediately is a known trigger for the
+      // Activity-transition to get stuck (app appears frozen, close/back
+      // stop responding) on some Android devices. A short delay lets the
+      // transition finish first.
+      reloadTimeout = setTimeout(() => {
+        instance.load();
+        trackAdRequest(admobId);
+      }, 500);
     });
     const unsubError = instance.addAdEventListener(AdEventType.ERROR, (error) => {
       setLoading(false);
@@ -109,6 +118,7 @@ export function useRewardedVideoAd(
     instance.load();
 
     return () => {
+      if (reloadTimeout) clearTimeout(reloadTimeout);
       unsubLoaded();
       unsubEarned();
       unsubOpened();
