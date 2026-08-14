@@ -3,7 +3,7 @@
  * regardless of ads, streaks, mini-games, or other rewards.
  * Anyone with purchasedHashpower > 0 is uncapped on the client display/earn rate.
  */
-export const MAX_FREE_USER_TOTAL_HASHPOWER_GH = 400;
+export const MAX_FREE_USER_TOTAL_HASHPOWER_GH = 1200;
 
 export function capFreeUserTotalMiningPowerGh(
   rawTotalGh: number,

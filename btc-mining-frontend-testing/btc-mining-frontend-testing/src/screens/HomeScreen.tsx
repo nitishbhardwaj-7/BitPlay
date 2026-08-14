@@ -66,7 +66,7 @@ const BASE_HASHPOWER_PER_AD = 5.5;
 const FIRST_MINING_START_HASHPOWER = 25;
 const DAILY_REWARD_HASHPOWER = 25;
 /** Max rewarded claims per video track per day (must match backend MAX_REWARDED_ADS_PER_TRACK). */
-const MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY = 30;
+const MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY = 60;
 const BTC_PER_HASHPOWER_PER_SEC = 0.0000000000000070;
 const MAX_MINING_DURATION = 24 * 60 * 60 * 1000;
 // const MAX_MINING_DURATION = 60 * 1000;
@@ -1044,8 +1044,8 @@ const Page: React.FC = () => {
     const newAdsCount = threeGhAdsWatched + 1;
     setThreeGhAdsWatched(newAdsCount);
 
-    // update hashPower by 3 Gh/s for this special reward
-    const THREE_GH_REWARD = 5;
+    // Unified with the regular ad-watch track: same 5.5 Gh/s reward, same 60/day cap.
+    const THREE_GH_REWARD = BASE_HASHPOWER_PER_AD;
     const updatedHashPower = hashPower + THREE_GH_REWARD;
     addHashPower(THREE_GH_REWARD);
     setLocalHashPower(prev => prev + THREE_GH_REWARD);
@@ -1056,8 +1056,9 @@ const Page: React.FC = () => {
     }
 
 
-    // Pass isThreeGhReward: true for the 30 Gh/s reward
-    // Send only the increment (THREE_GH_REWARD) to backend
+    // Pass isThreeGhReward: true so the backend updates the separate
+    // thirty_gh_rewarded_ads_watched counter. Send only the increment
+    // (THREE_GH_REWARD) to backend.
     await syncUserData(THREE_GH_REWARD, newAdsCount, true, true);
 
     // NEW: Increment daily video count for subscription holders
