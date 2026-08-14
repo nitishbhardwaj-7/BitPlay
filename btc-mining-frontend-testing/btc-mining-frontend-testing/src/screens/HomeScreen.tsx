@@ -2277,20 +2277,29 @@ const Page: React.FC = () => {
             />
             {/* Center Texts */}
             <View style={styles.rewardTextContainer}>
-              <Pressable
-                style={{ ...styles.bonusTag, marginLeft: 0 }}
-                onPress={() => navigation.navigate('SuperPrivileges' as any)}
-              >
-                <Text style={{ ...styles.bonusTagText }}>
-                  {privilegeMultiplier > 1 ? `Super Ad Miner x${privilegeMultiplier}` : '+100% Claim'}
-                </Text>
-              </Pressable>
+              {privilegeMultiplier === 1 && (
+                <View style={{ ...styles.bonusTag, marginLeft: 0 }}>
+                  <Text style={{ ...styles.bonusTagText }}>+100% Claim</Text>
+                </View>
+              )}
               <View style={styles.powerRow}>
                 <Text style={styles.powerValue}>
                   {(BASE_HASHPOWER_PER_AD * privilegeMultiplier).toFixed(1)}
                 </Text>
                 <Text style={styles.powerUnit}> Gh/s</Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('SuperPrivileges' as any)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.superPrivilegesInfoIcon}
+                >
+                  <Icon name="alert-circle-outline" size={16} color="#94A3B8" />
+                </TouchableOpacity>
               </View>
+              {privilegeMultiplier > 1 && (
+                <Text style={styles.superPrivilegesVipLabel}>
+                  VIP +{((privilegeMultiplier - 1) * 100).toLocaleString()}%
+                </Text>
+              )}
             </View>
 
             {/* Right Button */}
@@ -2878,6 +2887,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.3,
+  },
+  superPrivilegesInfoIcon: {
+    marginLeft: 4,
+  },
+  superPrivilegesVipLabel: {
+    color: '#FBBF24',
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 2,
   },
 
   container: {
