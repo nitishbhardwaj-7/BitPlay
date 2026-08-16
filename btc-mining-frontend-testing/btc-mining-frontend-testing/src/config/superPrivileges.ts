@@ -10,6 +10,10 @@ import { Platform } from 'react-native';
  * Keep `tier` and `multiplier` in sync with the backend's TIER_CATALOG in
  * routes/api_routes/privileges.js.
  */
+/** Base Super Ad Miner reward per claim (Gh/s), before any privilege multiplier.
+ *  Must match BASE_HASHPOWER_PER_AD in HomeScreen.tsx / user-mining-handles.js. */
+export const BASE_HASHPOWER_PER_AD = 5.5;
+
 export type PrivilegeTier = '5000pct' | '10000pct';
 
 export type PrivilegeTierConfig = {
