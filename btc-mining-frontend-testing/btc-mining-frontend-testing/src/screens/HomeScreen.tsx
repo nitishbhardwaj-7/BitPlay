@@ -65,8 +65,10 @@ import { ApptroveSDK } from 'react-native-apptrove';
 const BASE_HASHPOWER_PER_AD = 5.5;
 const FIRST_MINING_START_HASHPOWER = 25;
 const DAILY_REWARD_HASHPOWER = 25;
-/** Max rewarded claims per video track per day (must match backend MAX_REWARDED_ADS_PER_TRACK). */
+/** Max rewarded claims/day on the regular (flat 5.5 Gh/s) track — must match backend MAX_REWARDED_ADS_PER_TRACK. */
 const MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY = 60;
+/** Max claims/day on the Super Ad Miner track — must match backend MAX_SUPER_AD_MINER_CLAIMS_PER_DAY. */
+const MAX_SUPER_AD_MINER_CLAIMS_PER_DAY = 30;
 const BTC_PER_HASHPOWER_PER_SEC = 0.0000000000000070;
 const MAX_MINING_DURATION = 24 * 60 * 60 * 1000;
 // const MAX_MINING_DURATION = 60 * 1000;
@@ -1040,7 +1042,7 @@ const Page: React.FC = () => {
   const handleThreeGhReward = async () => {
     setIsMiningEnabled(true);
 
-    if (threeGhAdsWatched >= MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY) {
+    if (threeGhAdsWatched >= MAX_SUPER_AD_MINER_CLAIMS_PER_DAY) {
       return;
     }
 
@@ -2324,7 +2326,7 @@ const Page: React.FC = () => {
                   showThreeGh();
                 }}
                 text={threeGhButtonLabel}
-                enabled={!threeGhLoading && threeGhAdsWatched < MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY}
+                enabled={!threeGhLoading && threeGhAdsWatched < MAX_SUPER_AD_MINER_CLAIMS_PER_DAY}
               />
             </View>
           </View>

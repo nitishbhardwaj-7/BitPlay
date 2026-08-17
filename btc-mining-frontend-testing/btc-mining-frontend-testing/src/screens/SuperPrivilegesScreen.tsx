@@ -229,6 +229,36 @@ const SuperPrivilegesScreen: React.FC = () => {
                 4. Once a privilege expires, it can be purchased again. Multiple privileges can be stacked.
               </Text>
             </View>
+
+            {/* Claim button — right after the About box, acts on whichever tier is selected above */}
+            <View style={styles.claimSection}>
+              {selectedIsActive ? (
+                <View style={styles.claimButtonActive}>
+                  <Icon name="checkmark-circle" size={18} color="#22C55E" />
+                  <Text style={styles.claimButtonActiveText}>Active</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.claimButtonWrap}
+                  disabled={!selectedProduct || purchasing}
+                  activeOpacity={0.9}
+                  onPress={handleClaim}
+                >
+                  <LinearGradient
+                    colors={PRIMARY_GRADIENT}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.claimButtonGradient, !selectedProduct && styles.claimButtonDisabled]}
+                  >
+                    {purchasing ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.claimButtonText}>Claim</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
           </ScrollView>
 
           {/* Banner ad — same component/fallback pattern as HomeScreen */}
@@ -249,36 +279,6 @@ const SuperPrivilegesScreen: React.FC = () => {
                 }}
                 onAllFailed={() => setBannerAdError(true)}
               />
-            )}
-          </View>
-
-          {/* Fixed bottom Claim button — acts on whichever tier is selected above */}
-          <View style={styles.bottomBar}>
-            {selectedIsActive ? (
-              <View style={styles.claimButtonActive}>
-                <Icon name="checkmark-circle" size={18} color="#22C55E" />
-                <Text style={styles.claimButtonActiveText}>Active</Text>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.claimButtonWrap}
-                disabled={!selectedProduct || purchasing}
-                activeOpacity={0.9}
-                onPress={handleClaim}
-              >
-                <LinearGradient
-                  colors={PRIMARY_GRADIENT}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[styles.claimButtonGradient, !selectedProduct && styles.claimButtonDisabled]}
-                >
-                  {purchasing ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.claimButtonText}>Claim</Text>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
             )}
           </View>
         </>
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   aboutText: { color: '#CBD5E1', fontSize: 13, lineHeight: 20, marginBottom: 8 },
 
   bannerContainer: { width: '100%', alignItems: 'center', justifyContent: 'center' },
-  bottomBar: { paddingHorizontal: 16, paddingVertical: 14 },
+  claimSection: { marginTop: 16 },
   claimButtonWrap: { borderRadius: 12, overflow: 'hidden' },
   claimButtonGradient: {
     paddingVertical: 15,
