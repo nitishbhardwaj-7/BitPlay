@@ -28,8 +28,12 @@ export const PRIVILEGE_TIERS: PrivilegeTierConfig[] = [
     tier: '5000pct',
     multiplier: 50,
     label: '+5000%',
+    // Android: RevenueCat has this registered as just the base product ID (no
+    // ":purchase-option-id" suffix) — confirmed from the RevenueCat Products
+    // dashboard. Each product only has one purchase option, so the base ID
+    // alone is enough for getProducts() to resolve it.
     productId: Platform.select({
-      android: 'bitplay.super_privilege_5000pct:super-privilege-5000pct-offer',
+      android: 'bitplay.super_privilege_5000pct',
       ios: 'com.bitplaypro.bitplaypro.super_privilegeplan_5000pct',
     })!,
   },
@@ -38,7 +42,7 @@ export const PRIVILEGE_TIERS: PrivilegeTierConfig[] = [
     multiplier: 100,
     label: '+10000%',
     productId: Platform.select({
-      android: 'bitplay.super_privilege_10000pct:super-privilege-10000pct-offer',
+      android: 'bitplay.super_privilege_10000pct',
       ios: 'com.bitplaypro.bitplaypro.super_privilegeplan_10000pct',
     })!,
   },
