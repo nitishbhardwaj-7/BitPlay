@@ -63,8 +63,15 @@ const SuperPrivilegesScreen: React.FC = () => {
   const selectedPctLabel = selectedTierConfig.label.replace('+', '');
 
   const fetchProducts = useCallback(async () => {
+    console.log('[SuperPrivileges] Requesting product IDs:', PRIVILEGE_PRODUCT_IDS);
     try {
       const storeProducts = await Purchases.getProducts(PRIVILEGE_PRODUCT_IDS);
+      console.log(
+        '[SuperPrivileges] getProducts() returned',
+        storeProducts.length,
+        'product(s):',
+        storeProducts.map(p => p.identifier),
+      );
       setProducts(storeProducts);
     } catch (err) {
       console.warn('[SuperPrivileges] Failed to fetch products:', err);
