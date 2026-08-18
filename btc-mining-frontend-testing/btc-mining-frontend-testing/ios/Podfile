@@ -18,6 +18,11 @@ target 'BitPlayPro' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  # InMobi mediation adapter (AdMob mediation — bidding, SDK-based).
+  # 10.8.8.0 was built and tested against Google Mobile Ads SDK 12.11.0,
+  # which is exactly our pinned version (react-native-google-mobile-ads).
+  pod 'GoogleMobileAdsMediationInMobi', '10.8.8.0'
+
   post_install do |installer|
     react_native_post_install(installer)
 
