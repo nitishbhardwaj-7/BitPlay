@@ -79,6 +79,15 @@ dependencies {
     implementation 'com.google.android.gms:play-services-ads-identifier:18.0.1'
     implementation 'androidx.annotation:annotation:1.6.0'
 
+    // InMobi mediation adapter (AdMob mediation — bidding, SDK-based).
+    // 10.8.3.1 was built against Google Mobile Ads SDK 24.2.0; there's no
+    // adapter release built exactly for our pinned 24.6.0 (react-native-
+    // google-mobile-ads), so using the nearest LOWER version rather than a
+    // newer one (11.1.0.1, built for 24.9.0) — adapters are generally
+    // forward-compatible with newer base SDK versions within the same major
+    // line (24.x) since they call stable public APIs, but not the reverse.
+    implementation 'com.google.ads.mediation:inmobi:10.8.3.1'
+
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
