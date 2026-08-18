@@ -19,7 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
-import Purchases, { PurchasesStoreProduct } from 'react-native-purchases';
+import Purchases, { PurchasesStoreProduct, PURCHASE_TYPE } from 'react-native-purchases';
 import { BannerAdSize } from 'react-native-google-mobile-ads';
 import axios from 'axios';
 import { RootStackParamList } from '../components/types';
@@ -65,7 +65,11 @@ const SuperPrivilegesScreen: React.FC = () => {
   const fetchProducts = useCallback(async () => {
     console.log('[SuperPrivileges] Requesting product IDs:', PRIVILEGE_PRODUCT_IDS);
     try {
-      const storeProducts = await Purchases.getProducts(PRIVILEGE_PRODUCT_IDS);
+      // Must pass INAPP explicitly — these are one-time (Consumable) products, not
+      // subscriptions. Without this, the SDK defaulted to querying them as "subs",
+      // which is a different Play Billing catalog and always returned
+      // PRODUCT_NOT_FOUND regardless of how correctly the products were configured.
+      const storeProducts = await Purchases.getProducts(PRIVILEGE_PRODUCT_IDS, PURCHASE_TYPE.INAPP);
       console.log(
         '[SuperPrivileges] getProducts() returned',
         storeProducts.length,
