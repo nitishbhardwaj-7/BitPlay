@@ -18,6 +18,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { get_data_uri } from '../config/api';
 import LottieView from 'lottie-react-native';
 import { formatMiningLocalTimeForApi } from '../utils/miningTime';
+import { getObjectFromStorage, saveObjectToStorage } from '../config/storage';
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'BalanceHistoryScreen'>;
 
@@ -39,11 +40,21 @@ const BalanceHistoryScreen = () => {
 
   const user_id = user?.id;
 
-  const [history, setHistory] = useState<BalanceHistory[]>([]);
+  // Historical data, doesn't change once recorded -- lowest-risk screen for
+  // cache-first display. Seed from last-known snapshot so the list renders
+  // immediately instead of blocking behind the loader.
+  const BALANCE_HISTORY_CACHE_VERSION = 1;
+  const [cached] = useState(() => {
+    if (!user_id) return null;
+    const raw = getObjectFromStorage(`balance_history_cache_${user_id}`);
+    return raw?.version === BALANCE_HISTORY_CACHE_VERSION ? raw : null;
+  });
+  const [hasCache] = useState(() => cached != null);
+  const [history, setHistory] = useState<BalanceHistory[]>(cached?.history ?? []);
   const [loading, setLoading] = useState(true);
-  const [totalHistoricalBTC, setTotalHistoricalBTC] = useState(0);
-  const [currentSessionBtc, setCurrentSessionBtc] = useState(0);
-  const [isMiningActive, setIsMiningActive] = useState(false);
+  const [totalHistoricalBTC, setTotalHistoricalBTC] = useState(cached?.totalHistoricalBTC ?? 0);
+  const [currentSessionBtc, setCurrentSessionBtc] = useState(cached?.currentSessionBtc ?? 0);
+  const [isMiningActive, setIsMiningActive] = useState(cached?.isMiningActive ?? false);
 
   const fetchData = async () => {
     try {
@@ -57,14 +68,22 @@ const BalanceHistoryScreen = () => {
       );
       const miningData = await miningRes.json();
 
+      // Captured locally (not just via the state setters below) so the
+      // cache-persist step further down uses this call's fresh values
+      // instead of a stale pre-update closure.
+      let isActiveForCache = isMiningActive;
+      let currentSessionBtcForCache = currentSessionBtc;
+
       if (miningData.success && miningData.mining_details) {
         const details = miningData.mining_details;
         const isActive = !!details.mining_isactive;
         setIsMiningActive(isActive);
+        isActiveForCache = isActive;
 
         // Use server-calculated BTC for current session
         const serverBtc = parseFloat(miningData.calculated_btc ?? 0);
         setCurrentSessionBtc(serverBtc);
+        currentSessionBtcForCache = serverBtc;
       }
 
       // Then fetch balance history (includes any newly settled entries)
@@ -77,17 +96,28 @@ const BalanceHistoryScreen = () => {
         const historyData = data.balances || [];
         setHistory(historyData);
 
+        let nextTotalHistoricalBTC = 0;
         if (typeof data.totalHistoricalBTC === 'number' && !Number.isNaN(data.totalHistoricalBTC)) {
-          setTotalHistoricalBTC(data.totalHistoricalBTC);
+          nextTotalHistoricalBTC = data.totalHistoricalBTC;
         } else {
-          const sum = historyData.reduce((acc: number, item: BalanceHistory) => {
+          nextTotalHistoricalBTC = historyData.reduce((acc: number, item: BalanceHistory) => {
             const btcVal = item.balances?.BTC;
             const btcNum = typeof btcVal === 'object' && btcVal && '$numberDecimal' in btcVal
               ? parseFloat(btcVal.$numberDecimal || '0')
               : typeof btcVal === 'number' ? btcVal : 0;
             return acc + btcNum;
           }, 0);
-          setTotalHistoricalBTC(sum);
+        }
+        setTotalHistoricalBTC(nextTotalHistoricalBTC);
+
+        if (user_id) {
+          saveObjectToStorage(`balance_history_cache_${user_id}`, {
+            version: BALANCE_HISTORY_CACHE_VERSION,
+            history: historyData,
+            totalHistoricalBTC: nextTotalHistoricalBTC,
+            currentSessionBtc: currentSessionBtcForCache,
+            isMiningActive: isActiveForCache,
+          });
         }
       }
     } catch (err) {
@@ -126,7 +156,7 @@ const BalanceHistoryScreen = () => {
         <View style={{ width: 24 }} />
       </View>
 
-      {loading ? (
+      {!hasCache && loading ? (
         <BitPlayLoader size="lg" label="Loading history..." color="#53D3F6" />
       ) : history.length === 0 && currentSessionBtc <= 0 ? (
         <View style={styles.noRecordsBox}>

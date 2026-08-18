@@ -23,6 +23,7 @@ import { get_data_uri } from '../config/api';
 import { useAuth } from '../auth/AuthProvider';
 import axios from 'axios';
 import { formatMiningLocalTimeForApi, secondsUntilLocalMidnight } from '../utils/miningTime';
+import { getObjectFromStorage, saveObjectToStorage } from '../config/storage';
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'MyMiner'>;
 
@@ -62,6 +63,9 @@ interface Purchase {
   updatedAt: string;
 }
 
+const MY_MINER_CACHE_VERSION = 1;
+const getMyMinerCacheKey = (userId: string) => `my_miner_cache_${userId}`;
+
 const MyMiner = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
@@ -71,12 +75,22 @@ const MyMiner = () => {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<string>('00:00:00');
   const [claimedHashPower, setClaimedHashPower] = useState<number>(25); // Daily claim is always 3 Gh/s from home
-  const [userSubscriptions, setUserSubscriptions] = useState<UserSubscription[]>([]);
-  const [userPurchases, setUserPurchases] = useState<Purchase[]>([]);
+
+  // Purchased-miner/subscription display data -- same reasoning as Store.tsx:
+  // display-only, staleness is cosmetic at worst. Seed from last-known
+  // snapshot so the Premium tab renders immediately.
+  const [cachedMyMiner] = useState(() => {
+    if (!user?.id) return null;
+    const raw = getObjectFromStorage(getMyMinerCacheKey(user.id));
+    return raw?.version === MY_MINER_CACHE_VERSION ? raw : null;
+  });
+  const [hasCache] = useState(() => cachedMyMiner != null);
+  const [userSubscriptions, setUserSubscriptions] = useState<UserSubscription[]>(cachedMyMiner?.userSubscriptions ?? []);
+  const [userPurchases, setUserPurchases] = useState<Purchase[]>(cachedMyMiner?.userPurchases ?? []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [serverTimeRemaining, setServerTimeRemaining] = useState(0);
-  const [isDailyRewardClaimed, setDailyRewardClaimed] = useState(false);
+  const [isDailyRewardClaimed, setDailyRewardClaimed] = useState(cachedMyMiner?.isDailyRewardClaimed ?? false);
 
   // Load mining data from AsyncStorage
   useEffect(() => {
@@ -153,6 +167,7 @@ const MyMiner = () => {
         setDailyRewardClaimed(userData?.daily_reward_claimed ?? false);
 
         // Fetch user's hashpower from purchased subscriptions for premium tab
+        let nextSubscriptions = userSubscriptions;
         try {
           const hashpowerUrl = `${get_data_uri('GET_USER_HASHPOWER')}?userId=${user.id}`;
 
@@ -162,6 +177,7 @@ const MyMiner = () => {
             // Set user subscriptions for premium tab
             if (response.data.subscriptions && Array.isArray(response.data.subscriptions)) {
               setUserSubscriptions(response.data.subscriptions);
+              nextSubscriptions = response.data.subscriptions;
             }
           }
         } catch (subscriptionErr) {
@@ -169,6 +185,7 @@ const MyMiner = () => {
         }
 
         // Fetch user's purchase history
+        let nextPurchases = userPurchases;
         try {
           const purchasesUrl = `${get_data_uri('SYNC_PURCHASE')}/${user.id}`;
 
@@ -176,10 +193,18 @@ const MyMiner = () => {
 
           if (purchasesResponse.data.success && purchasesResponse.data.purchases) {
             setUserPurchases(purchasesResponse.data.purchases);
+            nextPurchases = purchasesResponse.data.purchases;
           }
         } catch (purchaseErr) {
           // Don't set error, just log it
         }
+
+        saveObjectToStorage(getMyMinerCacheKey(user.id), {
+          version: MY_MINER_CACHE_VERSION,
+          userSubscriptions: nextSubscriptions,
+          userPurchases: nextPurchases,
+          isDailyRewardClaimed: userData?.daily_reward_claimed ?? false,
+        });
 
       } catch (err: any) {
         setError('API yet to be connected');
@@ -236,7 +261,7 @@ const MyMiner = () => {
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom: 80}}>
-        {loading ? (
+        {!hasCache && loading ? (
           <View style={styles.loadingContainer}>
             <BitPlayLoader size="lg" label="Loading miners..." color="#3B82F6" />
           </View>

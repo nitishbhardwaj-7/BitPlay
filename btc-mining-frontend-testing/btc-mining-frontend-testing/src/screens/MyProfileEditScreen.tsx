@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import BitPlayLoader from '../components/BitPlayLoader';
 import {
   View,
@@ -24,8 +24,13 @@ import { getSession } from '../auth/auth';
 import { useAuth } from '../auth/AuthProvider';
 import { trackProfileUpdate } from '../services/apptroveAnalytics';
 import InitialsAvatar from '../components/InitialsAvatar';
+import { getObjectFromStorage, saveObjectToStorage } from '../config/storage';
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'MyProfileEditScreen'>;
+
+const PROFILE_CACHE_VERSION = 1;
+const getProfileCacheKey = (userId: string) => `profile_edit_cache_${userId}`;
+const EMPTY_PROFILE_FORM = { name: '', gender: '', phoneNumber: '', country: '', city: '' };
 
 const MyProfileEditScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -37,13 +42,19 @@ const MyProfileEditScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    gender: '',
-    phoneNumber: '',
-    country: '',
-    city: '',
+  // Seed the form from the last successfully-fetched profile so it's usable
+  // immediately instead of blocking behind a loader. The fetch below still
+  // runs once to confirm/correct it -- see fetchUserProfile's hasChanges
+  // guard for why a fresh response never clobbers an edit already in
+  // progress by the time it resolves.
+  const [cachedProfile] = useState(() => {
+    if (!user?.id) return null;
+    const raw = getObjectFromStorage(getProfileCacheKey(user.id));
+    return raw?.version === PROFILE_CACHE_VERSION ? raw.formData : null;
   });
+  const [hasCache] = useState(() => cachedProfile != null);
+
+  const [formData, setFormData] = useState(cachedProfile ?? EMPTY_PROFILE_FORM);
 
   const [originalData, setOriginalData] = useState({ ...formData });
 
@@ -56,6 +67,12 @@ const MyProfileEditScreen = () => {
   useEffect(() => {
     fetchUserProfile();
   }, []);
+
+  // Kept in sync with hasChanges via handleFieldChange below, checked (not
+  // the possibly-stale closure value of hasChanges) at the moment the fetch
+  // resolves -- the user can start editing at any point while this async
+  // call is in flight.
+  const hasChangesRef = useRef(false);
 
   const fetchUserProfile = async () => {
     try {
@@ -78,8 +95,19 @@ const MyProfileEditScreen = () => {
           country: response.user.country || '',
           city: response.user.city || '',
         };
-        setFormData(userData);
-        setOriginalData(userData);
+        // Don't clobber an edit already in progress -- if the user started
+        // typing before this resolved, leave the form alone entirely (the
+        // cache below still updates for next time).
+        if (!hasChangesRef.current) {
+          setFormData(userData);
+          setOriginalData(userData);
+        }
+        if (user?.id) {
+          saveObjectToStorage(getProfileCacheKey(user.id), {
+            version: PROFILE_CACHE_VERSION,
+            formData: userData,
+          });
+        }
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to load profile data');
@@ -95,6 +123,7 @@ const MyProfileEditScreen = () => {
       key => newData[key as keyof typeof newData] !== originalData[key as keyof typeof originalData]
     );
     setHasChanges(changed);
+    hasChangesRef.current = changed;
   };
 
   const handleSubmit = async () => {
@@ -136,7 +165,7 @@ const MyProfileEditScreen = () => {
 
   const styles = getStyles(isDarkMode);
 
-  if (isLoading) {
+  if (!hasCache && isLoading) {
     return (
       <ImageBackground source={require('../assets/images/bg_pattern.png')} style={styles.container} resizeMode="cover">
         <View style={styles.overlay} />

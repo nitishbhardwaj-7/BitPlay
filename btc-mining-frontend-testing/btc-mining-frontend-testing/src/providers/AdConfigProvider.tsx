@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import DeviceInfo from "react-native-device-info";
 import { get_data_uri } from "../config/api";
-import { SplashContent } from "../screens/SplashScreen";
+import { getObjectFromStorage, saveObjectToStorage } from "../config/storage";
 
 type AdConfig = {
   rewardedVideoId: string | null;
@@ -20,13 +20,21 @@ const AdConfigContext = createContext<AdConfigContextType | undefined>(
   undefined
 );
 
+const AD_CONFIG_CACHE_KEY = "adConfigCache";
+const DEFAULT_AD_CONFIG: AdConfig = {
+  rewardedVideoId: null,
+  homeBannerId: null,
+  gamRewardedVideoId: null,
+  gamHomeBannerId: null,
+};
+
 export const AdConfigProvider = ({ children }: { children: React.ReactNode }) => {
-  const [ads, setAds] = useState<AdConfig>({
-    rewardedVideoId: null,
-    homeBannerId: null,
-    gamRewardedVideoId: null,
-    gamHomeBannerId: null,
-  });
+  // Seed from last-known config so warm starts have real ad unit ids from
+  // frame one instead of the null defaults every consumer already falls
+  // back to. Never blocks -- this is a synchronous MMKV read.
+  const [ads, setAds] = useState<AdConfig>(
+    () => getObjectFromStorage(AD_CONFIG_CACHE_KEY) ?? DEFAULT_AD_CONFIG
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,12 +70,14 @@ export const AdConfigProvider = ({ children }: { children: React.ReactNode }) =>
           }
         }
 
-        setAds({
+        const nextAds: AdConfig = {
           rewardedVideoId,
           homeBannerId,
           gamRewardedVideoId,
           gamHomeBannerId,
-        });
+        };
+        setAds(nextAds);
+        saveObjectToStorage(AD_CONFIG_CACHE_KEY, nextAds);
 
       } catch (err) {
         console.error("AdConfig error:", err);
@@ -79,10 +89,11 @@ export const AdConfigProvider = ({ children }: { children: React.ReactNode }) =>
     init();
   }, []);
 
-  if (loading) {
-    return <SplashContent showLoader={false} />;
-  }
-
+  // Never block the tree on this fetch -- every consumer of useAdConfig()
+  // already tolerates null ad-unit ids (falls back to a default banner id,
+  // or the rewarded-ad hook's own internal fallback), so there's nothing to
+  // gain by hiding children until this resolves, and Login/SignUp/Home
+  // shouldn't wait on an ad-config fetch they may not even need yet.
   return (
     <AdConfigContext.Provider value={{ ads, loading }}>
       {children}

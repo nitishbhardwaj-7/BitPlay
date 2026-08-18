@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthProvider";
+import { getObjectFromStorage } from "../config/storage";
+import { getHomeCacheKey, isValidHomeCache } from "../config/homeCache";
 
 type HashPowerContextType = {
   hashPower: number;
@@ -22,8 +24,14 @@ export const HashPowerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isMiningActive, setIsMiningActiveState] = useState<boolean | null>(null);
   const { user } = useAuth();
 
-  // Reset hashpower on logout and whenever the account changes so we never show
-  // the previous user's Gh/s until USERMININGDETAILS has loaded.
+  // Reset hashpower on logout, or seed it from this user's last-known cached
+  // value on login/account-switch (HomeScreen persists this cache on every
+  // successful fetch) so the header doesn't flash 0 Gh/s while
+  // USERMININGDETAILS is still loading. Deliberately NOT left to HomeScreen
+  // itself to restore -- this effect runs on every user?.id change regardless
+  // of which screen is mounted, and as the ancestor provider it always fires
+  // after any descendant's own effects in the same commit, so a restore
+  // attempted from HomeScreen would just get clobbered back to 0 here.
   useEffect(() => {
     if (!user) {
       setHashPowerState(0);
@@ -31,8 +39,12 @@ export const HashPowerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setIsMiningActiveState(null);
       return;
     }
-    setHashPowerState(0);
-    setPurchasedHashpowerGhState(0);
+    const cached = getObjectFromStorage(getHomeCacheKey(user.id));
+    setHashPowerState(isValidHomeCache(cached) ? cached.hashPower : 0);
+    setPurchasedHashpowerGhState(isValidHomeCache(cached) ? cached.purchasedHashpowerGh : 0);
+    // Mining-active state is intentionally left null (unknown) even with a
+    // cache hit -- it's a status that must be confirmed by the server before
+    // any mining-dependent UI treats it as true, unlike the numeric displays.
     setIsMiningActiveState(null);
   }, [user?.id]);
 

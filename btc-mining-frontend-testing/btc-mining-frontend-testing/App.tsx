@@ -343,7 +343,16 @@ const App = () => {
   }
 
   useEffect(() => {
-    const init = async () => {
+    // Attribution (Apptrove) and core SDK init (RevenueCat + notification
+    // permission) have no dependency on each other, but used to run fully
+    // serialized -- on iOS specifically, waitForATTUserAuthorization(10) can
+    // block up to 10s before RevenueCat/notifications even start. Kick both
+    // off concurrently instead and only gate first paint on whichever is
+    // slower, not their sum. Promise.allSettled (not Promise.all) so a
+    // rejection in one branch can't starve isSdkReady for the other -- each
+    // branch already has its own try/catch below, this is just an extra
+    // backstop.
+    const initAttribution = async () => {
       try {
         // Reset previous consent in dev so the form always shows for testing
         if (__DEV__) {
@@ -360,44 +369,50 @@ const App = () => {
         // Attempt to load ads using consent obtained in a previous session
         startGoogleMobileAdsSDK();
 
-        try {
-          const appToken = Platform.select({
-            ios: APPTROVE_APP_TOKENS.ios,
-            android: APPTROVE_APP_TOKENS.android,
-            default: '',
-          });
+        const appToken = Platform.select({
+          ios: APPTROVE_APP_TOKENS.ios,
+          android: APPTROVE_APP_TOKENS.android,
+          default: '',
+        });
 
-          if (!appToken) {
-            console.warn(`[Apptrove] No app token configured for platform: ${Platform.OS}`);
-          } else {
-            // iOS 14+: tell Apptrove to wait up to 10s for ATT dialog result
-            // before sending any attribution requests. Must be called BEFORE initialize().
-            if (Platform.OS === 'ios') {
-              ApptroveSDK.waitForATTUserAuthorization(10);
-            }
-
-            const apptroveConfig = new ApptroveConfig(
-              appToken,
-              __DEV__ ? ApptroveConfig.EnvironmentDevelopment : ApptroveConfig.EnvironmentProduction,
-            );
-            apptroveConfig.setAppSecret('6a65edf3b62e0b2e8a92903d', 'c6a3c7d1-a431-4898-8aa9-6d3822ecd30f');
-            ApptroveSDK.initialize(apptroveConfig);
-            ApptroveSDK.fireInstall();
-            const apptroveId = await ApptroveSDK.getApptroveId();
+        if (!appToken) {
+          console.warn(`[Apptrove] No app token configured for platform: ${Platform.OS}`);
+        } else {
+          // iOS 14+: tell Apptrove to wait up to 10s for ATT dialog result
+          // before sending any attribution requests. Must be called BEFORE initialize().
+          if (Platform.OS === 'ios') {
+            ApptroveSDK.waitForATTUserAuthorization(10);
           }
 
-          // first_open — fire on every cold start; Apptrove deduplicates
-          // installs server-side using device fingerprint. Do NOT gate this
-          // with AsyncStorage — the SDK needs to receive it to attribute installs.
-          trackFirstOpen(Platform.OS);
-        } catch (apptroveError) {
-          console.error(`[Apptrove] SDK init failed on ${Platform.OS}:`, apptroveError);
+          const apptroveConfig = new ApptroveConfig(
+            appToken,
+            __DEV__ ? ApptroveConfig.EnvironmentDevelopment : ApptroveConfig.EnvironmentProduction,
+          );
+          apptroveConfig.setAppSecret('6a65edf3b62e0b2e8a92903d', 'c6a3c7d1-a431-4898-8aa9-6d3822ecd30f');
+          ApptroveSDK.initialize(apptroveConfig);
+          ApptroveSDK.fireInstall();
+          const apptroveId = await ApptroveSDK.getApptroveId();
         }
 
-        await Promise.all([
-          initializeRevenueCat(),
-          requestUserPermission(),
-        ]);
+        // first_open — fire on every cold start; Apptrove deduplicates
+        // installs server-side using device fingerprint. Do NOT gate this
+        // with AsyncStorage — the SDK needs to receive it to attribute installs.
+        trackFirstOpen(Platform.OS);
+      } catch (apptroveError) {
+        console.error(`[Apptrove] SDK init failed on ${Platform.OS}:`, apptroveError);
+      }
+    };
+
+    const initCore = async () => {
+      await Promise.all([
+        initializeRevenueCat(),
+        requestUserPermission(),
+      ]);
+    };
+
+    const init = async () => {
+      try {
+        await Promise.allSettled([initAttribution(), initCore()]);
       } catch (error) {
         console.error('Initialization error:', error);
       } finally {
@@ -451,36 +466,39 @@ const App = () => {
     )} 
     <AuthProvider>
       <HashPowerProvider>
-        <AdConfigProvider>
-          <NavigationContainer
-            onReady={async () => {
-              const currentRoute = navigationRef.getCurrentRoute();
-              if (currentRoute) {
-                await analytics().logScreenView({
-                  screen_name: currentRoute.name,
-                  screen_class: currentRoute.name,
-                });
-                trackScreenView(currentRoute.name);
-              }
-            }}
-            onStateChange={async () => {
-              const currentRoute = navigationRef.getCurrentRoute();
-              if (currentRoute) {
-                await analytics().logScreenView({
-                  screen_name: currentRoute.name,
-                  screen_class: currentRoute.name,
-                });
-                trackScreenView(currentRoute.name);
-              }
-            }}
-            ref={navigationRef}
-          >
-            <StatusBar
-              barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-            />
+        <NavigationContainer
+          onReady={async () => {
+            const currentRoute = navigationRef.getCurrentRoute();
+            if (currentRoute) {
+              await analytics().logScreenView({
+                screen_name: currentRoute.name,
+                screen_class: currentRoute.name,
+              });
+              trackScreenView(currentRoute.name);
+            }
+          }}
+          onStateChange={async () => {
+            const currentRoute = navigationRef.getCurrentRoute();
+            if (currentRoute) {
+              await analytics().logScreenView({
+                screen_name: currentRoute.name,
+                screen_class: currentRoute.name,
+              });
+              trackScreenView(currentRoute.name);
+            }
+          }}
+          ref={navigationRef}
+        >
+          <StatusBar
+            barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+          />
+          {/* AdConfigProvider no longer wraps NavigationContainer -- Login/SignUp
+              shouldn't wait on an ad-unit-id fetch they don't need. It still wraps
+              AppNavigator so every screen keeps access to useAdConfig(). */}
+          <AdConfigProvider>
             <AppNavigator />
-          </NavigationContainer>
-        </AdConfigProvider>
+          </AdConfigProvider>
+        </NavigationContainer>
       </HashPowerProvider>
     </AuthProvider>
     </View>

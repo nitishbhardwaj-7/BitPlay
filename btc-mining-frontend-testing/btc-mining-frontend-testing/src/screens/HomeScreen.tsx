@@ -19,6 +19,7 @@ import {
   Dimensions,
   AppState,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -61,6 +62,8 @@ import OdometerCounter from '../components/OdometerCounter';
 import { useAdConfig } from '../providers/AdConfigProvider';
 import { trackMiningStarted, trackMiningStopped, trackDepositCompleted } from '../services/apptroveAnalytics';
 import { ApptroveSDK } from 'react-native-apptrove';
+import { getObjectFromStorage, saveObjectToStorage } from '../config/storage';
+import { getHomeCacheKey, isValidHomeCache, HomeCacheShape, HOME_CACHE_VERSION } from '../config/homeCache';
 
 const BASE_HASHPOWER_PER_AD = 5.5;
 const FIRST_MINING_START_HASHPOWER = 25;
@@ -214,6 +217,21 @@ const useCountdown = (initialSeconds: number) => {
 const Page: React.FC = () => {
   const { user } = useAuth();
   const { ads } = useAdConfig();
+
+  // Last-known snapshot from the previous successful load, read once
+  // synchronously on mount (lazy initializer, no re-read on re-render).
+  // Lets the real layout render immediately with real numbers instead of
+  // blocking behind a full-screen spinner -- see the fetch effect further
+  // down for where this gets refreshed and re-persisted in the background.
+  // Discarded (treated as absent) if its version doesn't match the current
+  // shape, so an old app version's cache can never feed stale-shaped data
+  // into a calculation.
+  const [cachedHome] = useState<HomeCacheShape | null>(() => {
+    if (!user?.id) return null;
+    const raw = getObjectFromStorage(getHomeCacheKey(user.id));
+    return isValidHomeCache(raw) ? raw : null;
+  });
+  const [hasCache] = useState(() => cachedHome != null);
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [bannerAdError, setBannerAdError] = useState(false);
 
@@ -277,12 +295,12 @@ const Page: React.FC = () => {
   }, []);
 
   // ...existing code...
-  const [localHashPower, setLocalHashPower] = useState(0);
-  const [btcBalance, setBtcBalance] = useState(0); // Current session mining
-  const [btcReferralBalance, setBtcRefBalance] = useState(0);
-  const [userBalance, setUserWalletBalance] = useState(0);
-  const [userBalanceBTC, setUserBTCWalletBalance] = useState(0); // Past accumulated mining (BTC_DEPOSIT)
-  const [totalHistoricalBTC, setTotalHistoricalBTC] = useState(0); // Sum from Balance History
+  const [localHashPower, setLocalHashPower] = useState(cachedHome?.localHashPower ?? 0);
+  const [btcBalance, setBtcBalance] = useState(cachedHome?.btcBalance ?? 0); // Current session mining
+  const [btcReferralBalance, setBtcRefBalance] = useState(cachedHome?.btcReferralBalance ?? 0);
+  const [userBalance, setUserWalletBalance] = useState(cachedHome?.userBalance ?? 0);
+  const [userBalanceBTC, setUserBTCWalletBalance] = useState(cachedHome?.userBalanceBTC ?? 0); // Past accumulated mining (BTC_DEPOSIT)
+  const [totalHistoricalBTC, setTotalHistoricalBTC] = useState(cachedHome?.totalHistoricalBTC ?? 0); // Sum from Balance History
   const [showBalanceHint, setShowBalanceHint] = useState(true);
 
   useEffect(() => {
@@ -292,20 +310,19 @@ const Page: React.FC = () => {
 
   const { hashPower, setHashPower, addHashPower, resetHashPower, purchasedHashpowerGh, setPurchasedHashpowerGh, setIsMiningActive } =
     useHashPower();
-  const [adsWatched, setAdsWatched] = useState(0);
-  const [threeGhAdsWatched, setThreeGhAdsWatched] = useState(0);
+  const [adsWatched, setAdsWatched] = useState(cachedHome?.adsWatched ?? 0);
+  const [threeGhAdsWatched, setThreeGhAdsWatched] = useState(cachedHome?.threeGhAdsWatched ?? 0);
   // Effective multiplier from active Super Privileges (1 = no boost). Only applies
   // to the special/threeGh ad-watch track — see AdMultiplierPrivilege on the backend.
-  const [privilegeMultiplier, setPrivilegeMultiplier] = useState(1);
-  const [startTime, setStartTime] = useState<number | null>(null);
+  const [privilegeMultiplier, setPrivilegeMultiplier] = useState(cachedHome?.privilegeMultiplier ?? 1);
+  const [startTime, setStartTime] = useState<number | null>(cachedHome?.startTime ?? null);
   const [endTime, setEndTime] = useState<number | null>(null);
-  const [loadingBalance, setLoadingBalance] = useState(true);
-  const [isMiningEnabled, setIsMiningEnabled] = useState(false);
+  const [isMiningEnabled, setIsMiningEnabled] = useState(cachedHome?.isMiningEnabled ?? false);
   const miningActivatedLocallyRef = useRef(false);
   const shouldClaimDailyRewardRef = useRef(false);
   const [isMiningActivationPending, setIsMiningActivationPending] = useState(false);
   const [serverTimeRemaining, setServerTimeRemaining] = useState(0);
-  const [stockGameBonus, setStockGameBonus] = useState(0);
+  const [stockGameBonus, setStockGameBonus] = useState(cachedHome?.stockGameBonus ?? 0);
 
   // Fixed 3 games — BTC Trading, Spin and Win, Memory Match
   const DEFAULT_FEATURED: Array<{ name: string; route: string; hint: string; iconImage: any }> = [
@@ -484,12 +501,12 @@ const Page: React.FC = () => {
     return () => subscription.remove();
   }, [isMiningEnabled, syncBtcSessionBalance]);
 
-  const [recentActivity, setRecentActivity] = useState([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>(cachedHome?.recentActivity ?? []);
   const [isLoading, setIsLoading] = useState(true);
   const [effectiveHashPower, setEffectiveHashPower] = useState(0);
 
-  const [streakDays, setStreakDays] = useState(0);
-  const [streakBonusGh, setStreakBonusGh] = useState(0);
+  const [streakDays, setStreakDays] = useState(cachedHome?.streakDays ?? 0);
+  const [streakBonusGh, setStreakBonusGh] = useState(cachedHome?.streakBonusGh ?? 0);
 
   const STREAK_TIERS = [
     { minDays: 0, bonusGh: 5 },
@@ -505,7 +522,7 @@ const Page: React.FC = () => {
     return -1;
   };
 
-  const [user_referrals, setUserReferrals] = useState(0);
+  const [user_referrals, setUserReferrals] = useState(cachedHome?.userReferrals ?? 0);
   const [timer, setTimer] = useState(0);
 
   const { formatted: formattedTimer, seconds: timerSecs } = useCountdown(serverTimeRemaining);
@@ -517,14 +534,14 @@ const Page: React.FC = () => {
   const [faqVisible, setFaqVisible] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
 
-  const [isDailyRewardClaimed, setDailyRewardClaimed] = useState(false);
+  const [isDailyRewardClaimed, setDailyRewardClaimed] = useState(cachedHome?.dailyRewardClaimed ?? false);
 
   const [currentMessage, setCurrentMessage] = useState('');
 
   const [AndroidBTCBalString, SetAndroidBTCBalString] = useState('');
 
   // Daily video requirement tracking (NEW)
-  const [dailyProgress, setDailyProgress] = useState({
+  const [dailyProgress, setDailyProgress] = useState(cachedHome?.dailyProgress ?? {
     videosWatchedToday: 0,
     dailyTarget: 10,
     remaining: 10,
@@ -534,12 +551,12 @@ const Page: React.FC = () => {
   });
 
   // Loss tracking states (will be updated from API)
-  const [cumulativeLoss, setCumulativeLoss] = useState(0); // Cumulative loss percentage from API
-  const [dailyLossOffset, setDailyLossOffset] = useState(3.0); // 3% daily loss offset (fixed)
-  const [dailyAdsRequired, setDailyAdsRequired] = useState(30); // 30 ads required daily (fixed)
-  const [dailyAdsWatched, setDailyAdsWatched] = useState(0); // Ads watched today to offset loss
-  const [previousDayEarnings, setPreviousDayEarnings] = useState(0); // Previous day BTC earnings
-  const [hasLossData, setHasLossData] = useState(false); // Track if loss data is loaded
+  const [cumulativeLoss, setCumulativeLoss] = useState(cachedHome?.lossTracking?.cumulativeLoss ?? 0); // Cumulative loss percentage from API
+  const [dailyLossOffset, setDailyLossOffset] = useState(cachedHome?.lossTracking?.dailyLossOffset ?? 3.0); // 3% daily loss offset (fixed)
+  const [dailyAdsRequired, setDailyAdsRequired] = useState(cachedHome?.lossTracking?.dailyAdsRequired ?? 30); // 30 ads required daily (fixed)
+  const [dailyAdsWatched, setDailyAdsWatched] = useState(cachedHome?.lossTracking?.dailyAdsWatched ?? 0); // Ads watched today to offset loss
+  const [previousDayEarnings, setPreviousDayEarnings] = useState(cachedHome?.previousDayEarnings ?? 0); // Previous day BTC earnings
+  const [hasLossData, setHasLossData] = useState(cachedHome?.lossTracking?.hasLossData ?? false); // Track if loss data is loaded
   const [showNewcomerModal, setShowNewcomerModal] = useState(false); // Newcomer offer modal
   const [offerMiningPlan, setOfferMiningPlan] = useState<MiningPlan | null>(null); // Mining plan for newcomer offer
   const [showInviteModal, setShowInviteModal] = useState(false); // Invite friends modal
@@ -1129,10 +1146,17 @@ const Page: React.FC = () => {
         lastFetchRef.current = now;
         const isFirstLoad = !hasLoadedOnceRef.current;
         hasLoadedOnceRef.current = true;
+        // Populated as the main batch below is processed, then persisted to
+        // MMKV once, and re-persisted after balance-history resolves so the
+        // next cold start's cache includes those fields too.
+        let cacheSnapshot: HomeCacheShape | null = null;
         try {
           if (isFirstLoad) setIsLoading(true);
           await logToFile('Home focused - reloading data');
           const local_time = formatMiningLocalTimeForApi(new Date());
+          // btcPrice has no dependency on the batch below — kick it off
+          // alongside it instead of awaiting it afterward.
+          const btcPricePromise = getBtcUsdPriceCached();
           const [balanceRes, userRes, txnsRes, refRes, referralRewardsRes, privilegesRes] = await Promise.all([
             fetch(`${get_data_uri("GET_WALLET_BALANCE")}?userId=${user.id}`),
             fetch(`${get_data_uri("USERMININGDETAILS")}/${user.id}?local_time=${encodeURIComponent(local_time)}`),
@@ -1141,11 +1165,13 @@ const Page: React.FC = () => {
             fetch(`${get_data_uri("REFERRAL_REWARDS")}/${user.id}`),
             fetch(`${get_data_uri("PRIVILEGES")}/${user.id}`).catch(() => null),
           ]);
-          const balanceData = await balanceRes.json();
-          const userData = await userRes.json();
-          const txnsData = await txnsRes.json();
-          const refData = await refRes.json();
-          const referralRewardsData = await referralRewardsRes.json();
+          const [balanceData, userData, txnsData, refData, referralRewardsData] = await Promise.all([
+            balanceRes.json(),
+            userRes.json(),
+            txnsRes.json(),
+            refRes.json(),
+            referralRewardsRes.json(),
+          ]);
           if (privilegesRes) {
             try {
               const privilegesData = await privilegesRes.json();
@@ -1161,7 +1187,7 @@ const Page: React.FC = () => {
 
           const btcDeposited = parseFloat(balanceData?.balance?.BTC_DEPOSIT?.$numberDecimal ?? balanceData?.balance?.BTC_DEPOSIT ?? '0');
 
-          const btcPrice = await getBtcUsdPriceCached();
+          const btcPrice = await btcPricePromise;
 
           setUserBTCWalletBalance(btcDeposited);
 
@@ -1190,6 +1216,16 @@ const Page: React.FC = () => {
           // If mining was activated locally but the server hasn't caught up yet
           // (returns inactive/zero hashpower), preserve the entire local mining state.
           const serverStale = miningActivatedLocallyRef.current && (!miningActive || effectiveHp <= 0);
+          // Cache-snapshot counterparts for the fields guarded by serverStale
+          // below: when stale, this pass doesn't apply the server's numbers
+          // to state (deliberately preserves what's already there), so the
+          // persisted cache should preserve the same current values rather
+          // than writing the not-applied server numbers.
+          let btcBalanceForCache = btcBalance;
+          let localHashPowerForCache = localHashPower;
+          let hashPowerForCache = hashPower;
+          let isMiningEnabledForCache = isMiningEnabled;
+          let startTimeForCache = startTime;
           if (serverStale) {
             setServerTimeRemaining(secondsUntilLocalMidnight(new Date()));
           } else {
@@ -1225,6 +1261,7 @@ const Page: React.FC = () => {
             const computedSessionBtcFixed = parseFloat(computedSessionBtc.toFixed(16));
             setBtcBalance(computedSessionBtcFixed);
             balanceRef.current = computedSessionBtcFixed;
+            btcBalanceForCache = computedSessionBtcFixed;
 
             setLocalHashPower(rawHashpower);
             setHashPower(effectiveHp);
@@ -1233,6 +1270,10 @@ const Page: React.FC = () => {
             miningActivatedLocallyRef.current = miningActive;
             setStartTime(startTimeMs ?? null);
             setServerTimeRemaining(secondsUntilLocalMidnight(new Date()));
+            localHashPowerForCache = rawHashpower;
+            hashPowerForCache = effectiveHp;
+            isMiningEnabledForCache = miningActive;
+            startTimeForCache = startTimeMs ?? null;
           }
 
           setStockGameBonus(serverStockBonus);
@@ -1275,55 +1316,107 @@ const Page: React.FC = () => {
 
           setUserReferrals(Number(refData?.count) || 0);
 
-          // Fetch balance history AFTER mining details so day-change settlement is included
-          try {
-            const historyRes = await fetch(
-              `${get_data_uri('GET_BALANCE_HISTORY')}?userId=${user.id}`
-            );
-            const historyJson = await historyRes.json();
-
-            if (historyRes.ok && historyJson.success) {
-              const historyEntries = historyJson.balances || [];
-
-              if (typeof historyJson.totalHistoricalBTC === 'number' && !Number.isNaN(historyJson.totalHistoricalBTC)) {
-                setTotalHistoricalBTC(historyJson.totalHistoricalBTC);
-              } else if (historyEntries.length > 0) {
-                const sum = historyEntries.reduce((acc: number, item: any) => {
-                  const itemBtcValue = item.balances?.BTC;
-                  const btcNum = typeof itemBtcValue === 'object' && itemBtcValue && '$numberDecimal' in itemBtcValue
-                    ? parseFloat(itemBtcValue.$numberDecimal || '0')
-                    : typeof itemBtcValue === 'number' ? itemBtcValue : 0;
-                  return acc + btcNum;
-                }, 0);
-                setTotalHistoricalBTC(sum);
-              } else {
-                setTotalHistoricalBTC(0);
-              }
-
-              if (historyEntries.length > 0) {
-                const latestBalance = historyEntries[0];
-                const btcValue = latestBalance.balances?.BTC;
-                if (typeof btcValue === 'object' && btcValue && '$numberDecimal' in btcValue) {
-                  setPreviousDayEarnings(parseFloat(btcValue.$numberDecimal || '0'));
-                } else if (typeof btcValue === 'number') {
-                  setPreviousDayEarnings(btcValue);
-                } else {
-                  setPreviousDayEarnings(0);
-                }
-              } else {
-                setPreviousDayEarnings(0);
-              }
-            } else {
-              setPreviousDayEarnings(0);
-              setTotalHistoricalBTC(0);
-            }
-          } catch (histErr) {
-            setPreviousDayEarnings(0);
-            setTotalHistoricalBTC(0);
-          }
+          // Everything above is enough to consider the screen "loaded" --
+          // balance history (below) has a real data dependency on this batch
+          // (must run after so day-change settlement is included) but
+          // doesn't need to hold up isLoading; it updates in place when it
+          // resolves, same as the cache-first fields already do.
+          cacheSnapshot = {
+            version: HOME_CACHE_VERSION,
+            cachedAtMs: Date.now(),
+            btcBalance: btcBalanceForCache,
+            btcReferralBalance: typeof refReward === 'number' ? refReward : parseFloat(refReward) || 0,
+            userBalance: parseFloat(((btcDeposited * btcPrice) / 4).toFixed(2)),
+            userBalanceBTC: btcDeposited,
+            totalHistoricalBTC, // stale/cached value until balance-history resolves below
+            previousDayEarnings, // stale/cached value until balance-history resolves below
+            localHashPower: localHashPowerForCache,
+            hashPower: hashPowerForCache,
+            purchasedHashpowerGh: purchasedPh,
+            isMiningEnabled: isMiningEnabledForCache,
+            startTime: startTimeForCache,
+            stockGameBonus: serverStockBonus,
+            adsWatched: parseFloat(details.rewarded_ads_watched ?? 0),
+            threeGhAdsWatched: parseFloat(details.thirty_gh_rewarded_ads_watched ?? 0),
+            streakDays: details.streak_days ?? 0,
+            streakBonusGh: details.streak_bonus_gh ?? 0,
+            userReferrals: Number(refData?.count) || 0,
+            recentActivity: Array.isArray(txnsData?.transactions) ? txnsData.transactions : recentActivity,
+            privilegeMultiplier,
+            dailyRewardClaimed: userData?.daily_reward_claimed ?? false,
+            dailyProgress: userData?.daily_progress ?? dailyProgress,
+            lossTracking: userData?.mining_details?.lossTracking ? {
+              cumulativeLoss: userData.mining_details.lossTracking.cumulative_loss ?? 0,
+              dailyLossOffset: userData.mining_details.lossTracking.daily_loss_offset ?? 3.0,
+              dailyAdsWatched: userData.mining_details.lossTracking.daily_ads_watched ?? 0,
+              dailyAdsRequired: userData.mining_details.lossTracking.daily_ads_required ?? 10,
+              hasLossData: true,
+            } : null,
+          };
+          saveObjectToStorage(getHomeCacheKey(user.id), cacheSnapshot);
         } catch (err) {
         } finally {
           if (isMounted) setIsLoading(false);
+        }
+
+        if (!isMounted || !user?.id) return;
+
+        // Fetch balance history AFTER mining details so day-change settlement
+        // is included. Runs after the block above (still sequential, same
+        // ordering as before) but no longer blocks isLoading -- the rest of
+        // the screen has already rendered by the time this resolves.
+        try {
+          const historyRes = await fetch(
+            `${get_data_uri('GET_BALANCE_HISTORY')}?userId=${user.id}`
+          );
+          const historyJson = await historyRes.json();
+
+          let nextTotalHistoricalBTC = 0;
+          let nextPreviousDayEarnings = 0;
+
+          if (historyRes.ok && historyJson.success) {
+            const historyEntries = historyJson.balances || [];
+
+            if (typeof historyJson.totalHistoricalBTC === 'number' && !Number.isNaN(historyJson.totalHistoricalBTC)) {
+              nextTotalHistoricalBTC = historyJson.totalHistoricalBTC;
+            } else if (historyEntries.length > 0) {
+              nextTotalHistoricalBTC = historyEntries.reduce((acc: number, item: any) => {
+                const itemBtcValue = item.balances?.BTC;
+                const btcNum = typeof itemBtcValue === 'object' && itemBtcValue && '$numberDecimal' in itemBtcValue
+                  ? parseFloat(itemBtcValue.$numberDecimal || '0')
+                  : typeof itemBtcValue === 'number' ? itemBtcValue : 0;
+                return acc + btcNum;
+              }, 0);
+            }
+
+            if (historyEntries.length > 0) {
+              const latestBalance = historyEntries[0];
+              const btcValue = latestBalance.balances?.BTC;
+              if (typeof btcValue === 'object' && btcValue && '$numberDecimal' in btcValue) {
+                nextPreviousDayEarnings = parseFloat(btcValue.$numberDecimal || '0');
+              } else if (typeof btcValue === 'number') {
+                nextPreviousDayEarnings = btcValue;
+              }
+            }
+          }
+
+          if (!isMounted) return;
+          setTotalHistoricalBTC(nextTotalHistoricalBTC);
+          setPreviousDayEarnings(nextPreviousDayEarnings);
+
+          if (cacheSnapshot && user?.id) {
+            saveObjectToStorage(getHomeCacheKey(user.id), {
+              ...cacheSnapshot,
+              cachedAtMs: Date.now(),
+              totalHistoricalBTC: nextTotalHistoricalBTC,
+              previousDayEarnings: nextPreviousDayEarnings,
+            });
+          }
+        } catch (histErr) {
+          if (isMounted) {
+            setPreviousDayEarnings(0);
+            setTotalHistoricalBTC(0);
+          }
         }
       };
 
@@ -1631,16 +1724,11 @@ const Page: React.FC = () => {
     }
   };
   // console.log("Btc balances", totalHistoricalBTC, btcBalance);
-  if (isLoading) {
-    return (
-      <View style={styles.splash}>
-        <BitPlayLoader size="lg" label="Loading data..." />
-      </View>
-    );
-  }
-
-
-
+  // No more full-screen blocking gate here -- the real layout always
+  // renders. If there's a cached snapshot (hasCache), values are the
+  // last-known real numbers from frame one; if not (true first-ever
+  // install), the individual displays below show a placeholder only until
+  // the background fetch resolves (see `!hasCache && isLoading` below).
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#050914" translucent={false} />
@@ -1657,8 +1745,8 @@ const Page: React.FC = () => {
               <View style={styles.balanceLeft}>
                 <Icon5 name="bitcoin" size={25} color="#ffb700ff" />
                 <View style={styles.balanceTextContainer}>
-                  {isLoading ? (
-                    <Text style={styles.balanceAmount}>Loading...</Text>
+                  {!hasCache && isLoading ? (
+                    <Text style={styles.balanceAmount}>—</Text>
                   ) : (
                     <>
                       <OdometerCounter value={totalBtc} />

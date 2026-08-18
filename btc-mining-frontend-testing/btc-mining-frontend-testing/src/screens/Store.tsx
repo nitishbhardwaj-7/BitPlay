@@ -29,6 +29,7 @@ import { getPlanDetails, formatGain } from '../data/planDetailsMapping';
 import { formatMiningLocalTimeForApi } from '../utils/miningTime';
 import { capFreeUserTotalMiningPowerGh } from '../utils/miningPowerCap';
 import { usePrivilegeMultiplier } from '../hooks/usePrivilegeMultiplier';
+import { getObjectFromStorage, saveObjectToStorage } from '../config/storage';
 import {
   trackSubscriptionStarted,
   trackPaywallViewed,
@@ -80,8 +81,27 @@ interface SubscriptionItemWithPackage extends SubscriptionItem {
   revenueCatPackage?: PurchasesPackage;
 }
 
+const STORE_CACHE_VERSION = 1;
+const getStoreCacheKey = (userId: string) => `store_cache_${userId}`;
+
 const StoreScreen = () => {
-  const [SubscriptionData, setSubscriptionData] = useState<SubscriptionItemWithPackage[]>([]);
+  const { user } = useAuth();
+  // Plan/product catalog display, backend fields only -- deliberately NEVER
+  // includes revenueCatPackage (a live RevenueCat SDK object tied to this
+  // session's Purchases.getOfferings() call; a JSON-round-tripped copy would
+  // not be usable for an actual purchase). Every downstream read of
+  // revenueCatPackage already falls back gracefully when it's undefined
+  // (base backend price for display, and handlePurchase itself refuses to
+  // proceed without a live package) -- see below -- so seeding the catalog
+  // from cache with revenueCatPackage absent is safe by construction, not
+  // just for display.
+  const [cachedStore] = useState(() => {
+    if (!user?.id) return null;
+    const raw = getObjectFromStorage(getStoreCacheKey(user.id));
+    return raw?.version === STORE_CACHE_VERSION ? raw.plans : null;
+  });
+  const [hasStoreCache] = useState(() => cachedStore != null);
+  const [SubscriptionData, setSubscriptionData] = useState<SubscriptionItemWithPackage[]>(cachedStore ?? []);
   const [loading, setLoading] = useState(true);
   const [_error, setError] = useState<string | null>(null);
   const [selectedPlanIndex, setSelectedPlanIndex] = useState(0);
@@ -92,7 +112,6 @@ const StoreScreen = () => {
 
   const scrollViewRef = useRef<ScrollView>(null);
   const { hashPower, setHashPower, addHashPower, purchasedHashpowerGh, setPurchasedHashpowerGh } = useHashPower();
-  const { user } = useAuth();
   // Called unconditionally here (before the `loading` early-return below) per Rules of Hooks.
   const privilegeMultiplier = usePrivilegeMultiplier(user?.id);
 
@@ -358,6 +377,15 @@ const StoreScreen = () => {
 
         setSubscriptionData(filteredPlans);
         trackViewItemList('mining_plans', filteredPlans.length);
+
+        // Cache backend plan fields only -- never revenueCatPackage (see the
+        // comment at the top of the component for why).
+        if (user?.id) {
+          saveObjectToStorage(getStoreCacheKey(user.id), {
+            version: STORE_CACHE_VERSION,
+            plans: filteredPlans.map(({ revenueCatPackage, ...plan }) => plan),
+          });
+        }
       } catch (err) {
         setError('Failed to load store data');
       } finally {
@@ -369,7 +397,7 @@ const StoreScreen = () => {
     fetchData();
   }, []);
 
-  if (loading) {
+  if (!hasStoreCache && loading) {
     // Debug: print all plan._id values for comparison
     return (
       <View style={styles.loadingContainer}>

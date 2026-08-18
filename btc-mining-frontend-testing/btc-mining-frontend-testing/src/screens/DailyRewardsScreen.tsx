@@ -27,6 +27,7 @@ import { BannerAdWithGamFallback } from '../components/ads/BannerAdWithGamFallba
 import { BannerAdSize } from 'react-native-google-mobile-ads';
 import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
 import { useAdConfig } from '../providers/AdConfigProvider';
+import { getObjectFromStorage, saveObjectToStorage } from '../config/storage';
 
 type NavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -43,9 +44,24 @@ interface Reward {
 }
 
 const API_BASE = get_data_uri("GET_REWARDS");
+const REWARDS_CACHE_VERSION = 1;
+const getRewardsCacheKey = (userId: string) => `daily_rewards_cache_${userId}`;
 
 const DailyRewardsScreen = () => {
-  const [rewards, setRewards] = useState<Reward[]>([]);
+  const { user } = useAuth();
+  const user_id = user?.id;
+
+  // Display-only catalog data (reward list + claimed status) -- staleness is
+  // cosmetic at worst, the actual claim is validated server-side regardless
+  // of what's shown. Seed from last-known cache so the list renders
+  // immediately instead of blocking behind a full-screen spinner.
+  const [cachedRewards] = useState<Reward[] | null>(() => {
+    if (!user_id) return null;
+    const raw = getObjectFromStorage(getRewardsCacheKey(user_id));
+    return raw?.version === REWARDS_CACHE_VERSION ? raw.rewards : null;
+  });
+  const [hasCache] = useState(() => cachedRewards != null);
+  const [rewards, setRewards] = useState<Reward[]>(cachedRewards ?? []);
   const [loading, setLoading] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
   const [claimedReward, setClaimedReward] = useState<Reward | null>(null);
@@ -54,10 +70,13 @@ const DailyRewardsScreen = () => {
 
   const { hashPower, addHashPower } = useHashPower();
 
-  const { user } = useAuth();
-  const ads = useAdConfig();
-
-  const user_id = user?.id;
+  // NOTE: previously `const ads = useAdConfig()` (the whole context value,
+  // { ads, loading }) with call sites reading `ads?.homeBannerId` -- that
+  // property doesn't exist at that level, so it silently always fell back
+  // to DEFAULT_ADMOB_BANNER_ID instead of the real fetched ad unit id.
+  // Destructuring here matches how every other screen in the codebase reads
+  // it (HomeScreen, Store, MyMiner, etc.).
+  const { ads } = useAdConfig();
 
   // Fetch rewards
   useEffect(() => {
@@ -67,6 +86,12 @@ const DailyRewardsScreen = () => {
         const data = await res.json();
         if (data.success) {
           setRewards(data.rewards);
+          if (user_id) {
+            saveObjectToStorage(getRewardsCacheKey(user_id), {
+              version: REWARDS_CACHE_VERSION,
+              rewards: data.rewards,
+            });
+          }
         }
       } catch (err) {
       } finally {
@@ -161,14 +186,6 @@ const DailyRewardsScreen = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <BitPlayLoader size="lg" label="Loading rewards..." />
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       {/* Top Banner Ad */}
@@ -188,6 +205,9 @@ const DailyRewardsScreen = () => {
       <StatusBar barStyle="light-content" backgroundColor="#15213B" />
 
       <ScrollView contentContainerStyle={styles.scrollView}>
+        {!hasCache && loading && rewards.length === 0 && (
+          <BitPlayLoader size="lg" label="Loading rewards..." />
+        )}
         {rewards.map((reward) => (
           <View key={reward._id} style={styles.rewardCard}>
             <View style={styles.rewardInfo}>
