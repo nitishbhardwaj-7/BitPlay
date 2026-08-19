@@ -157,8 +157,11 @@ const SuperPrivilegesScreen: React.FC = () => {
     }
   };
 
+  // No `edges` override -- pad all 4 sides, same fix as GameZoneScreen/
+  // HomeScreen. Excluding 'bottom' here left the banner ad sitting flush
+  // against (and rendered behind) the device's system nav/gesture bar.
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -372,7 +375,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   claimButtonDisabled: { opacity: 0.5 },
-  claimButtonText: { color: '#0F172A', fontWeight: '700', fontSize: 16 },
+  claimButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 16 },
   claimButtonActive: {
     flexDirection: 'row',
     gap: 6,
