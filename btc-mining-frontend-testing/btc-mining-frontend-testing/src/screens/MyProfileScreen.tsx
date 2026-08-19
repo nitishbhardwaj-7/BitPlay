@@ -313,7 +313,7 @@ const MyProfileScreen = () => {
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => navigation.navigate('WebViewScreen', {
-              url: 'https://bitplaypro.com/terms-of-service/',
+              url: 'https://bitplaypro.com/terms-and-conditions/',
               title: 'Terms of Service'
             })}
           >

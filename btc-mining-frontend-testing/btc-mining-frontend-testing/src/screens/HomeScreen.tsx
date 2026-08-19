@@ -2368,15 +2368,29 @@ const Page: React.FC = () => {
             {/* Center Texts */}
             <View style={styles.rewardTextContainer}>
               {privilegeMultiplier === 1 && (
+                // Marketing bait shown only to non-VIP users -- these two lines
+                // are deliberately not tied to BASE_HASHPOWER_PER_AD/real reward
+                // math, they're an upsell hook for Super Privileges. Users who
+                // already own a real multiplier see their true value below
+                // instead (superPrivilegesVipLabel / the computed Gh/s branch).
                 <View style={{ ...styles.bonusTag, marginLeft: 0 }}>
-                  <Text style={{ ...styles.bonusTagText }}>+100% Claim</Text>
+                  <Text style={{ ...styles.bonusTagText }}>VIP +15000%</Text>
                 </View>
               )}
               <View style={styles.powerRow}>
-                <Text style={styles.powerValue}>
-                  {(BASE_HASHPOWER_PER_AD * privilegeMultiplier).toFixed(1)}
-                </Text>
-                <Text style={styles.powerUnit}> Gh/s</Text>
+                {privilegeMultiplier === 1 ? (
+                  <>
+                    <Text style={styles.powerValue}>1</Text>
+                    <Text style={styles.powerUnit}> TH/S</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.powerValue}>
+                      {(BASE_HASHPOWER_PER_AD * privilegeMultiplier).toFixed(1)}
+                    </Text>
+                    <Text style={styles.powerUnit}> Gh/s</Text>
+                  </>
+                )}
                 <TouchableOpacity
                   onPress={() => navigation.navigate('SuperPrivileges' as any)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -2392,29 +2406,16 @@ const Page: React.FC = () => {
               )}
             </View>
 
-            {/* Right Button */}
+            {/* Right Button -- this card is a Super Privileges upsell, so the
+                button (like the info icon above) opens Super Privileges
+                directly rather than running the ad-watch claim flow. */}
             <View style={styles.dailyRewardButton}>
               <GradientButton
                 styleProps={styles.dailyRewardGradientButton}
                 gradientStyleProps={{ marginTop: 0 }}
-                onPress={async () => {
-                  if (!isMiningEnabled) {
-                    Alert.alert(
-                      'Mining Not Activated',
-                      'Please activate mining before claiming rewards.',
-                      [{ text: 'OK' }]
-                    );
-                    return;
-                  }
-                  const netState = await NetInfo.fetch();
-                  if (!netState.isConnected) {
-                    Alert.alert('No Connection', 'Please check your internet connection and try again.');
-                    return;
-                  }
-                  showThreeGh();
-                }}
-                text={threeGhButtonLabel}
-                enabled={!threeGhLoading && threeGhAdsWatched < MAX_SUPER_AD_MINER_CLAIMS_PER_DAY}
+                onPress={() => navigation.navigate('SuperPrivileges' as any)}
+                text="Claim Now"
+                enabled
               />
             </View>
           </View>

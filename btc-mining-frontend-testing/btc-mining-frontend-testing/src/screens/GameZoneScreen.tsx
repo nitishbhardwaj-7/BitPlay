@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, Animated, Dimensions, Image, NativeSyntheticEvent, NativeScrollEvent,
+  LayoutChangeEvent,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -41,7 +42,7 @@ interface GameEntry {
 
 const GAMES: GameEntry[] = [
   { name: 'BTC Trading', icon: 'bitcoin', iconImage: require('../assets/images/icon_btc_trading.png'), color: '#f59e0b', route: 'TradingScreen', category: 'Featured', desc: 'Trade BTC and earn rewards', rewardLabel: `+${TRADING_WIN_GH} GH/s` },
-  { name: 'Spin & Win', icon: 'rotate-3d-variant', iconImage: require('../assets/images/icon_spin_win.png'), color: '#22d3ee', route: 'SpinAndWin', category: 'Featured', desc: 'Spin the wheel, win rewards', rewardLabel: `Up to ${SPIN_MAX_GH} GH/s` },
+  { name: 'Spin & Win', icon: 'rotate-3d-variant', iconImage: require('../assets/images/game_spin.png'), color: '#22d3ee', route: 'SpinAndWin', category: 'Featured', desc: 'Spin the wheel, win rewards', rewardLabel: `Up to ${SPIN_MAX_GH} GH/s` },
   { name: 'Memory Match', icon: 'cards', iconImage: require('../assets/images/icon_memory_match.png'), color: '#7c3aed', route: 'MemoryCardMatch', category: 'Featured', desc: 'Match all the pairs', rewardLabel: `+${MEMORY_WIN_GH} GH/s` },
 ];
 
@@ -97,6 +98,20 @@ const sk = StyleSheet.create({
   line2: { height: 10, backgroundColor: '#0E1522', borderRadius: 6, width: '90%' },
 });
 
+// 8px-based spacing scale — kept file-local, matching this codebase's
+// established convention of per-screen constants (no centralized theme file
+// exists anywhere in src/).
+const SPACING = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
+
+// Carousel geometry: one shared source of truth for slide width, used both
+// to size each slide AND to compute the scroll index — this is what keeps
+// the "peek of next card" composition and the pagination dots in sync.
+const CAROUSEL_PEEK = 28;
+const SLIDE_WIDTH = W - SPACING.md * 2 - CAROUSEL_PEEK;
+const SLIDE_STRIDE = SLIDE_WIDTH + SPACING.md;
+
+const DEFAULT_BOTTOM_BAR_HEIGHT = 72;
+
 export default function GameZoneScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
@@ -106,6 +121,10 @@ export default function GameZoneScreen() {
   const [sessionCounts, setSessionCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [featuredIndex, setFeaturedIndex] = useState(0);
+  // Measured height of the fixed bottom ad bar, so scrollable content can
+  // reserve exactly enough space to never slide underneath it. Starts at a
+  // sane default to avoid a first-frame gap before onLayout fires.
+  const [bottomBarHeight, setBottomBarHeight] = useState(DEFAULT_BOTTOM_BAR_HEIGHT);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSearch = useCallback((text: string) => {
@@ -169,8 +188,13 @@ export default function GameZoneScreen() {
   const RANK_COLOR = ['#FFD24C', '#C7CEDA', '#D68A4C'];
 
   const onFeaturedScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const idx = Math.round(e.nativeEvent.contentOffset.x / W);
+    const idx = Math.round(e.nativeEvent.contentOffset.x / SLIDE_STRIDE);
     if (idx !== featuredIndex) setFeaturedIndex(idx);
+  };
+
+  const onBottomBarLayout = (e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    if (h > 0 && Math.abs(h - bottomBarHeight) > 0.5) setBottomBarHeight(h);
   };
 
   const showFeaturedCarousel = activeCategory === 'Featured' && filtered.length > 0;
@@ -179,7 +203,9 @@ export default function GameZoneScreen() {
     <View style={styles.root}>
       <LinearGradient colors={['#050914', '#0A0F1C']} style={StyleSheet.absoluteFill} />
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      {/* No `edges` override — SafeAreaView pads all 4 sides once, exactly
+          like HomeScreen, so we never hand-add insets.bottom ourselves. */}
+      <SafeAreaView style={styles.safe}>
 
         {/* Header */}
         <Animated.View style={[styles.header, { opacity: headerAnim, transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
@@ -206,7 +232,11 @@ export default function GameZoneScreen() {
           />
         </View>
 
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: bottomBarHeight + SPACING.lg }}
+        >
 
           {/* Hot / Popular section */}
           {(loading || popular.length > 0) && (
@@ -242,7 +272,7 @@ export default function GameZoneScreen() {
                                 <MaterialCommunityIcons name={game.icon} size={26} color={game.color} />
                               )}
                             </View>
-                            <Text style={styles.hotName} numberOfLines={1}>{game.name}</Text>
+                            <Text style={styles.hotName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{game.name}</Text>
                             <Text style={styles.hotPlays}>{p.totalSessions.toLocaleString()} plays</Text>
                             <View style={styles.hotPlayPill}>
                               <MaterialCommunityIcons name="play" size={11} color="#18D4F2" />
@@ -275,7 +305,7 @@ export default function GameZoneScreen() {
             )}
           </View>
 
-          {/* Category tabs */}
+          {/* Category tabs — segmented pill active-state, not just an underline/text-color change */}
           <View style={styles.tabsRow}>
             {CATEGORIES.map(cat => {
               const active = activeCategory === cat.key;
@@ -284,15 +314,13 @@ export default function GameZoneScreen() {
                   key={cat.key}
                   onPress={() => setActiveCategory(cat.key)}
                   activeOpacity={0.75}
-                  style={styles.tab}
+                  style={[styles.tab, active && styles.tabActive]}
                 >
                   <Text style={[styles.tabTxt, active && styles.tabTxtActive]}>{cat.key === 'All' ? 'All Games' : cat.key}</Text>
-                  {active && <View style={styles.tabUnderline} />}
                 </TouchableOpacity>
               );
             })}
           </View>
-          <View style={styles.tabsDivider} />
 
           {/* Section label */}
           <View style={styles.sectionTitleRow}>
@@ -307,51 +335,54 @@ export default function GameZoneScreen() {
               </View>
             </View>
           ) : showFeaturedCarousel ? (
-            /* Featured: large spotlight cards, one game at a time, swipeable */
+            /* Featured: large spotlight cards, one dominant card + peek of next, swipeable */
             <Animated.View style={{ opacity: gridAnim }}>
               <ScrollView
                 horizontal
-                pagingEnabled
                 showsHorizontalScrollIndicator={false}
+                decelerationRate="fast"
+                snapToInterval={SLIDE_STRIDE}
+                snapToAlignment="start"
+                contentContainerStyle={{ paddingHorizontal: SPACING.md }}
                 onScroll={onFeaturedScroll}
                 scrollEventThrottle={16}
               >
-                {filtered.map(game => {
+                {filtered.map((game, i) => {
                   const plays = sessionCounts[game.name];
+                  const isLast = i === filtered.length - 1;
                   return (
-                    <View key={game.route} style={{ width: W - 32, paddingHorizontal: 16 }}>
-                      <View style={styles.featuredCard}>
-                        {/* Artwork bleeds off the right edge — matches the reference's side-by-side layout */}
-                        <View style={styles.featuredArt}>
-                          {game.iconImage ? (
-                            <Image source={game.iconImage} style={styles.featuredIconImg} resizeMode="cover" />
-                          ) : (
-                            <View style={[styles.featuredArtFallback, { backgroundColor: game.color + '12' }]}>
-                              <MaterialCommunityIcons name={game.icon} size={64} color={game.color} />
+                    <View key={game.route} style={{ width: SLIDE_WIDTH, marginRight: isLast ? 0 : SPACING.md }}>
+                      <PressScale onPress={() => navigation.navigate(game.route as any)}>
+                        <View style={styles.featuredCard}>
+                          <View style={styles.featuredArt}>
+                            {game.iconImage ? (
+                              <Image source={game.iconImage} style={styles.featuredIconImg} resizeMode="contain" />
+                            ) : (
+                              <View style={[styles.featuredArtFallback, { backgroundColor: game.color + '12' }]}>
+                                <MaterialCommunityIcons name={game.icon} size={56} color={game.color} />
+                              </View>
+                            )}
+                          </View>
+                          <View style={styles.featuredBody}>
+                            <View style={styles.featuredTag}>
+                              <Text style={styles.featuredTagTxt}>FEATURED</Text>
                             </View>
-                          )}
-                        </View>
-                        <View style={styles.featuredBody}>
-                          <View style={styles.featuredTag}>
-                            <Text style={styles.featuredTagTxt}>FEATURED</Text>
-                          </View>
-                          <Text style={styles.featuredTitle}>{game.name}</Text>
-                          <Text style={styles.featuredDesc}>{game.desc}</Text>
-                          <View style={styles.rewardRow}>
-                            <MaterialCommunityIcons name="lightning-bolt" size={14} color="#18D4F2" />
-                            <Text style={styles.rewardTxt}>{game.rewardLabel}</Text>
-                          </View>
-                          {plays != null && plays > 0 && (
-                            <Text style={styles.playsText}>{plays >= 1000 ? `${(plays / 1000).toFixed(1)}k` : plays} plays</Text>
-                          )}
-                          <PressScale onPress={() => navigation.navigate(game.route as any)} style={{ alignSelf: 'flex-start' }}>
+                            <Text style={styles.featuredTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{game.name}</Text>
+                            <Text style={styles.featuredDesc} numberOfLines={2}>{game.desc}</Text>
+                            <View style={styles.rewardRow}>
+                              <MaterialCommunityIcons name="lightning-bolt" size={14} color="#18D4F2" />
+                              <Text style={styles.rewardTxt}>{game.rewardLabel}</Text>
+                            </View>
+                            {plays != null && plays > 0 && (
+                              <Text style={styles.playsText}>{plays >= 1000 ? `${(plays / 1000).toFixed(1)}k` : plays} plays</Text>
+                            )}
                             <View style={styles.playNowBtn}>
                               <Text style={styles.playNowTxt}>Play Now</Text>
                               <MaterialCommunityIcons name="arrow-right" size={15} color="#18D4F2" />
                             </View>
-                          </PressScale>
+                          </View>
                         </View>
-                      </View>
+                      </PressScale>
                     </View>
                   );
                 })}
@@ -386,7 +417,7 @@ export default function GameZoneScreen() {
                         )}
                       </View>
                       <View style={styles.cardInfo}>
-                        <Text style={styles.cardName} numberOfLines={1}>{game.name}</Text>
+                        <Text style={styles.cardName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{game.name}</Text>
                         <Text style={styles.cardDesc} numberOfLines={2}>{game.desc}</Text>
                         <View style={styles.cardFooter}>
                           <View style={styles.rewardRow}>
@@ -438,8 +469,12 @@ export default function GameZoneScreen() {
           </View>
         </ScrollView>
 
-        {/* Bottom banner ad */}
-        <View style={[styles.bottomBanner, { paddingBottom: insets.bottom || 8 }]}>
+        {/* Fixed bottom banner ad — absolutely pinned, mirrors HomeScreen's
+            pattern exactly (no manual insets.bottom math; SafeAreaView above
+            already accounts for it since we no longer exclude the bottom
+            edge). Reserved-content padding above is driven by this View's
+            own measured height via onLayout. */}
+        <View style={styles.bottomBannerWrap} onLayout={onBottomBarLayout}>
           <BannerAdWithGamFallback
             primaryUnitId={DEFAULT_ADMOB_BANNER_ID}
             size={BannerAdSize.ADAPTIVE_BANNER}
@@ -465,9 +500,9 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: 'row', alignItems: 'flex-start',
-    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16,
+    paddingHorizontal: SPACING.lg, paddingTop: SPACING.sm + 4, paddingBottom: SPACING.md,
   },
-  backBtn: { padding: 4, marginRight: 12, marginTop: 2 },
+  backBtn: { padding: 4, marginRight: SPACING.sm + 4, marginTop: 2 },
   headerText: { flex: 1 },
   headerTitle: { fontSize: 26, fontWeight: '800', color: TEXT, letterSpacing: -0.3 },
   headerSub: { fontSize: 13.5, color: TEXT_DIM, marginTop: 4, fontWeight: '500' },
@@ -476,7 +511,7 @@ const styles = StyleSheet.create({
   statusCapsule: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: BORDER,
-    borderRadius: 20, paddingHorizontal: 13, paddingVertical: 8, marginTop: 2,
+    borderRadius: 20, paddingHorizontal: SPACING.md - 3, paddingVertical: SPACING.sm, marginTop: 2,
   },
   statusCapsuleTxt: { color: TEXT, fontWeight: '700', fontSize: 14 },
 
@@ -487,24 +522,24 @@ const styles = StyleSheet.create({
   },
 
   hotSection: { paddingTop: 4, paddingBottom: 4 },
-  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 12, marginTop: 4 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACING.lg, marginBottom: SPACING.md - 4, marginTop: 4 },
   sectionTitleWithIcon: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   hotSectionTitle: { fontSize: 13.5, fontWeight: '700', color: TEXT_DIM },
   sectionTitle: { fontSize: 19, fontWeight: '800', color: TEXT, letterSpacing: -0.2 },
   sectionCount: { fontSize: 12, color: TEXT_MUTED, fontWeight: '600' },
 
-  hotRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 20, paddingBottom: 4 },
+  hotRow: { flexDirection: 'row', gap: SPACING.sm + 4, paddingHorizontal: SPACING.lg, paddingBottom: 4 },
   hotCard: {
-    width: 132, borderRadius: 16, padding: 14, alignItems: 'center',
+    width: 132, borderRadius: 16, padding: SPACING.md - 2, alignItems: 'center',
     backgroundColor: SURFACE, borderWidth: 1, borderColor: BORDER,
   },
-  hotCardSkeleton: { width: 132, height: 158, borderRadius: 16, backgroundColor: SURFACE, marginLeft: 20 },
+  hotCardSkeleton: { width: 132, height: 158, borderRadius: 16, backgroundColor: SURFACE, marginLeft: SPACING.lg },
   hotRankBadge: { position: 'absolute', top: 10, left: 10, borderRadius: 8, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 2 },
   hotRankTxt: { fontSize: 10, fontWeight: '800' },
-  hotIconBg: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10, overflow: 'hidden' },
+  hotIconBg: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.sm + 2, overflow: 'hidden' },
   hotIconImg: { width: '100%', height: '100%' },
   hotName: { fontSize: 12.5, fontWeight: '700', color: TEXT, textAlign: 'center', marginBottom: 3 },
-  hotPlays: { fontSize: 10.5, color: TEXT_MUTED, marginBottom: 10, fontVariant: ['tabular-nums'] },
+  hotPlays: { fontSize: 10.5, color: TEXT_MUTED, marginBottom: SPACING.sm + 2, fontVariant: ['tabular-nums'] },
   hotPlayPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: 'rgba(24,212,242,0.12)', borderWidth: 1, borderColor: 'rgba(24,212,242,0.25)',
@@ -513,61 +548,75 @@ const styles = StyleSheet.create({
   hotPlayTxt: { fontSize: 10, fontWeight: '800', color: CYAN, letterSpacing: 0.5 },
 
   searchWrap: {
-    marginHorizontal: 20, marginTop: 18, marginBottom: 18,
+    marginHorizontal: SPACING.lg, marginTop: SPACING.md + 2, marginBottom: SPACING.md + 2,
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: SURFACE_2, borderRadius: 14,
-    paddingHorizontal: 16, height: 52,
-    borderWidth: 1, borderColor: BORDER_SOFT,
+    backgroundColor: SURFACE_2, borderRadius: 16,
+    paddingHorizontal: SPACING.md, height: 52,
+    borderWidth: 1, borderColor: BORDER,
   },
-  searchIcon: { marginRight: 10 },
+  searchIcon: { marginRight: SPACING.sm + 2 },
   search: { flex: 1, color: TEXT, fontSize: 15 },
 
-  tabsRow: { flexDirection: 'row', gap: 28, paddingHorizontal: 20 },
-  tab: { paddingBottom: 12 },
-  tabTxt: { fontSize: 15.5, fontWeight: '600', color: TEXT_MUTED },
-  tabTxtActive: { color: TEXT },
-  tabUnderline: { position: 'absolute', left: 0, right: 0, bottom: -1, height: 2, borderRadius: 2, backgroundColor: CYAN },
-  tabsDivider: { height: 1, backgroundColor: BORDER_SOFT, marginHorizontal: 20, marginBottom: 20 },
+  tabsRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginBottom: SPACING.lg - 4 },
+  tab: {
+    paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm + 2, borderRadius: 12,
+    borderWidth: 1, borderColor: 'transparent',
+  },
+  tabActive: {
+    backgroundColor: 'rgba(24,212,242,0.12)', borderColor: 'rgba(24,212,242,0.3)',
+  },
+  tabTxt: { fontSize: 14.5, fontWeight: '600', color: TEXT_MUTED },
+  tabTxtActive: { color: CYAN, fontWeight: '700' },
 
   featuredCard: {
-    borderRadius: 20, borderWidth: 1, borderColor: BORDER,
-    backgroundColor: SURFACE, overflow: 'hidden', position: 'relative', height: 300,
+    flexDirection: 'row', borderRadius: 20, borderWidth: 1, borderColor: BORDER,
+    backgroundColor: SURFACE, overflow: 'hidden',
+    shadowColor: CYAN, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 16,
+    elevation: 4,
   },
-  /* Artwork bleeds off the right edge, full card height — mirrors the reference's side-by-side split */
-  featuredArt: { position: 'absolute', top: 0, right: 0, bottom: 0, width: '54%' },
+  /* Bounded, padded, contain-fit art container — no absolute overlap with body,
+     never crops the circular wheel, never stretches it. Sized conservatively
+     (34%, tight 12px margin) so the body column keeps enough width for the
+     title to never clip, down to small ~320dp-wide screens. */
+  featuredArt: {
+    width: '34%', aspectRatio: 1, alignSelf: 'center',
+    margin: SPACING.sm + 4, borderRadius: 16, overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
   featuredArtFallback: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   featuredIconImg: { width: '100%', height: '100%' },
-  featuredBody: { padding: 20, paddingRight: 12, maxWidth: '62%' },
+  featuredBody: { flex: 1, paddingVertical: SPACING.lg, paddingRight: SPACING.md, paddingLeft: 0, justifyContent: 'center' },
   featuredTag: {
     alignSelf: 'flex-start', backgroundColor: 'rgba(24,212,242,0.12)', borderWidth: 1, borderColor: 'rgba(24,212,242,0.3)',
-    borderRadius: 7, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 14,
+    borderRadius: 7, paddingHorizontal: SPACING.sm + 2, paddingVertical: 5, marginBottom: SPACING.sm + 2,
   },
   featuredTagTxt: { fontSize: 10.5, fontWeight: '700', color: CYAN, letterSpacing: 0.8 },
-  featuredTitle: { fontSize: 24, fontWeight: '800', color: TEXT, letterSpacing: -0.3, marginBottom: 8 },
-  featuredDesc: { fontSize: 13.5, color: TEXT_DIM, lineHeight: 19 },
-  rewardRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 16 },
+  featuredTitle: { fontSize: 18, fontWeight: '800', color: TEXT, letterSpacing: -0.2, marginBottom: 6 },
+  featuredDesc: { fontSize: 13, color: TEXT_DIM, lineHeight: 18 },
+  rewardRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: SPACING.sm + 4 },
   rewardTxt: { fontSize: 14, fontWeight: '700', color: CYAN, fontVariant: ['tabular-nums'] },
   playNowBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
     borderWidth: 1.5, borderColor: CYAN, borderRadius: 12,
-    paddingHorizontal: 20, paddingVertical: 11, marginTop: 16,
+    paddingHorizontal: SPACING.md + 4, paddingVertical: SPACING.sm + 3, marginTop: SPACING.sm + 4,
+    shadowColor: CYAN, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8,
   },
   playNowTxt: { fontSize: 14, fontWeight: '700', color: CYAN },
 
-  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 14 },
+  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: SPACING.sm, marginTop: SPACING.md - 2 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: TEXT_MUTED, opacity: 0.5 },
   dotActive: { width: 16, backgroundColor: CYAN, opacity: 1 },
 
-  grid: { paddingHorizontal: 20, paddingTop: 4 },
+  grid: { paddingHorizontal: SPACING.lg, paddingTop: 4 },
   skeletonRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   cardRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   card: {
     width: '47.5%', backgroundColor: SURFACE, borderRadius: 16,
-    marginBottom: 14, overflow: 'hidden',
+    marginBottom: SPACING.md - 2, overflow: 'hidden',
     borderWidth: 1, borderColor: BORDER,
   },
   gameArt: {
-    height: 118, alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
+    aspectRatio: 1.5, alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
   },
   gameArtImg: { width: '100%', height: '100%' },
   hotBadge: {
@@ -576,9 +625,9 @@ const styles = StyleSheet.create({
     borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
   },
   hotBadgeTxt: { fontSize: 9, fontWeight: '800', color: '#f59e0b', letterSpacing: 0.4 },
-  cardInfo: { padding: 13 },
+  cardInfo: { padding: SPACING.md - 3 },
   cardName: { fontSize: 14.5, fontWeight: '700', color: TEXT, marginBottom: 3 },
-  cardDesc: { fontSize: 11.5, color: TEXT_DIM, lineHeight: 15.5, marginBottom: 10, minHeight: 31 },
+  cardDesc: { fontSize: 11.5, color: TEXT_DIM, lineHeight: 15.5, marginBottom: SPACING.sm + 2, minHeight: 31 },
   cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   cardRewardTxt: { fontSize: 12, fontWeight: '700', color: CYAN, fontVariant: ['tabular-nums'] },
   playCircle: {
@@ -589,14 +638,14 @@ const styles = StyleSheet.create({
 
   emptyWrap: { alignItems: 'center', paddingTop: 60, paddingBottom: 40 },
   emptyTitle: { fontSize: 17, fontWeight: '700', color: TEXT, marginBottom: 6 },
-  emptyDesc: { fontSize: 13.5, color: TEXT_DIM, marginBottom: 20 },
-  clearBtn: { backgroundColor: CYAN, paddingHorizontal: 22, paddingVertical: 11, borderRadius: 12 },
+  emptyDesc: { fontSize: 13.5, color: TEXT_DIM, marginBottom: SPACING.lg - 4 },
+  clearBtn: { backgroundColor: CYAN, paddingHorizontal: SPACING.lg - 2, paddingVertical: SPACING.sm + 3, borderRadius: 12 },
   clearBtnTxt: { color: '#050914', fontWeight: '700', fontSize: 13.5 },
 
   promo: {
-    flexDirection: 'row', alignItems: 'center', gap: 13,
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm + 5,
     backgroundColor: SURFACE, borderWidth: 1, borderColor: BORDER, borderRadius: 16,
-    padding: 15, marginHorizontal: 20, marginTop: 6,
+    padding: SPACING.md - 1, marginHorizontal: SPACING.lg, marginTop: SPACING.sm - 2,
   },
   promoIcon: {
     width: 40, height: 40, borderRadius: 11,
@@ -608,12 +657,17 @@ const styles = StyleSheet.create({
   promoDesc: { fontSize: 11, color: TEXT_DIM, marginTop: 3, lineHeight: 15 },
   promoBtn: {
     borderWidth: 1.5, borderColor: CYAN, borderRadius: 10,
-    paddingHorizontal: 13, paddingVertical: 9,
+    paddingHorizontal: SPACING.md - 3, paddingVertical: SPACING.sm + 1,
   },
   promoBtnTxt: { fontSize: 11.5, fontWeight: '700', color: CYAN },
 
-  bottomBanner: {
+  // Fixed, absolutely-pinned bottom ad bar — mirrors HomeScreen's
+  // `bannerWrapper` exactly. No manual insets.bottom: SafeAreaView (no
+  // `edges` override above) already pads for it on Android's nav-bar inset.
+  bottomBannerWrap: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    alignItems: 'center',
+    backgroundColor: 'rgba(5,9,20,0.92)',
     borderTopWidth: 1, borderTopColor: BORDER_SOFT,
-    backgroundColor: 'rgba(5,9,20,0.5)', alignItems: 'center',
   },
 });
