@@ -14,7 +14,6 @@ import {
   Easing,
   Modal,
   Image,
-  ImageBackground,
   Linking,
   Dimensions,
   AppState,
@@ -2301,12 +2300,7 @@ const Page: React.FC = () => {
 
 
         {/* Games — Play & Earn with dynamic top-3 + Explore GameZone CTA */}
-        <ImageBackground
-          source={require('../assets/images/backgroud_game1.png')}
-          style={styles.gamesPlayEarnSection}
-          imageStyle={styles.gamesPlayEarnSectionImage}
-          resizeMode="cover"
-        >
+        <View style={styles.gamesPlayEarnSection}>
           <View style={styles.gamesPlayEarnTitleChipWrap} pointerEvents="box-none">
             <View style={styles.gamesPlayEarnTitleChip}>
               <Text style={styles.gamesPlayEarnTitle}>Play & Earn</Text>
@@ -2355,7 +2349,7 @@ const Page: React.FC = () => {
           >
             <Text style={styles.exploreGameZoneBtnText}>🎮 Explore GameZone — 3 Games</Text>
           </Pressable>
-        </ImageBackground>
+        </View>
 
         <View style={styles.dailyRewardSection}>
           <View style={styles.dailyRewardContainer}>
@@ -2856,9 +2850,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'visible',
     backgroundColor: '#0B111D',
-  },
-  gamesPlayEarnSectionImage: {
-    borderRadius: 16,
   },
   gamesPlayEarnTitleChipWrap: {
     position: 'absolute',
