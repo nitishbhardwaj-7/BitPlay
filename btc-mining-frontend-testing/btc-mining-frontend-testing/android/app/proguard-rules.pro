@@ -18,6 +18,14 @@
 }
 -dontwarn com.google.android.gms.ads.*
 
+# InMobi mediation adapter pulls in a JaCoCo (code coverage) reference —
+# java.lang.instrument.IllegalClassFormatException is a desktop-JVM-only
+# class that doesn't exist on Android and isn't actually exercised at
+# runtime; R8 8.x fails the build on "missing class" by default unless
+# told to ignore it.
+-dontwarn org.jacoco.**
+-dontwarn java.lang.instrument.**
+
 # Apptrove SDK & Retrofit / Reflection Rules
 -dontshrink
 -dontoptimize

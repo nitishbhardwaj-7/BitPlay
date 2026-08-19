@@ -86,7 +86,12 @@ dependencies {
     // newer one (11.1.0.1, built for 24.9.0) — adapters are generally
     // forward-compatible with newer base SDK versions within the same major
     // line (24.x) since they call stable public APIs, but not the reverse.
-    implementation 'com.google.ads.mediation:inmobi:10.8.3.1'
+    implementation('com.google.ads.mediation:inmobi:10.8.3.1') {
+        // Excludes a transitive JaCoCo (code coverage) reference that broke
+        // R8 minification — java.lang.instrument doesn't exist on Android
+        // and this code path never actually runs at runtime.
+        exclude group: 'org.jacoco'
+    }
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
