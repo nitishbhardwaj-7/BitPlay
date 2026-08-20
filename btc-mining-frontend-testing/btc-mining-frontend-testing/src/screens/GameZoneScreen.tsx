@@ -19,6 +19,8 @@ import { trackProductSearch, trackSearch } from '../services/apptroveAnalytics';
 import { WIN_GH_REWARD as TRADING_WIN_GH } from './TradingScreen';
 import { WIN_REWARD_GH as MEMORY_WIN_GH } from './MemoryCardMatchScreen';
 import { SLICES as SPIN_SLICES } from './SpinAndWinScreen';
+import { WIN_REWARD_GH as SCRATCH_MAX_GH } from './ScratchAndWinScreen';
+import { WIN_REWARD_GH as BOMB_MAX_GH } from './TapToBombScreen';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 const { width: W } = Dimensions.get('window');
@@ -44,6 +46,8 @@ const GAMES: GameEntry[] = [
   { name: 'BTC Trading', icon: 'bitcoin', iconImage: require('../assets/images/icon_btc_trading.png'), color: '#f59e0b', route: 'TradingScreen', category: 'Featured', desc: 'Trade BTC and earn rewards', rewardLabel: `+${TRADING_WIN_GH} GH/s` },
   { name: 'Spin & Win', icon: 'rotate-3d-variant', iconImage: require('../assets/images/game_spin.png'), color: '#22d3ee', route: 'SpinAndWin', category: 'Featured', desc: 'Spin the wheel, win rewards', rewardLabel: `Up to ${SPIN_MAX_GH} GH/s` },
   { name: 'Memory Match', icon: 'cards', iconImage: require('../assets/images/icon_memory_match.png'), color: '#7c3aed', route: 'MemoryCardMatch', category: 'Featured', desc: 'Match all the pairs', rewardLabel: `+${MEMORY_WIN_GH} GH/s` },
+  { name: 'Scratch & Win', icon: 'ticket-confirmation-outline', iconImage: require('../assets/images/icon_scratch_win.png'), color: '#22c55e', route: 'ScratchAndWin', category: 'Featured', desc: 'Scratch to reveal your reward', rewardLabel: `Up to ${SCRATCH_MAX_GH} GH/s` },
+  { name: 'Tap to Bomb', icon: 'bomb', iconImage: require('../assets/images/icon_tap_bomb.png'), color: '#ef4444', route: 'TapToBomb', category: 'Featured', desc: 'Tap a tile, dodge the bombs', rewardLabel: `Up to ${BOMB_MAX_GH} GH/s` },
 ];
 
 const CATEGORIES = [

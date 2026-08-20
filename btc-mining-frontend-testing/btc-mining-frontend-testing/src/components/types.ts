@@ -51,6 +51,8 @@ export type RootStackParamList = {
   TradingScreen: undefined;
   SpinAndWin: undefined;
   MemoryCardMatch: undefined;
+  ScratchAndWin: undefined;
+  TapToBomb: undefined;
   GameZone: undefined;
   ApptroveDebug: undefined;
   SuperPrivileges: undefined;
