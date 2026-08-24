@@ -432,23 +432,25 @@ const SuperPrivilegesScreen: React.FC = () => {
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={[
-                        styles.watchAdsButtonGradient,
+                        styles.btnGradient,
                         (adCrediting || adsRemaining === 0) && styles.claimButtonDisabled,
                       ]}
                     >
-                      {adCrediting || (adLoading && !adLoaded) ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <>
-                          <Icon name="play-circle" size={20} color="#FFFFFF" />
-                          <Text
-                            style={[styles.claimButtonText, styles.watchAdsButtonLabel]}
-                            numberOfLines={1}
-                          >
-                            {adsRemaining === 0 ? 'Daily Limit Reached' : 'Watch Ads'}
-                          </Text>
-                        </>
-                      )}
+                      <View style={styles.btnInner}>
+                        {adCrediting || (adLoading && !adLoaded) ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <>
+                            <Icon name="play-circle" size={20} color="#FFFFFF" />
+                            <Text
+                              style={[styles.claimButtonText, styles.watchAdsButtonLabel]}
+                              numberOfLines={1}
+                            >
+                              {adsRemaining === 0 ? 'Daily Limit Reached' : 'Watch Ads'}
+                            </Text>
+                          </>
+                        )}
+                      </View>
                     </LinearGradient>
                   </TouchableOpacity>
 
@@ -474,13 +476,15 @@ const SuperPrivilegesScreen: React.FC = () => {
                     colors={PRIMARY_GRADIENT}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    style={[styles.claimButtonGradient, !selectedProduct && styles.claimButtonDisabled]}
+                    style={[styles.btnGradient, !selectedProduct && styles.claimButtonDisabled]}
                   >
-                    {purchasing ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={styles.claimButtonText}>Claim</Text>
-                    )}
+                    <View style={styles.btnInner}>
+                      {purchasing ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={styles.claimButtonText} numberOfLines={1}>Claim</Text>
+                      )}
+                    </View>
                   </LinearGradient>
                 </TouchableOpacity>
               )}
@@ -601,11 +605,22 @@ const styles = StyleSheet.create({
   },
   claimSection: { marginTop: 16 },
   claimButtonWrap: { borderRadius: 12, overflow: 'hidden' },
-  claimButtonGradient: {
-    paddingVertical: 15,
+  // Shared by both CTAs. The LinearGradient carries ONLY width/background --
+  // never padding or height. react-native-linear-gradient is a native view on
+  // iOS that does not reliably derive its own height from padding + children,
+  // so sizing it that way rendered it shorter than its label and the wrapper's
+  // overflow:'hidden' sliced the text in half (Android measures it fine, which
+  // is why this only ever showed up on TestFlight). All sizing lives in the
+  // plain inner View instead -- the same split ScratchAndWinScreen's ad buttons
+  // already use successfully.
+  btnGradient: { width: '100%' },
+  btnInner: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    minHeight: 52,
+    paddingVertical: 15,
+    paddingHorizontal: 16,
   },
   claimButtonDisabled: { opacity: 0.5 },
   claimButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 16 },
@@ -622,21 +637,6 @@ const styles = StyleSheet.create({
   },
   claimButtonActiveText: { color: '#22C55E', fontWeight: '700', fontSize: 16 },
   watchAdsButtonWrap: { borderRadius: 12, overflow: 'hidden', marginTop: 12 },
-  // No `gap` here on purpose: react-native-linear-gradient mis-measures its
-  // own height when a row child uses gap on iOS, so the gradient came out
-  // shorter than its content and the wrapper's overflow:'hidden' sliced the
-  // label in half (Android measured it fine, which is why it only showed up
-  // on TestFlight). Spacing lives on the label's marginLeft instead, and
-  // minHeight guarantees the button can never be shorter than its content.
-  watchAdsButtonGradient: {
-    flexDirection: 'row',
-    minHeight: 52,
-    paddingVertical: 15,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-  },
   watchAdsButtonLabel: { marginLeft: 8 },
   watchAdsHint: {
     color: '#94A3B8',
