@@ -24,6 +24,9 @@ import { Transaction } from '../types/transaction';
 import TransactionHistory from '../components/NewWallet/TransactionHistory';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { getBtcUsdPriceCached } from '../services/btcPriceService';
+import { BannerAdWithGamFallback } from '../components/ads/BannerAdWithGamFallback';
+import { BannerAdSize } from 'react-native-google-mobile-ads';
+import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
 
 type WalletNav = StackNavigationProp<RootStackParamList, 'Wallet'>;
 
@@ -78,6 +81,16 @@ const WalletNewScreen = () => {
     minBtc: DEFAULT_MIN_BTC,
     maxBtc: DEFAULT_MAX_BTC,
   });
+
+  // Measured height of the pinned bottom ad, so scroll content can reserve
+  // exactly that much space and never end up hidden behind it. Same
+  // onLayout-driven approach GameZoneScreen uses; 60 is a sane first-frame
+  // default before onLayout fires.
+  const [bottomBarHeight, setBottomBarHeight] = useState(60);
+  const onBottomBarLayout = useCallback((e: any) => {
+    const h = e.nativeEvent.layout.height;
+    if (h > 0 && h !== bottomBarHeight) setBottomBarHeight(h);
+  }, [bottomBarHeight]);
 
   /** ─── Fetch withdrawal limits (min/max BTC) ───────────── */
   const fetchWithdrawalLimits = useCallback(async () => {
@@ -211,6 +224,16 @@ const WalletNewScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
+
+      {/* Top banner ad — same placement as GameZoneScreen: above the
+          ScrollView so it renders reliably and never scrolls away. */}
+      <View style={styles.bannerTop}>
+        <BannerAdWithGamFallback
+          primaryUnitId={DEFAULT_ADMOB_BANNER_ID}
+          size={BannerAdSize.ADAPTIVE_BANNER}
+        />
+      </View>
+
       <ScrollView
         refreshControl={
           <RefreshControl
@@ -219,7 +242,10 @@ const WalletNewScreen = () => {
             tintColor="#ffffffff"
           />
         }
-        contentContainerStyle={styles.scrollViewContentContainer}
+        contentContainerStyle={[
+          styles.scrollViewContentContainer,
+          { paddingBottom: bottomBarHeight + 20 },
+        ]}
       >
         <BalanceCard
           balance={displayedBalance}
@@ -257,6 +283,16 @@ const WalletNewScreen = () => {
 
         <TransactionHistory transactions={transactions} />
       </ScrollView>
+
+      {/* Fixed bottom banner ad — absolutely pinned, mirroring
+          GameZoneScreen. Content padding above is driven by this View's own
+          measured height via onLayout. */}
+      <View style={styles.bottomBannerWrap} onLayout={onBottomBarLayout}>
+        <BannerAdWithGamFallback
+          primaryUnitId={DEFAULT_ADMOB_BANNER_ID}
+          size={BannerAdSize.ADAPTIVE_BANNER}
+        />
+      </View>
 
       {methodModal && (
         <View style={styles.modalWrapper}>
@@ -303,6 +339,23 @@ const styles = StyleSheet.create({
   scrollViewContentContainer: {
     padding: 20,
     flexGrow: 1,
+  },
+  bannerTop: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(11,17,29,0.4)',
+  },
+  bottomBannerWrap: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    backgroundColor: 'rgba(5,9,20,0.92)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
   },
   bitrefillCard: {
     flexDirection: 'row',

@@ -11,8 +11,24 @@ import { Platform } from 'react-native';
  * routes/api_routes/privileges.js.
  */
 /** Base Super Ad Miner reward per claim (Gh/s), before any privilege multiplier.
- *  Must match BASE_HASHPOWER_PER_AD in HomeScreen.tsx / user-mining-handles.js. */
+ *  Must match BASE_HASHPOWER_PER_AD in HomeScreen.tsx / user-mining-handles.js.
+ *
+ *  NOTE: this is the RAW per-ad reward. The privilege multiplier is applied
+ *  SERVER-side -- clients POST this raw value as the increment and read the
+ *  multiplied result back as `effective_hashpower`. Never multiply it locally
+ *  before sending, or the bonus gets applied twice. */
 export const BASE_HASHPOWER_PER_AD = 5.5;
+
+/**
+ * Max claims/day on the Super Ad Miner ad-watch track — must match the
+ * backend's cap on `rewarded_ads_watched`.
+ *
+ * Lives here rather than in one screen because two screens now share this
+ * single daily counter: HomeScreen's "+100% Claim" video card and the
+ * Super Privileges store's "Watch Ads" button. They must never disagree
+ * about the cap, or one would let the user past a limit the other enforces.
+ */
+export const MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY = 60;
 
 export type PrivilegeTier = '5000pct' | '10000pct';
 

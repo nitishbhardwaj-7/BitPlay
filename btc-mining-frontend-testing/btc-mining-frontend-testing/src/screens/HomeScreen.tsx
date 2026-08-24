@@ -63,12 +63,13 @@ import { trackMiningStarted, trackMiningStopped, trackDepositCompleted } from '.
 import { ApptroveSDK } from 'react-native-apptrove';
 import { getObjectFromStorage, saveObjectToStorage } from '../config/storage';
 import { getHomeCacheKey, isValidHomeCache, HomeCacheShape, HOME_CACHE_VERSION } from '../config/homeCache';
+// Shared with SuperPrivilegesScreen's "Watch Ads" button, which feeds this same
+// daily `rewarded_ads_watched` counter -- both must enforce the same cap.
+import { MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY } from '../config/superPrivileges';
 
 const BASE_HASHPOWER_PER_AD = 5.5;
 const FIRST_MINING_START_HASHPOWER = 25;
 const DAILY_REWARD_HASHPOWER = 25;
-/** Max rewarded claims/day on the regular (flat 5.5 Gh/s) track — must match backend MAX_REWARDED_ADS_PER_TRACK. */
-const MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY = 60;
 /** Max claims/day on the Super Ad Miner track — must match backend MAX_SUPER_AD_MINER_CLAIMS_PER_DAY. */
 const MAX_SUPER_AD_MINER_CLAIMS_PER_DAY = 30;
 const BTC_PER_HASHPOWER_PER_SEC = 0.0000000000000070;

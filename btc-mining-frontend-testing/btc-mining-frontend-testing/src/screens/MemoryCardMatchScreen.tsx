@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, Image, Alert,
-  ActivityIndicator, StatusBar,
+  ActivityIndicator, StatusBar, Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -25,6 +25,20 @@ type Card = { id: string; tokenKey: string; label: string; bg: string; border: s
 export const WIN_REWARD_GH = 5;
 const MEMORIZE_MS = 1500;
 const ROUND_TIME = 45;
+
+// ---- Grid sizing ----
+// Cards were `width: '22%'` with `aspectRatio: 0.8`, which made every card
+// 1.25x taller than it was wide (0.8 = width/height) -- the uneven card shape.
+// Sizing in real pixels off the available width instead gives exactly square
+// cards that fill the row on any device, with GRID_MAX_W keeping them sane on
+// tablets.
+const GRID_COLS = 4;
+const GRID_GAP = 8;
+const GRID_MAX_W = 420;
+/** GameScreenWrapper's contentInner adds paddingHorizontal: 12 on each side. */
+const WRAPPER_H_PADDING = 24;
+const GRID_W = Math.min(Dimensions.get('window').width - WRAPPER_H_PADDING, GRID_MAX_W);
+const CARD_SIZE = Math.floor((GRID_W - GRID_GAP * (GRID_COLS - 1)) / GRID_COLS);
 
 const TOKENS: TokenItem[] = [
   { key: 'btc', label: 'BTC', bg: '#E85B4F', border: '#FCA5A5', image: require('../assets/images/flip/BTC.png') },
@@ -215,7 +229,7 @@ export default function MemoryCardMatchScreen() {
   const timerPct = timer / ROUND_TIME;
 
   return (
-    <GameScreenWrapper title="Memory Match" iconName="cards" iconColor="#818cf8" iconBg={['#3730a3', '#1e1b4b']} scrollable>
+    <GameScreenWrapper title="Memory Match" iconName="cards" iconColor="#818cf8" scrollable>
       {/* Timer bar */}
       <View style={s.timerBar}>
         <View style={[s.timerFill, { width: `${timerPct * 100}%`, backgroundColor: timerColor }]} />
@@ -267,10 +281,10 @@ export default function MemoryCardMatchScreen() {
           {claimed && <View style={s.claimedBadge}><Text style={s.claimedTxt}>✓ +{WIN_REWARD_GH} GH/s Added!</Text></View>}
           <View style={s.retryRow}>
             <TouchableOpacity style={s.retryBtn} onPress={() => playAgainLoaded ? showPlayAgain() : (setRound(r => r + 1), startRound())}>
-              <Text style={s.retryTxt}>▶ Watch Ad → Play Again</Text>
+              <Text style={s.retryTxt} numberOfLines={1}>▶ Watch Ad → Play Again</Text>
             </TouchableOpacity>
             <TouchableOpacity style={s.freeBtn} onPress={() => { setRound(r => r + 1); startRound(); }}>
-              <Text style={s.freeTxt}>Play Free</Text>
+              <Text style={s.freeTxt} numberOfLines={1}>Play Free</Text>
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -288,8 +302,16 @@ const s = StyleSheet.create({
   hudVal: { color: '#f8fafc', fontSize: 18, fontWeight: '800', marginTop: 2 },
   memBanner: { backgroundColor: 'rgba(251,191,36,0.15)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.4)', borderRadius: 12, padding: 10, marginBottom: 12, alignItems: 'center' },
   memText: { color: '#fbbf24', fontSize: 14, fontWeight: '700' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
-  cardTouch: { width: '22%', aspectRatio: 0.8 },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    width: GRID_W,
+    alignSelf: 'center',
+    gap: GRID_GAP,
+    justifyContent: 'center',
+  },
+  // Square: equal width and height, no aspectRatio skew.
+  cardTouch: { width: CARD_SIZE, height: CARD_SIZE },
   cardScene: { flex: 1, position: 'relative' },
   cardFace: { ...StyleSheet.absoluteFillObject, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, backfaceVisibility: 'hidden' },
   cardBack: { backgroundColor: '#1e3a5f', borderColor: '#2d4f7c', overflow: 'hidden' },
@@ -298,18 +320,34 @@ const s = StyleSheet.create({
   cardFront: { paddingHorizontal: 4 },
   matchGlow: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(74,222,128,0.2)', borderRadius: 10 },
   cardImg: { width: '90%', height: '90%' },
-  gameOver: { borderRadius: 20, padding: 24, alignItems: 'center', marginTop: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  goEmoji: { fontSize: 48, marginBottom: 8 },
-  goTitle: { color: '#f8fafc', fontSize: 24, fontWeight: '900', marginBottom: 6 },
-  goSub: { color: '#94a3b8', fontSize: 14, textAlign: 'center', marginBottom: 20 },
+  // width:'100%' so the panel matches the grid's width instead of stretching
+  // to whatever the centered parent allows; trimmed padding/margins keep the
+  // whole panel (including its buttons) on screen on shorter devices.
+  gameOver: {
+    borderRadius: 20,
+    padding: 18,
+    alignItems: 'center',
+    marginTop: 16,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  goEmoji: { fontSize: 40, marginBottom: 6 },
+  goTitle: { color: '#f8fafc', fontSize: 22, fontWeight: '900', marginBottom: 6 },
+  goSub: { color: '#94a3b8', fontSize: 13, textAlign: 'center', marginBottom: 16 },
   claimBtn: { borderRadius: 14, overflow: 'hidden', width: '100%', marginBottom: 10 },
   claimGrad: { paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
   claimTxt: { color: '#000', fontSize: 15, fontWeight: '900' },
   claimedBadge: { backgroundColor: 'rgba(74,222,128,0.2)', borderRadius: 12, paddingHorizontal: 20, paddingVertical: 10, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(74,222,128,0.5)' },
   claimedTxt: { color: '#4ade80', fontSize: 16, fontWeight: '800' },
-  retryRow: { flexDirection: 'row', gap: 10, width: '100%' },
-  retryBtn: { flex: 1, backgroundColor: 'rgba(99,102,241,0.2)', borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(99,102,241,0.4)' },
-  retryTxt: { color: '#a5b4fc', fontSize: 13, fontWeight: '700' },
-  freeBtn: { flex: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  freeTxt: { color: '#64748b', fontSize: 13, fontWeight: '600' },
+  // Stacked, not side-by-side. At flex:1 each, "▶ Watch Ad → Play Again" was
+  // far too long for a half-width button -- it wrapped to two lines, made the
+  // two buttons different heights, and got visibly clipped. Full-width rows
+  // fit the label on one line on every device and match the single-column CTA
+  // shape the other game screens use.
+  retryRow: { width: '100%', gap: 10 },
+  retryBtn: { backgroundColor: 'rgba(99,102,241,0.2)', borderRadius: 12, paddingVertical: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(99,102,241,0.4)' },
+  retryTxt: { color: '#a5b4fc', fontSize: 14, fontWeight: '700' },
+  freeBtn: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, paddingVertical: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  freeTxt: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import {
 // react-native's own SafeAreaView is a no-op on Android (iOS only) — always use
 // react-native-safe-area-context here, same as HomeScreen/GameZoneScreen do.
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
@@ -29,7 +29,13 @@ import { useAdConfig } from '../providers/AdConfigProvider';
 import { BannerAdWithGamFallback } from '../components/ads/BannerAdWithGamFallback';
 import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
 import { get_data_uri, getMobileSecurityHeaders } from '../config/api';
-import { PRIVILEGE_TIERS, PRIVILEGE_PRODUCT_IDS, getTierByProductId, BASE_HASHPOWER_PER_AD } from '../config/superPrivileges';
+import {
+  PRIVILEGE_TIERS, PRIVILEGE_PRODUCT_IDS, getTierByProductId,
+  BASE_HASHPOWER_PER_AD, MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY,
+} from '../config/superPrivileges';
+import { useRewardedVideoAd } from '../services/googleAds';
+import { useHashPower } from '../stores/HashPowerStore';
+import { formatMiningLocalTimeForApi } from '../utils/miningTime';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -40,6 +46,7 @@ const SuperPrivilegesScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { ads } = useAdConfig();
+  const { addHashPower, isMiningActive: storeMiningActive } = useHashPower();
 
   const [products, setProducts] = useState<PurchasesStoreProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,6 +76,49 @@ const SuperPrivilegesScreen: React.FC = () => {
     const h = e.nativeEvent.layout.height;
     if (h > 0 && h !== bannerHeight) setBannerHeight(h);
   }, [bannerHeight]);
+
+  // --- Super Ad Miner "Watch Ads" track ---------------------------------
+  // This button is a shortcut into the SAME daily track as HomeScreen's
+  // "+100% Claim" video card: same backend counter (`rewarded_ads_watched`),
+  // same 60/day cap, same reward. It is not a second allowance -- watching
+  // here consumes from the same 60 the home screen shows.
+  const [adsWatched, setAdsWatched] = useState<number | null>(null);
+  const [adCrediting, setAdCrediting] = useState(false);
+  const [miningActive, setMiningActive] = useState<boolean | null>(storeMiningActive);
+  const adEarnedRef = useRef(false);
+
+  const adsRemaining =
+    adsWatched == null ? null : Math.max(0, MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY - adsWatched);
+
+  /** Pulls the authoritative daily counter + mining state. */
+  const fetchMiningDetails = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      // `local_time` is REQUIRED by this endpoint -- without it the server
+      // returns {success:false, error:...} and no `mining_details` at all,
+      // which would leave the daily counter stuck on "Checking...". Same
+      // URL shape HomeScreen and AchievementsScreen use.
+      const url = `${get_data_uri('USERMININGDETAILS')}/${user.id}?local_time=${encodeURIComponent(
+        formatMiningLocalTimeForApi(new Date()),
+      )}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const details = data?.mining_details;
+      if (details != null) {
+        setAdsWatched(parseFloat(details.rewarded_ads_watched ?? 0) || 0);
+        setMiningActive(!!details.mining_isactive);
+      }
+    } catch {
+      // Leave counters as-is; the button stays disabled while adsWatched is null.
+    }
+  }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setMiningActive(storeMiningActive);
+      fetchMiningDetails();
+    }, [fetchMiningDetails, storeMiningActive]),
+  );
 
   const selectedTierConfig = PRIVILEGE_TIERS.find(t => t.tier === selectedTierKey) ?? PRIVILEGE_TIERS[0];
   const selectedProduct = products.find(p => p.identifier === selectedTierConfig.productId);
@@ -123,6 +173,83 @@ const SuperPrivilegesScreen: React.FC = () => {
     };
     init();
   }, [fetchProducts, fetchActivePrivileges]);
+
+  // Fires only on EARNED_REWARD (a full watch) -- never on a skipped ad.
+  const onAdReward = useCallback(async () => {
+    adEarnedRef.current = true;
+    if (!user?.id || adsWatched == null) return;
+    if (adsWatched >= MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY) return;
+
+    const newCount = adsWatched + 1;
+    setAdsWatched(newCount);
+    setAdCrediting(true);
+
+    // Credit the RAW base reward, exactly as HomeScreen's handleReward does.
+    // The privilege multiplier is applied server-side and read back as
+    // `effective_hashpower` -- multiplying here too would double-apply it.
+    addHashPower(BASE_HASHPOWER_PER_AD);
+
+    try {
+      // `rewarded_ads_watched` is an ABSOLUTE count in this payload while
+      // `hashpower` is an INCREMENT -- matching HomeScreen's syncUserData.
+      //
+      // Deliberately minimal: HomeScreen's full payload also carries
+      // mining_isactive/start_time/stop_time because it owns the mining
+      // session lifecycle. This screen only credits a reward, so it sends
+      // the same reduced shape the game screens use -- sending session
+      // fields from here could reset an in-progress mining session.
+      const res = await fetch(get_data_uri('USERMININGDETAILS'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          hashpower: BASE_HASHPOWER_PER_AD,
+          rewarded_ads_watched: newCount,
+          offset: new Date().getTimezoneOffset(),
+        }),
+      });
+      const data = await res.json();
+      // Re-sync from the server's own count so this screen and Home can't
+      // drift if the backend clamped or rejected the increment.
+      const serverCount = data?.mining_details?.rewarded_ads_watched;
+      if (serverCount != null) setAdsWatched(parseFloat(serverCount) || 0);
+    } catch {
+      // Local credit above already stands; the backend record is best-effort,
+      // and the next focus refresh will reconcile the counter.
+    }
+    setAdCrediting(false);
+  }, [user?.id, adsWatched, addHashPower]);
+
+  const onAdClosed = useCallback(() => {
+    if (adEarnedRef.current) {
+      adEarnedRef.current = false;
+    } else {
+      Alert.alert('Ad not completed', 'Please watch the full video to earn your reward.');
+    }
+  }, []);
+
+  const {
+    show: showRewardAd, loading: adLoading, loaded: adLoaded,
+  } = useRewardedVideoAd(onAdReward, { primaryUnitId: ads.rewardedVideoId }, onAdClosed);
+
+  const handleWatchAds = () => {
+    if (miningActive === false) {
+      Alert.alert('Mining Not Activated', 'Please activate mining on the home screen before watching ads.');
+      return;
+    }
+    if (adsRemaining != null && adsRemaining <= 0) {
+      Alert.alert(
+        'Daily limit reached',
+        `You've watched all ${MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY} Super Ad Miner ads for today. Come back tomorrow.`,
+      );
+      return;
+    }
+    if (!adLoaded) {
+      Alert.alert('Almost ready', 'The video is still loading. Try again in a second.');
+      return;
+    }
+    showRewardAd();
+  };
 
   const handleClaim = async () => {
     if (!user?.id || !selectedProduct || selectedIsActive) return;
@@ -265,10 +392,50 @@ const SuperPrivilegesScreen: React.FC = () => {
             {/* Claim button — right after the About box, acts on whichever tier is selected above */}
             <View style={styles.claimSection}>
               {selectedIsActive ? (
-                <View style={styles.claimButtonActive}>
-                  <Icon name="checkmark-circle" size={18} color="#22C55E" />
-                  <Text style={styles.claimButtonActiveText}>Active</Text>
-                </View>
+                <>
+                  <View style={styles.claimButtonActive}>
+                    <Icon name="checkmark-circle" size={18} color="#22C55E" />
+                    <Text style={styles.claimButtonActiveText}>Active</Text>
+                  </View>
+
+                  {/* Shortcut into the Super Ad Miner track. Shares Home's
+                      daily 60-ad counter -- this is not extra allowance. */}
+                  <TouchableOpacity
+                    style={styles.watchAdsButtonWrap}
+                    activeOpacity={0.9}
+                    disabled={adCrediting || adsRemaining === 0}
+                    onPress={handleWatchAds}
+                  >
+                    <LinearGradient
+                      colors={PRIMARY_GRADIENT}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[
+                        styles.watchAdsButtonGradient,
+                        (adCrediting || adsRemaining === 0) && styles.claimButtonDisabled,
+                      ]}
+                    >
+                      {adCrediting || (adLoading && !adLoaded) ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <>
+                          <Icon name="play-circle" size={20} color="#FFFFFF" />
+                          <Text style={styles.claimButtonText}>
+                            {adsRemaining === 0 ? 'Daily Limit Reached' : 'Watch Ads'}
+                          </Text>
+                        </>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  <Text style={styles.watchAdsHint}>
+                    {adsRemaining == null
+                      ? 'Checking your daily ad balance…'
+                      : `${adsRemaining} of ${MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY} ads left today · +${selectedBoostedGh.toFixed(
+                          selectedBoostedGh % 1 === 0 ? 0 : 2,
+                        )} Gh/s each`}
+                  </Text>
+                </>
               ) : (
                 <TouchableOpacity
                   style={styles.claimButtonWrap}
@@ -427,6 +594,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   claimButtonActiveText: { color: '#22C55E', fontWeight: '700', fontSize: 16 },
+  watchAdsButtonWrap: { borderRadius: 12, overflow: 'hidden', marginTop: 12 },
+  watchAdsButtonGradient: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+  watchAdsHint: {
+    color: '#94A3B8',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 10,
+    lineHeight: 17,
+  },
 });
 
 export default SuperPrivilegesScreen;

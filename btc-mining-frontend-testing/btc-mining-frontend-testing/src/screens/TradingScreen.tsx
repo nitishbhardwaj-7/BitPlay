@@ -828,6 +828,16 @@ export default function TradingScreen() {
           <View style={{ width: 40 }} />
         </View>
 
+        {/* Top banner ad — same placement as GameZoneScreen: directly below
+            the header and outside the ScrollView, so it renders reliably and
+            never scrolls away. */}
+        <View style={styles.bannerTop}>
+          <BannerAdWithGamFallback
+            primaryUnitId={ads.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID}
+            size={BannerAdSize.ADAPTIVE_BANNER}
+          />
+        </View>
+
         {!tradeActive ? (
           /* ─── IDLE STATE: Main question screen ─── */
           <ScrollView
@@ -837,7 +847,7 @@ export default function TradingScreen() {
             bounces={Platform.OS === 'ios'}
           >
             <Text style={styles.questionText}>
-              Will Bitcoin price go up{'\n'}or down in next{'\n'}one Minute?
+              Will Bitcoin price go up or down{'\n'}in next one Minute?
             </Text>
 
             <View style={styles.priceRow}>
@@ -1268,12 +1278,14 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     alignItems: 'center',
   },
+  // Sized down from 22/26 so the headline fits on two lines instead of the
+  // three the old manual line breaks forced.
   questionText: {
     color: '#FFF',
-    fontSize: IS_SMALL_DEVICE ? 22 : 26,
+    fontSize: IS_SMALL_DEVICE ? 17 : 20,
     fontWeight: '800',
     textAlign: 'center',
-    lineHeight: IS_SMALL_DEVICE ? 30 : 36,
+    lineHeight: IS_SMALL_DEVICE ? 24 : 28,
     marginBottom: 16,
   },
   priceRow: {
@@ -1604,6 +1616,14 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Mirrors GameZoneScreen's bannerTop.
+  bannerTop: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(11,17,29,0.4)',
   },
 
   /* ─── WIN / LOSE MODALS ─── */
