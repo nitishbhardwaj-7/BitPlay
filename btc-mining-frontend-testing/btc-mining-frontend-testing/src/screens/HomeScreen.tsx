@@ -2333,7 +2333,7 @@ const Page: React.FC = () => {
             android_ripple={{ color: 'rgba(34, 211, 238, 0.3)', borderless: false }}
             style={({ pressed }) => [styles.exploreGameZoneBtn, pressed && { opacity: 0.8 }]}
           >
-            <Text style={styles.exploreGameZoneBtnText}>🎮 Explore GameZone — 3 Games</Text>
+            <Text style={styles.exploreGameZoneBtnText}>🎮 Explore GameZone</Text>
           </Pressable>
         </View>
 

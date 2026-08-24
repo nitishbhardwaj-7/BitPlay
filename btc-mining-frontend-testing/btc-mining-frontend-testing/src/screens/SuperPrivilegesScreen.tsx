@@ -11,6 +11,7 @@ import {
   Alert,
   Linking,
   Dimensions,
+  LayoutChangeEvent,
 } from 'react-native';
 // react-native's own SafeAreaView is a no-op on Android (iOS only) — always use
 // react-native-safe-area-context here, same as HomeScreen/GameZoneScreen do.
@@ -55,6 +56,19 @@ const SuperPrivilegesScreen: React.FC = () => {
     const timer = setTimeout(() => setBannerAdError(false), 60000);
     return () => clearTimeout(timer);
   }, [bannerAdError]);
+
+  // The ad is pinned with position:'absolute' below (see bannerContainer),
+  // so it no longer claims flex space and can't squeeze the ScrollView.
+  // But an absolutely-positioned sibling also no longer pushes the
+  // ScrollView's own content out of the way, so the last item inside the
+  // ScrollView (the Claim button) would sit *underneath* the ad instead --
+  // this measures the ad's real rendered height and adds it to the
+  // ScrollView's bottom padding so nothing ever ends up hidden behind it.
+  const [bannerHeight, setBannerHeight] = useState(60);
+  const onBannerLayout = useCallback((e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    if (h > 0 && h !== bannerHeight) setBannerHeight(h);
+  }, [bannerHeight]);
 
   const selectedTierConfig = PRIVILEGE_TIERS.find(t => t.tier === selectedTierKey) ?? PRIVILEGE_TIERS[0];
   const selectedProduct = products.find(p => p.identifier === selectedTierConfig.productId);
@@ -177,7 +191,11 @@ const SuperPrivilegesScreen: React.FC = () => {
         </View>
       ) : (
         <>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + bannerHeight }]}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Summary card — reflects whichever tier is currently selected below */}
             <View style={styles.summaryCard}>
               <View style={styles.summaryLeft}>
@@ -275,8 +293,13 @@ const SuperPrivilegesScreen: React.FC = () => {
             </View>
           </ScrollView>
 
-          {/* Banner ad — same component/fallback pattern as HomeScreen */}
-          <View style={styles.bannerContainer}>
+          {/* Banner ad — same component/fallback pattern as HomeScreen.
+              Pinned to the screen bottom via position:'absolute' (not a
+              flex sibling) so it can never squeeze the ScrollView above it;
+              its measured height instead pads the ScrollView's content
+              (see onBannerLayout) so the Claim button is never hidden
+              behind it. */}
+          <View style={styles.bannerContainer} onLayout={onBannerLayout}>
             {bannerAdError ? (
               <TouchableOpacity onPress={() => Linking.openURL('https://thecaphevietnam.com/')}>
                 <Image
@@ -312,6 +335,14 @@ const styles = StyleSheet.create({
   },
   topBarTitle: { color: '#fff', fontSize: 18, fontWeight: '700', letterSpacing: 0.2 },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // Without an explicit flex:1 here, the ScrollView sized itself to its own
+  // content height instead of the space actually available in the flex-
+  // column SafeAreaView, which could get it squeezed/clipped from the
+  // bottom -- cutting off exactly the vertically-centered "Claim" text
+  // inside the last item (the button), while leaving its background
+  // gradient's top sliver visible. This bounds it correctly so it scrolls
+  // instead of clipping.
+  scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 24 },
 
   summaryCard: {
@@ -365,7 +396,15 @@ const styles = StyleSheet.create({
   aboutTitle: { color: '#22D3EE', fontWeight: '700', fontSize: 15, marginBottom: 10 },
   aboutText: { color: '#CBD5E1', fontSize: 13, lineHeight: 20, marginBottom: 8 },
 
-  bannerContainer: { width: '100%', alignItems: 'center', justifyContent: 'center' },
+  bannerContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   claimSection: { marginTop: 16 },
   claimButtonWrap: { borderRadius: 12, overflow: 'hidden' },
   claimButtonGradient: {

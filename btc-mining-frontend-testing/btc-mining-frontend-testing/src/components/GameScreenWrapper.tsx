@@ -72,6 +72,17 @@ export default function GameScreenWrapper({
             contentContainerStyle={styles.contentInner}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            // Without these, short game screens (Scratch & Win, Tap to Bomb)
+            // still behaved like scrollable pages: contentInner had no
+            // flexGrow, so the content stacked at the very top leaving dead
+            // space below it, and Android's overscroll let the whole thing
+            // drag/bounce even though there was nothing to scroll to.
+            // flexGrow:1 + centered justifyContent makes the content fill and
+            // center in the available space when it fits (no scroll at all),
+            // while the ScrollView still scrolls normally on short screens
+            // where the content genuinely overflows.
+            bounces={false}
+            overScrollMode="never"
           >
             {children}
           </ScrollView>
@@ -145,7 +156,13 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255,255,255,0.04)',
   },
   content: { flex: 1 },
-  contentInner: { alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12 },
+  contentInner: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
   bannerWrap: {
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.3)',

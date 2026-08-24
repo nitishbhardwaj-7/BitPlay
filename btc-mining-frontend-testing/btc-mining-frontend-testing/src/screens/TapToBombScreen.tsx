@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, Alert, ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -69,6 +70,23 @@ type Phase = 'ready' | 'revealing' | 'revealed_win' | 'revealed_lose';
 /** Delay between the tapped tile flipping and the rest of the board flipping -- pure flavor. */
 const REVEAL_ALL_DELAY_MS = 550;
 
+// ---- Grid sizing ----
+// Tiles used to be `width: '30%'` inside a grid capped at maxWidth 320. On a
+// normal ~412dp phone that stranded the whole board in the middle of the
+// screen at roughly 96dp per tile, with wide empty margins either side -- the
+// "tap options are too small" symptom. Sizing in real pixels off the actual
+// available width instead makes the board fill the screen properly on every
+// device, while GRID_MAX_W keeps it from becoming absurd on tablets.
+const GRID_GAP = 12;
+const GRID_MAX_W = 420;
+/** GameScreenWrapper's contentInner adds paddingHorizontal: 12 on each side. */
+const WRAPPER_H_PADDING = 24;
+const GRID_W = Math.min(Dimensions.get('window').width - WRAPPER_H_PADDING, GRID_MAX_W);
+const TILE_SIZE = Math.floor((GRID_W - GRID_GAP * 2) / 3);
+/** Icon/label scale with the tile so a bigger board doesn't look sparse. */
+const TILE_ICON_SIZE = Math.round(TILE_SIZE * 0.34);
+const TILE_GH_FONT_SIZE = Math.max(14, Math.round(TILE_SIZE * 0.17));
+
 /** A single grid tile: pop-in scale on reveal, plus a quick press-down scale for tactile feedback. */
 function TileView({
   tile, revealed, tapped, disabled, onPress,
@@ -101,15 +119,15 @@ function TileView({
       <Animated.View style={[s.tileInner, { transform: [{ scale }] }]}>
         {revealed ? (
           tile.kind === 'bomb' ? (
-            <Icon name="bomb" size={26} color={BOMB_ACCENT} />
+            <Icon name="bomb" size={TILE_ICON_SIZE} color={BOMB_ACCENT} />
           ) : (
             <>
-              <Icon name="ticket-confirmation" size={18} color={GOLD_ACCENT} />
+              <Icon name="ticket-confirmation" size={Math.round(TILE_ICON_SIZE * 0.72)} color={GOLD_ACCENT} />
               <Text style={s.tileGhText}>+{tile.gh}</Text>
             </>
           )
         ) : (
-          <Icon name="help" size={20} color="rgba(255,255,255,0.3)" />
+          <Icon name="help" size={Math.round(TILE_ICON_SIZE * 0.82)} color="rgba(255,255,255,0.3)" />
         )}
       </Animated.View>
     </TouchableOpacity>
@@ -403,17 +421,16 @@ const s = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    width: '100%',
-    maxWidth: 320,
+    width: GRID_W,
     alignSelf: 'center',
-    gap: 12,
+    gap: GRID_GAP,
     justifyContent: 'center',
     marginBottom: 24,
   },
   tile: {
-    width: '30%',
-    aspectRatio: 1,
-    borderRadius: 16,
+    width: TILE_SIZE,
+    height: TILE_SIZE,
+    borderRadius: 18,
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.07)',
@@ -443,7 +460,7 @@ const s = StyleSheet.create({
     elevation: 4,
   },
   tileTapped: { borderWidth: 2 },
-  tileGhText: { color: GOLD_ACCENT, fontWeight: '800', fontSize: 13 },
+  tileGhText: { color: GOLD_ACCENT, fontWeight: '800', fontSize: TILE_GH_FONT_SIZE },
 
   outcomeCard: {
     width: '100%',
