@@ -73,6 +73,11 @@ const Collection_Wallet: WALLET_COLLECTION[] = [
   },
   {
     id: 4,
+    name: 'Bitrefill',
+    icon: require('../assets/images/bitrefill.png'),
+  },
+  {
+    id: 5,
     name: 'Others',
     icon: require('../assets/images/otherwallets.jpg'),
   },
