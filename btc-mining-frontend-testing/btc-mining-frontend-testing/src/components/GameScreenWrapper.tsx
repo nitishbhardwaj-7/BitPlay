@@ -9,6 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { BannerAdWithGamFallback } from './ads/BannerAdWithGamFallback';
 import { BannerAdSize } from 'react-native-google-mobile-ads';
 import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
+import { useAdConfig } from '../providers/AdConfigProvider';
 
 interface Props {
   title: string;
@@ -31,6 +32,12 @@ export default function GameScreenWrapper({
 }: Props) {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  // Use the server-configured banner unit, same as HomeScreen. The hardcoded
+  // DEFAULT_ADMOB_BANNER_ID is only a last-resort fallback -- on iOS that unit
+  // does not serve, which is why every GameScreenWrapper screen showed no ad
+  // on TestFlight while Home (which reads this config) did.
+  const { ads } = useAdConfig();
+  const bannerUnitId = ads?.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID;
 
   return (
     <LinearGradient colors={gradientColors} style={styles.gradient}>
@@ -60,7 +67,7 @@ export default function GameScreenWrapper({
         {/* Top banner ad — loads immediately, skeleton shown until ready */}
         <View style={styles.topBannerWrap}>
           <BannerAdWithGamFallback
-            primaryUnitId={DEFAULT_ADMOB_BANNER_ID}
+            primaryUnitId={bannerUnitId}
             size={BannerAdSize.BANNER}
           />
         </View>
@@ -95,7 +102,7 @@ export default function GameScreenWrapper({
         {/* Bottom banner ad pinned above safe area */}
         <View style={[styles.bannerWrap, { paddingBottom: insets.bottom || 8 }]}>
           <BannerAdWithGamFallback
-            primaryUnitId={DEFAULT_ADMOB_BANNER_ID}
+            primaryUnitId={bannerUnitId}
             size={BannerAdSize.ADAPTIVE_BANNER}
           />
         </View>

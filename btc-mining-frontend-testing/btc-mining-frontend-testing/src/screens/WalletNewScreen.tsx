@@ -27,6 +27,7 @@ import { getBtcUsdPriceCached } from '../services/btcPriceService';
 import { BannerAdWithGamFallback } from '../components/ads/BannerAdWithGamFallback';
 import { BannerAdSize } from 'react-native-google-mobile-ads';
 import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
+import { useAdConfig } from '../providers/AdConfigProvider';
 
 type WalletNav = StackNavigationProp<RootStackParamList, 'Wallet'>;
 
@@ -68,6 +69,12 @@ const withdrawMethods: (limits: { minBtc: number; maxBtc: number }) => WITHDRAW_
 const WalletNewScreen = () => {
   const { user } = useAuth();
   const navigation = useNavigation<WalletNav>();
+  // Server-configured banner unit, same source HomeScreen uses. The hardcoded
+  // DEFAULT_ADMOB_BANNER_ID is only a last-resort fallback -- on iOS that unit
+  // does not serve, which is why this screen showed no ad on TestFlight while
+  // Home did.
+  const { ads } = useAdConfig();
+  const bannerUnitId = ads?.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID;
 
   const [btcBalance, setBtcBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -229,7 +236,7 @@ const WalletNewScreen = () => {
           ScrollView so it renders reliably and never scrolls away. */}
       <View style={styles.bannerTop}>
         <BannerAdWithGamFallback
-          primaryUnitId={DEFAULT_ADMOB_BANNER_ID}
+          primaryUnitId={bannerUnitId}
           size={BannerAdSize.ADAPTIVE_BANNER}
         />
       </View>
@@ -289,7 +296,7 @@ const WalletNewScreen = () => {
           measured height via onLayout. */}
       <View style={styles.bottomBannerWrap} onLayout={onBottomBarLayout}>
         <BannerAdWithGamFallback
-          primaryUnitId={DEFAULT_ADMOB_BANNER_ID}
+          primaryUnitId={bannerUnitId}
           size={BannerAdSize.ADAPTIVE_BANNER}
         />
       </View>

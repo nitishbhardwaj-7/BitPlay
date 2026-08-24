@@ -15,6 +15,7 @@ import { get_data_uri, getMobileSecurityHeaders } from '../config/api';
 import { BannerAdWithGamFallback } from '../components/ads/BannerAdWithGamFallback';
 import { BannerAdSize } from 'react-native-google-mobile-ads';
 import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
+import { useAdConfig } from '../providers/AdConfigProvider';
 import { trackProductSearch, trackSearch } from '../services/apptroveAnalytics';
 import { WIN_GH_REWARD as TRADING_WIN_GH } from './TradingScreen';
 import { WIN_REWARD_GH as MEMORY_WIN_GH } from './MemoryCardMatchScreen';
@@ -119,6 +120,12 @@ const DEFAULT_BOTTOM_BAR_HEIGHT = 72;
 export default function GameZoneScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  // Server-configured banner unit, same source HomeScreen uses. The hardcoded
+  // DEFAULT_ADMOB_BANNER_ID is only a last-resort fallback -- on iOS that unit
+  // does not serve, which is why this screen showed no ad on TestFlight while
+  // Home did.
+  const { ads } = useAdConfig();
+  const bannerUnitId = ads?.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID;
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('Featured');
   const [popular, setPopular] = useState<PopularGame[]>([]);
@@ -231,7 +238,7 @@ export default function GameZoneScreen() {
         {/* Banner Ad below header, outside ScrollView for reliable rendering */}
         <View style={styles.bannerTop}>
           <BannerAdWithGamFallback
-            primaryUnitId={DEFAULT_ADMOB_BANNER_ID}
+            primaryUnitId={bannerUnitId}
             size={BannerAdSize.ADAPTIVE_BANNER}
           />
         </View>
@@ -480,7 +487,7 @@ export default function GameZoneScreen() {
             own measured height via onLayout. */}
         <View style={styles.bottomBannerWrap} onLayout={onBottomBarLayout}>
           <BannerAdWithGamFallback
-            primaryUnitId={DEFAULT_ADMOB_BANNER_ID}
+            primaryUnitId={bannerUnitId}
             size={BannerAdSize.ADAPTIVE_BANNER}
           />
         </View>

@@ -126,6 +126,27 @@ const SuperPrivilegesScreen: React.FC = () => {
   const selectedBoostedGh = BASE_HASHPOWER_PER_AD * selectedTierConfig.multiplier;
   const selectedPctLabel = selectedTierConfig.label.replace('+', '');
 
+  /**
+   * Gh/s credited per ad watched from THIS screen's "Watch Ads" button.
+   *
+   * The backend stores the increment it is sent verbatim -- it does NOT apply
+   * the privilege multiplier -- so the boosted amount has to be computed here:
+   *   +5000%  -> 5.5 x 50  = 275 Gh/s
+   *   +10000% -> 5.5 x 100 = 550 Gh/s
+   *
+   * `effectiveMultiplier` is the combined value from the privileges API, so
+   * stacked plans pay their stacked rate. It falls back to the active tier's
+   * own multiplier when that fetch hasn't landed yet -- the button only renders
+   * for an active tier, so defaulting to the unboosted 1x would silently
+   * under-credit a paying user.
+   *
+   * This boost is deliberately scoped to this button only; HomeScreen's Super
+   * Ad Miner card is untouched.
+   */
+  const adRewardMultiplier =
+    effectiveMultiplier > 1 ? effectiveMultiplier : selectedTierConfig.multiplier;
+  const adRewardGh = BASE_HASHPOWER_PER_AD * adRewardMultiplier;
+
   const fetchProducts = useCallback(async () => {
     console.log('[SuperPrivileges] Requesting product IDs:', PRIVILEGE_PRODUCT_IDS);
     try {
@@ -184,10 +205,10 @@ const SuperPrivilegesScreen: React.FC = () => {
     setAdsWatched(newCount);
     setAdCrediting(true);
 
-    // Credit the RAW base reward, exactly as HomeScreen's handleReward does.
-    // The privilege multiplier is applied server-side and read back as
-    // `effective_hashpower` -- multiplying here too would double-apply it.
-    addHashPower(BASE_HASHPOWER_PER_AD);
+    // Credit the tier-boosted amount (see adRewardGh above). The backend
+    // stores the increment verbatim rather than applying the multiplier
+    // itself, so the boost has to be baked in here.
+    addHashPower(adRewardGh);
 
     try {
       // `rewarded_ads_watched` is an ABSOLUTE count in this payload while
@@ -203,7 +224,7 @@ const SuperPrivilegesScreen: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: user.id,
-          hashpower: BASE_HASHPOWER_PER_AD,
+          hashpower: adRewardGh,
           rewarded_ads_watched: newCount,
           offset: new Date().getTimezoneOffset(),
         }),
@@ -218,7 +239,7 @@ const SuperPrivilegesScreen: React.FC = () => {
       // and the next focus refresh will reconcile the counter.
     }
     setAdCrediting(false);
-  }, [user?.id, adsWatched, addHashPower]);
+  }, [user?.id, adsWatched, addHashPower, adRewardGh]);
 
   const onAdClosed = useCallback(() => {
     if (adEarnedRef.current) {
@@ -420,7 +441,10 @@ const SuperPrivilegesScreen: React.FC = () => {
                       ) : (
                         <>
                           <Icon name="play-circle" size={20} color="#FFFFFF" />
-                          <Text style={styles.claimButtonText}>
+                          <Text
+                            style={[styles.claimButtonText, styles.watchAdsButtonLabel]}
+                            numberOfLines={1}
+                          >
                             {adsRemaining === 0 ? 'Daily Limit Reached' : 'Watch Ads'}
                           </Text>
                         </>
@@ -429,10 +453,13 @@ const SuperPrivilegesScreen: React.FC = () => {
                   </TouchableOpacity>
 
                   <Text style={styles.watchAdsHint}>
+                    {/* Shows adRewardGh (what is actually credited), not the
+                        selected tier's headline figure -- with stacked plans
+                        those differ, and the hint must not overstate. */}
                     {adsRemaining == null
                       ? 'Checking your daily ad balance…'
-                      : `${adsRemaining} of ${MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY} ads left today · +${selectedBoostedGh.toFixed(
-                          selectedBoostedGh % 1 === 0 ? 0 : 2,
+                      : `${adsRemaining} of ${MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY} ads left today · +${adRewardGh.toFixed(
+                          adRewardGh % 1 === 0 ? 0 : 2,
                         )} Gh/s each`}
                   </Text>
                 </>
@@ -595,14 +622,22 @@ const styles = StyleSheet.create({
   },
   claimButtonActiveText: { color: '#22C55E', fontWeight: '700', fontSize: 16 },
   watchAdsButtonWrap: { borderRadius: 12, overflow: 'hidden', marginTop: 12 },
+  // No `gap` here on purpose: react-native-linear-gradient mis-measures its
+  // own height when a row child uses gap on iOS, so the gradient came out
+  // shorter than its content and the wrapper's overflow:'hidden' sliced the
+  // label in half (Android measured it fine, which is why it only showed up
+  // on TestFlight). Spacing lives on the label's marginLeft instead, and
+  // minHeight guarantees the button can never be shorter than its content.
   watchAdsButtonGradient: {
     flexDirection: 'row',
-    gap: 8,
+    minHeight: 52,
     paddingVertical: 15,
+    paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
   },
+  watchAdsButtonLabel: { marginLeft: 8 },
   watchAdsHint: {
     color: '#94A3B8',
     fontSize: 12,

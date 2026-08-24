@@ -33,6 +33,7 @@ import { getObjectFromStorage, saveObjectToStorage } from '../config/storage';
 import { BannerAdWithGamFallback } from '../components/ads/BannerAdWithGamFallback';
 import { BannerAdSize } from 'react-native-google-mobile-ads';
 import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
+import { useAdConfig } from '../providers/AdConfigProvider';
 import {
   trackSubscriptionStarted,
   trackPaywallViewed,
@@ -89,6 +90,12 @@ const getStoreCacheKey = (userId: string) => `store_cache_${userId}`;
 
 const StoreScreen = () => {
   const { user } = useAuth();
+  // Server-configured banner unit, same source HomeScreen uses. The hardcoded
+  // DEFAULT_ADMOB_BANNER_ID is only a last-resort fallback -- on iOS that unit
+  // does not serve, which is why this screen showed no ad on TestFlight while
+  // Home did.
+  const { ads } = useAdConfig();
+  const bannerUnitId = ads?.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID;
   // Plan/product catalog display, backend fields only -- deliberately NEVER
   // includes revenueCatPackage (a live RevenueCat SDK object tied to this
   // session's Purchases.getOfferings() call; a JSON-round-tripped copy would
@@ -661,7 +668,7 @@ const StoreScreen = () => {
           scrolls away. */}
       <View style={styles.bannerTop}>
         <BannerAdWithGamFallback
-          primaryUnitId={DEFAULT_ADMOB_BANNER_ID}
+          primaryUnitId={bannerUnitId}
           size={BannerAdSize.ADAPTIVE_BANNER}
         />
       </View>
@@ -864,7 +871,7 @@ const StoreScreen = () => {
           covering the Mint button when a plan is selected. */}
       <View style={styles.bottomBannerWrap}>
         <BannerAdWithGamFallback
-          primaryUnitId={DEFAULT_ADMOB_BANNER_ID}
+          primaryUnitId={bannerUnitId}
           size={BannerAdSize.ADAPTIVE_BANNER}
         />
       </View>
