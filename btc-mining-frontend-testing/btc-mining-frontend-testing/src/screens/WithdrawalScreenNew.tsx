@@ -55,12 +55,6 @@ const currencies = [
   { code: 'USDC', label: 'BEP20', method: 'Crypto', redirect: 'UsdcPage' },
 ];
 
-// NOTE: "Others" still uses the generic placeholder icon — the provided
-// others.avif isn't a Metro-configured asset extension in this project
-// (only standard formats like png/jpg are set up as assets), and AVIF
-// support in RN/Metro is inconsistent, so it's not safe to wire in without
-// being able to verify a full bundle. Convert it to .png (or .jpg) and drop
-// it in as src/assets/images/others.png, then swap the require() below.
 const Collection_Wallet: WALLET_COLLECTION[] = [
   {
     id: 1,
@@ -80,7 +74,7 @@ const Collection_Wallet: WALLET_COLLECTION[] = [
   {
     id: 4,
     name: 'Others',
-    icon: require('../assets/images/emptyWallet.png'),
+    icon: require('../assets/images/otherwallets.jpg'),
   },
 ];
 
