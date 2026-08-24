@@ -798,7 +798,7 @@ const Page: React.FC = () => {
       // Refresh streak/achievement data so HomeScreen shows latest streak info
       await refreshStreakData();
 
-      // Schedule next midnight reminder
+      // Schedule the next mining-reset reminder (fires at noon, see localNotificationService)
       localNotificationService.scheduleMiningResetNotification();
     } else {
       Alert.alert('Daily Reward', data.message ?? "Error Claiming Daily Reward");
@@ -1801,13 +1801,6 @@ const Page: React.FC = () => {
                   : 'Saved Balance'}
               </Text>
             </View>
-
-            <Icon
-              name="chevron-right"
-              size={20}
-              color="#7E8CA3"
-              style={styles.detailArrow}
-            />
           </TouchableOpacity>
 
           {/* Box 2 - Invitation Rewards */}
@@ -1845,13 +1838,6 @@ const Page: React.FC = () => {
                 </Text>
               </View>
             </View>
-
-            <Icon
-              name="chevron-right"
-              size={20}
-              color="#7E8CA3"
-              style={styles.detailArrow}
-            />
           </TouchableOpacity>
         </View>
 

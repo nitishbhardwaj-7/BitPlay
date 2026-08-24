@@ -69,7 +69,11 @@ class LocalNotificationService {
     }
 
     /**
-     * Schedule a notification for the next 12:00 AM (Midnight)
+     * Schedule a notification for the next 12:00 PM (Noon).
+     *
+     * Mining itself still resets at midnight (unchanged, see HomeScreen's own
+     * midnight refresh logic) -- this notification is deliberately delayed
+     * to fire at noon instead of pinging users at midnight.
      */
     async scheduleMiningResetNotification() {
         const hasPermission = await this.requestPermission();
@@ -97,22 +101,21 @@ class LocalNotificationService {
         // Cancel any existing mining reminders to avoid duplicates
         await notifee.cancelNotification('mining-reset-reminder');
 
-        // Calculate next midnight
+        // Calculate the next upcoming noon (today's if it hasn't passed yet, else tomorrow's).
         const now = new Date();
-        const nextMidnight = new Date(now);
-        nextMidnight.setHours(24, 0, 0, 0); // Sets to 00:00:00 of the next day
+        const nextNoon = new Date(now);
+        nextNoon.setHours(12, 0, 0, 0);
 
-        // If it's already past midnight (shouldn't happen with above logic, but safety first)
-        if (nextMidnight.getTime() <= now.getTime()) {
-            nextMidnight.setDate(nextMidnight.getDate() + 1);
+        if (nextNoon.getTime() <= now.getTime()) {
+            nextNoon.setDate(nextNoon.getDate() + 1);
         }
 
-        console.log('Scheduling mining reset notification for:', nextMidnight.toLocaleString());
+        console.log('Scheduling mining reset notification for:', nextNoon.toLocaleString());
 
         // Create a time-based trigger
         const trigger: any = {
             type: TriggerType.TIMESTAMP,
-            timestamp: nextMidnight.getTime(),
+            timestamp: nextNoon.getTime(),
             // Use AlarmManager so it can still fire when app is killed.
             // `allowWhileIdle` improves reliability under Doze / idle modes.
             alarmManager: Platform.OS === 'android' ? { allowWhileIdle: true } : undefined,

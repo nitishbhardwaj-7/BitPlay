@@ -20,6 +20,13 @@ const radioOptionsForWallet = (
 ): ('Lightning Address' | 'Invoice')[] =>
   walletName === 'Speed' ? ['Lightning Address', 'Invoice'] : ['Invoice'];
 
+// Fixed card sizing so snapToInterval below has a constant pixel stride to
+// snap to -- an auto-sized (content-driven) card width can't be used with
+// scroll snapping.
+const WALLET_CARD_WIDTH = 120;
+const WALLET_CARD_GAP = 8;
+const WALLET_CARD_STRIDE = WALLET_CARD_WIDTH + WALLET_CARD_GAP;
+
 const Lightning = ({
   btcBal,
   maxWithdrawable,
@@ -67,6 +74,29 @@ const Lightning = ({
         horizontal
         keyExtractor={item => item.id.toString()}
         data={Collection_Wallet}
+        // isSelected below depends on `selectedCollection`, which lives
+        // outside `data` -- without extraData, FlatList has no signal that
+        // a selection change should re-render the other (unselected) rows.
+        extraData={selectedCollection}
+        // Android's FlatList defaults removeClippedSubviews to true, which
+        // has a known native bug where sibling cells in a short horizontal
+        // list get incorrectly clipped/hidden after a state-driven re-render
+        // (exactly the "other wallet icons vanish after selecting one"
+        // symptom reported here). This list is small and fully in memory
+        // anyway, so there's no virtualization benefit worth the bug.
+        removeClippedSubviews={false}
+        // Snap to a full card at rest instead of allowing the scroll gesture
+        // to stop mid-card. Selecting a card adds a border (walletCardSelected),
+        // which changes that card's rendered width in RN's box model and can
+        // shift where later cards land in the row; without snapping, a card
+        // can end up resting only partially in the visible width, and since
+        // its icon/label are centered within the FULL card, that centered
+        // content lands outside the visible sliver -- looking blank even
+        // though it rendered correctly. Snapping guarantees every card that's
+        // showing at all is showing in full.
+        snapToInterval={WALLET_CARD_STRIDE}
+        snapToAlignment="start"
+        decelerationRate="fast"
         renderItem={({ item }) => {
           const isSelected = selectedCollection === item.id;
           return (
@@ -78,7 +108,9 @@ const Lightning = ({
               ]}
             >
               <Image source={item.icon} style={styles.walletIcon} />
-              <Text style={styles.walletName}>{item.name}</Text>
+              <Text style={styles.walletName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                {item.name}
+              </Text>
 
               {isSelected && (
                 <View style={styles.checkOverlayContainer}>
@@ -188,13 +220,19 @@ const styles = StyleSheet.create({
 
   // ===== Wallet Selector =====
   walletList: {
-    gap: 5,
+    gap: WALLET_CARD_GAP,
   },
   walletCard: {
+    width: WALLET_CARD_WIDTH,
     paddingVertical: 18,
-    paddingHorizontal: 40,
+    paddingHorizontal: 12,
     backgroundColor: '#334155',
     borderRadius: 8,
+    // Border is reserved (transparent) on every card, not just the selected
+    // one -- selection only ever changes color, never the card's rendered
+    // size, so it can't shift where sibling cards land in the row.
+    borderWidth: 1.5,
+    borderColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     rowGap: 2,
@@ -202,7 +240,6 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   walletCardSelected: {
-    borderWidth: 1.5,
     borderColor: '#22D3EE',
     backgroundColor: '#162B56',
   },
