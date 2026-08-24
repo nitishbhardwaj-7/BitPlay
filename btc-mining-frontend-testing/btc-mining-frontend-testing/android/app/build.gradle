@@ -22,7 +22,7 @@ android {
         applicationId "com.bitplay.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 258
+        versionCode 259
         versionName "2.0.1"
     }
     signingConfigs {
