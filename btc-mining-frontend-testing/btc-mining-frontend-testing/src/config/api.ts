@@ -242,6 +242,50 @@ export const getApiUrl = (endpoint: string): string => {
   return `${API_BASE_URL}${endpoint}`;
 };
 
+/**
+ * Session-expiry handling.
+ *
+ * The backend JWT eventually expires, and until now nothing detected that
+ * centrally -- whichever screen happened to make the next authenticated call
+ * (often the Profile screen, since it fetches on every focus) would just
+ * surface the raw backend message ("Token is not valid") in a bare
+ * Alert.alert, leaving the user stuck on a screen that can never load while
+ * the app still believed it was logged in. Logging out and back in "fixed"
+ * it only because that mints a fresh token.
+ *
+ * AuthProvider registers a handler here (clear session + flip
+ * `authenticated` to false) so ANY 401/invalid-token response, from ANY
+ * screen, forces a clean return to the login flow instead of a dead end.
+ */
+let authExpiredHandler: (() => void) | null = null;
+let authExpiryInFlight = false;
+
+export const setAuthExpiredHandler = (fn: (() => void) | null) => {
+  authExpiredHandler = fn;
+};
+
+const AUTH_EXPIRED_MESSAGE = 'Your session has expired. Please log in again.';
+
+const isAuthExpiredResponse = (status: number, message: string | undefined): boolean => {
+  if (status === 401) return true;
+  const m = (message || '').toLowerCase();
+  return m.includes('token') && (m.includes('not valid') || m.includes('invalid') || m.includes('expired'));
+};
+
+const handleAuthExpired = () => {
+  if (authExpiryInFlight) return;
+  authExpiryInFlight = true;
+  try {
+    authExpiredHandler?.();
+  } finally {
+    // Reset shortly after -- guards against a burst of parallel 401s
+    // triggering logout() repeatedly, without permanently wedging it off.
+    setTimeout(() => {
+      authExpiryInFlight = false;
+    }, 2000);
+  }
+};
+
 // API Configuration
 export const API_CONFIG = {
   timeout: 10000,
@@ -317,6 +361,10 @@ export const apiRequest = async (
         data.message || `HTTP error! status: ${response.status}`;
       if (DEBUG_API) {
         console.error('[API Error Response]', { url, status: response.status, data: redact(data) });
+      }
+      if (isAuthExpiredResponse(response.status, data.message)) {
+        handleAuthExpired();
+        throw new Error(AUTH_EXPIRED_MESSAGE);
       }
       throw new Error(errorMessage);
     }
@@ -402,6 +450,12 @@ export const apiClient: AxiosInstance = (() => {
           status: err.response?.status,
           data: err.response?.data != null ? redact(err.response.data) : undefined,
         });
+      }
+      const status = err.response?.status;
+      const message = err.response?.data?.message;
+      if (status != null && isAuthExpiredResponse(status, message)) {
+        handleAuthExpired();
+        return Promise.reject(new Error(AUTH_EXPIRED_MESSAGE));
       }
       return Promise.reject(err);
     }

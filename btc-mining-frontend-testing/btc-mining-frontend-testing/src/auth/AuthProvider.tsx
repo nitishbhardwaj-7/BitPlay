@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getSession, saveSession, clearSession, getUser, logoutApi } from './auth';
 import auth from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -7,7 +7,7 @@ import {
   AppleRequestScope,
 } from '@invertase/react-native-apple-authentication';
 import appleAuth from '@invertase/react-native-apple-authentication';
-import { apiRequest, API_ENDPOINTS } from '../config/api';
+import { apiRequest, API_ENDPOINTS, setAuthExpiredHandler } from '../config/api';
 import { Alert } from 'react-native';
 import { trackLogout } from '../services/apptroveAnalytics';
 
@@ -38,6 +38,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     };
     checkSession();
+  }, []);
+
+  // Any authenticated API call that comes back with an expired/invalid
+  // token (see setAuthExpiredHandler in config/api.ts) forces a logout
+  // through here, so the root navigator's `authenticated` check swaps back
+  // to the login flow instead of leaving the user stuck on a screen that
+  // can never load. Routed through a ref so the registered callback always
+  // calls the current `logout` closure, not whatever it was on first mount.
+  const logoutRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    logoutRef.current = () => logout();
+  });
+  useEffect(() => {
+    setAuthExpiredHandler(() => logoutRef.current());
+    return () => setAuthExpiredHandler(null);
   }, []);
 
   const login = async (token: string, user: object) => {
