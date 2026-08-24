@@ -12,13 +12,13 @@ import React from 'react';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { WALLET_COLLECTION } from '../../types/wallet';
 import RadioButton from './RadioButton';
-//add Invoice | for activate
 
-const RadioButtonOption: ('Lightning Address')[] = [
-  // 'Invoice',
-  'Lightning Address',
-];
-//add Invoice | for activate above
+/** Only Speed supports a Lightning Address today; every other wallet
+ *  (ZBD, Muun, Others) can only be paid via a pasted invoice. */
+const radioOptionsForWallet = (
+  walletName: string,
+): ('Lightning Address' | 'Invoice')[] =>
+  walletName === 'Speed' ? ['Lightning Address', 'Invoice'] : ['Invoice'];
 
 const Lightning = ({
   btcBal,
@@ -33,6 +33,7 @@ const Lightning = ({
   Collection_Wallet,
   handleSelection,
   selectedCollection,
+  selectedWalletName,
   selectedAddressLightning,
   setSelectedAddressLightning,
   minBtc = 0.0000005,
@@ -42,7 +43,6 @@ const Lightning = ({
   amountInput: React.RefObject<TextInput>;
   amount: string;
   setAmount: React.Dispatch<React.SetStateAction<string>>;
-  //add Invoice | for activate
   selectedAddressLightning: 'Lightning Address' | 'Invoice';
   setSelectedAddressLightning: React.Dispatch<
     React.SetStateAction<'Lightning Address' | 'Invoice'>
@@ -54,10 +54,12 @@ const Lightning = ({
   btcBal: string;
   maxWithdrawable: string;
   selectedCollection: number;
+  selectedWalletName: string;
   handleSelection: (collection: WALLET_COLLECTION) => void;
   minBtc?: number;
   maxBtc?: number;
 }) => {
+  const radioOptions = radioOptionsForWallet(selectedWalletName);
   return (
     <View style={styles.box}>
       {/* ===== Wallet Selector ===== */}
@@ -141,18 +143,23 @@ const Lightning = ({
         </Text>
       )}
 
-      {/* ===== Lightning Address Selection ===== */}
-      <View style={styles.radioRow}>
-        {RadioButtonOption.map(option => (
-          <RadioButton
-            key={option}
-            label={option}
-            selected={selectedAddressLightning === option}
-            size={18}
-            onPress={() => setSelectedAddressLightning(option)}
-          />
-        ))}
-      </View>
+      {/* ===== Lightning Address / Invoice Selection ===== */}
+      {/* Only shown when the selected wallet actually offers a choice — Speed
+          is the only one with both options; everyone else is invoice-only,
+          so there's nothing to pick and the row would just be noise. */}
+      {radioOptions.length > 1 && (
+        <View style={styles.radioRow}>
+          {radioOptions.map(option => (
+            <RadioButton
+              key={option}
+              label={option}
+              selected={selectedAddressLightning === option}
+              size={18}
+              onPress={() => setSelectedAddressLightning(option)}
+            />
+          ))}
+        </View>
+      )}
 
       <TextInput
         value={address}
@@ -161,7 +168,7 @@ const Lightning = ({
         placeholder={
           selectedAddressLightning === 'Lightning Address'
             ? 'e.g. miningspeed@speed.app'
-            : 'e.g. Inbc200n1****************sdasd'
+            : 'Paste your Lightning invoice'
         }
         placeholderTextColor="#94A3B8"
       />

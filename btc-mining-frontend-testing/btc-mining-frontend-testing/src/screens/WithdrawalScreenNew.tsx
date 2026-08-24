@@ -55,11 +55,32 @@ const currencies = [
   { code: 'USDC', label: 'BEP20', method: 'Crypto', redirect: 'UsdcPage' },
 ];
 
+// NOTE: "Others" still uses the generic placeholder icon — the provided
+// others.avif isn't a Metro-configured asset extension in this project
+// (only standard formats like png/jpg are set up as assets), and AVIF
+// support in RN/Metro is inconsistent, so it's not safe to wire in without
+// being able to verify a full bundle. Convert it to .png (or .jpg) and drop
+// it in as src/assets/images/others.png, then swap the require() below.
 const Collection_Wallet: WALLET_COLLECTION[] = [
   {
     id: 1,
     name: 'Speed',
     icon: require('../assets/images/speed.png'),
+  },
+  {
+    id: 2,
+    name: 'ZBD',
+    icon: require('../assets/images/zbd.png'),
+  },
+  {
+    id: 3,
+    name: 'Muun',
+    icon: require('../assets/images/muun.jpg'),
+  },
+  {
+    id: 4,
+    name: 'Others',
+    icon: require('../assets/images/emptyWallet.png'),
   },
 ];
 
@@ -416,9 +437,15 @@ const WithdrawScreen = () => {
             btcBal={btcBal}
             maxWithdrawable={maxWithdrawableBtcStr}
             selectedCollection={selectedCollection.id}
-            handleSelection={(collection: WALLET_COLLECTION) =>
-              setSelectedCollection(collection)
-            }
+            selectedWalletName={selectedCollection.name}
+            handleSelection={(collection: WALLET_COLLECTION) => {
+              setSelectedCollection(collection);
+              // Only Speed supports a Lightning Address; every other wallet
+              // (ZBD, Muun, Others) is invoice-only for now.
+              if (collection.name !== 'Speed') {
+                setSelectedAddressLightning('Invoice');
+              }
+            }}
             minBtc={MIN_WITHDRAW_BTC}
             maxBtc={MAX_WITHDRAW_BTC}
           />

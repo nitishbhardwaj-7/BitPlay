@@ -227,6 +227,29 @@ const WalletNewScreen = () => {
           buttonText="Withdraw"
         />
 
+        <TouchableOpacity
+          style={styles.bitrefillCard}
+          activeOpacity={0.85}
+          onPress={() =>
+            navigation.navigate('WebViewScreen', {
+              url: 'https://www.bitrefill.com/',
+              title: 'Bitrefill',
+            })
+          }
+        >
+          <View style={styles.bitrefillIconWrap}>
+            <Icon name="card-giftcard" size={22} color="#22D3EE" />
+          </View>
+          <View style={styles.bitrefillTextWrap}>
+            <Text style={styles.bitrefillTitle}>Spend on Bitrefill</Text>
+            <Text style={styles.bitrefillSubtitle}>
+              Buy gift cards & mobile top-ups with your BTC — pick one on Bitrefill,
+              then withdraw here using the Lightning invoice they give you.
+            </Text>
+          </View>
+          <Icon name="arrow-forward-ios" size={14} color="#bcbcbc" />
+        </TouchableOpacity>
+
         <TransactionHistory transactions={transactions} />
       </ScrollView>
 
@@ -275,6 +298,37 @@ const styles = StyleSheet.create({
   scrollViewContentContainer: {
     padding: 20,
     flexGrow: 1,
+  },
+  bitrefillCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E293B',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 14,
+    gap: 12,
+  },
+  bitrefillIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: 'rgba(34, 211, 238, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bitrefillTextWrap: {
+    flex: 1,
+  },
+  bitrefillTitle: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  bitrefillSubtitle: {
+    color: '#94A3B8',
+    fontSize: 12,
+    lineHeight: 17,
   },
   modalWrapper: {
     ...StyleSheet.absoluteFillObject,
