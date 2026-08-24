@@ -200,7 +200,7 @@ const Lightning = ({
         placeholder={
           selectedAddressLightning === 'Lightning Address'
             ? 'e.g. miningspeed@speed.app'
-            : 'Paste your Lightning invoice'
+            : 'Paste your invoice'
         }
         placeholderTextColor="#94A3B8"
       />

@@ -9,6 +9,7 @@ import {
   View,
   BackHandler,
   Pressable,
+  Image,
 } from 'react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -238,7 +239,11 @@ const WalletNewScreen = () => {
           }
         >
           <View style={styles.bitrefillIconWrap}>
-            <Icon name="card-giftcard" size={22} color="#22D3EE" />
+            <Image
+              source={require('../assets/images/bitrefill.png')}
+              style={styles.bitrefillIconImage}
+              resizeMode="contain"
+            />
           </View>
           <View style={styles.bitrefillTextWrap}>
             <Text style={styles.bitrefillTitle}>Spend on Bitrefill</Text>
@@ -312,9 +317,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: 'rgba(34, 211, 238, 0.12)',
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  bitrefillIconImage: {
+    width: '100%',
+    height: '100%',
   },
   bitrefillTextWrap: {
     flex: 1,
