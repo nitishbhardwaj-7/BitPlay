@@ -48,6 +48,39 @@ jobs:
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing/android
         run: chmod +x gradlew
 
+      # Derives versionCode automatically so releases no longer need a manual
+      # bump commit before every pipeline run.
+      #
+      # github.run_number increases by one per run of this workflow and is not
+      # reset by re-runs, which gives the strictly-increasing sequence Play
+      # Console requires. BASE offsets it past the codes already published by
+      # hand (259/260); raise the ANDROID_VERSION_CODE_BASE repo variable if the
+      # run counter is ever reset (e.g. the workflow file is renamed) so the
+      # sequence cannot go backwards.
+      #
+      # The final guard takes whichever is higher -- the computed value or one
+      # above whatever is committed in build.gradle -- so a manually-bumped
+      # value in the repo always acts as a floor and can never be undercut.
+      #
+      # This edits build.gradle in the runner's checkout only; nothing is
+      # committed back, so there is no risk of a push loop.
+      - name: Derive versionCode
+        id: version_code
+        working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing/android/app
+        run: |
+          set -euo pipefail
+          FILE_CODE=$(grep -m1 'versionCode' build.gradle | tr -dc '0-9')
+          BASE="${ANDROID_VERSION_CODE_BASE:-260}"
+          CANDIDATE=$(( BASE + ${{ github.run_number }} ))
+          if [ "$CANDIDATE" -le "$FILE_CODE" ]; then
+            CANDIDATE=$(( FILE_CODE + 1 ))
+          fi
+          echo "Committed versionCode: $FILE_CODE | base: $BASE | run: ${{ github.run_number }} -> using $CANDIDATE"
+          sed -i "s/versionCode .*/versionCode $CANDIDATE/" build.gradle
+          grep -n 'versionCode\|versionName' build.gradle
+        env:
+          ANDROID_VERSION_CODE_BASE: ${{ vars.ANDROID_VERSION_CODE_BASE }}
+
       - name: Build Release AAB
         working-directory: btc-mining-frontend-testing/btc-mining-frontend-testing/android
         run: ./gradlew bundleRelease --no-daemon --stacktrace
