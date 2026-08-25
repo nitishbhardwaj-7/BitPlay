@@ -30,7 +30,7 @@ import { formatMiningLocalTimeForApi } from '../utils/miningTime';
 import { capFreeUserTotalMiningPowerGh } from '../utils/miningPowerCap';
 import { usePrivilegeMultiplier } from '../hooks/usePrivilegeMultiplier';
 import { getObjectFromStorage, saveObjectToStorage } from '../config/storage';
-import { BannerAdWithGamFallback } from '../components/ads/BannerAdWithGamFallback';
+import { BannerAdSlot } from '../components/ads/BannerAdSlot';
 import { BannerAdSize } from 'react-native-google-mobile-ads';
 import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
 import { useAdConfig } from '../providers/AdConfigProvider';
@@ -667,10 +667,7 @@ const StoreScreen = () => {
           header and outside the ScrollView, so it renders reliably and never
           scrolls away. */}
       <View style={styles.bannerTop}>
-        <BannerAdWithGamFallback
-          primaryUnitId={bannerUnitId}
-          size={BannerAdSize.ADAPTIVE_BANNER}
-        />
+        <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.contentContainer}>
@@ -870,10 +867,7 @@ const StoreScreen = () => {
           it stacks *below* the conditional purchase panel above rather than
           covering the Mint button when a plan is selected. */}
       <View style={styles.bottomBannerWrap}>
-        <BannerAdWithGamFallback
-          primaryUnitId={bannerUnitId}
-          size={BannerAdSize.ADAPTIVE_BANNER}
-        />
+        <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
       </View>
     </View>
   );

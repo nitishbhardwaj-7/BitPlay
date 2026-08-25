@@ -12,7 +12,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { StatusBar } from 'react-native';
 import { RootStackParamList } from '../components/types';
 import { get_data_uri, getMobileSecurityHeaders } from '../config/api';
-import { BannerAdWithGamFallback } from '../components/ads/BannerAdWithGamFallback';
+import { BannerAdSlot } from '../components/ads/BannerAdSlot';
 import { BannerAdSize } from 'react-native-google-mobile-ads';
 import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
 import { useAdConfig } from '../providers/AdConfigProvider';
@@ -237,10 +237,7 @@ export default function GameZoneScreen() {
 
         {/* Banner Ad below header, outside ScrollView for reliable rendering */}
         <View style={styles.bannerTop}>
-          <BannerAdWithGamFallback
-            primaryUnitId={bannerUnitId}
-            size={BannerAdSize.ADAPTIVE_BANNER}
-          />
+          <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
         </View>
 
         <ScrollView
@@ -486,10 +483,7 @@ export default function GameZoneScreen() {
             edge). Reserved-content padding above is driven by this View's
             own measured height via onLayout. */}
         <View style={styles.bottomBannerWrap} onLayout={onBottomBarLayout}>
-          <BannerAdWithGamFallback
-            primaryUnitId={bannerUnitId}
-            size={BannerAdSize.ADAPTIVE_BANNER}
-          />
+          <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
         </View>
       </SafeAreaView>
     </View>
@@ -656,7 +650,10 @@ const styles = StyleSheet.create({
   promo: {
     flexDirection: 'row', alignItems: 'center', gap: SPACING.sm + 5,
     backgroundColor: SURFACE, borderWidth: 1, borderColor: BORDER, borderRadius: 16,
-    padding: SPACING.md - 1, marginHorizontal: SPACING.lg, marginTop: SPACING.sm - 2,
+    padding: SPACING.md - 1, marginHorizontal: SPACING.lg,
+    // 10px (was 6) so the card clears the Featured carousel's pagination
+    // dots, which sit directly above it.
+    marginTop: 10,
   },
   promoIcon: {
     width: 40, height: 40, borderRadius: 11,

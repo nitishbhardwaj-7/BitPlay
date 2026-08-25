@@ -6,7 +6,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import LinearGradient from 'react-native-linear-gradient';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
-import { BannerAdWithGamFallback } from './ads/BannerAdWithGamFallback';
+import { BannerAdSlot } from './ads/BannerAdSlot';
 import { BannerAdSize } from 'react-native-google-mobile-ads';
 import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
 import { useAdConfig } from '../providers/AdConfigProvider';
@@ -66,10 +66,7 @@ export default function GameScreenWrapper({
 
         {/* Top banner ad — loads immediately, skeleton shown until ready */}
         <View style={styles.topBannerWrap}>
-          <BannerAdWithGamFallback
-            primaryUnitId={bannerUnitId}
-            size={BannerAdSize.BANNER}
-          />
+          <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.BANNER} />
         </View>
 
         {/* Game content */}
@@ -101,10 +98,7 @@ export default function GameScreenWrapper({
 
         {/* Bottom banner ad pinned above safe area */}
         <View style={[styles.bannerWrap, { paddingBottom: insets.bottom || 8 }]}>
-          <BannerAdWithGamFallback
-            primaryUnitId={bannerUnitId}
-            size={BannerAdSize.ADAPTIVE_BANNER}
-          />
+          <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
         </View>
       </SafeAreaView>
     </LinearGradient>

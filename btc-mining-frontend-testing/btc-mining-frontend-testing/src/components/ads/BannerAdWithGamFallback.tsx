@@ -57,17 +57,26 @@ export function BannerAdWithGamFallback({
     setAdState('failed');
     onAdFailedToLoad?.(error);
 
+    // Report failure to the host IMMEDIATELY, on every failed attempt.
+    //
+    // This deliberately does NOT wait for the retry schedule to run out. An
+    // earlier version only called this once all retries were exhausted, which
+    // is ~5.6 minutes -- and because this component renders null while failed,
+    // screens that use onAllFailed to swap in a static fallback image showed
+    // neither an ad nor a fallback for that entire window. Firing right away
+    // restores the fallback image the instant the first request no-fills.
+    //
+    // Screens that swap us out for their own fallback simply unmount us (their
+    // own timer remounts us later to re-try the real ad); screens with no
+    // fallback handler stay mounted and get the backoff retry below.
+    onAllFailed?.(error);
+
     const delay = RETRY_DELAYS_MS[attempt];
     if (delay != null) {
       retryTimerRef.current = setTimeout(() => {
         setAttempt(a => a + 1);
         setAdState('loading');
       }, delay);
-    } else {
-      // Retries exhausted -- only now is this slot really considered dead, so
-      // screens with their own static-image fallback swap to it at this point
-      // rather than after a single transient no-fill.
-      onAllFailed?.(error);
     }
   }, [primaryUnitId, attempt, onAdFailedToLoad, onAllFailed]);
 

@@ -24,7 +24,7 @@ import { Transaction } from '../types/transaction';
 import TransactionHistory from '../components/NewWallet/TransactionHistory';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { getBtcUsdPriceCached } from '../services/btcPriceService';
-import { BannerAdWithGamFallback } from '../components/ads/BannerAdWithGamFallback';
+import { BannerAdSlot } from '../components/ads/BannerAdSlot';
 import { BannerAdSize } from 'react-native-google-mobile-ads';
 import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
 import { useAdConfig } from '../providers/AdConfigProvider';
@@ -235,10 +235,7 @@ const WalletNewScreen = () => {
       {/* Top banner ad — same placement as GameZoneScreen: above the
           ScrollView so it renders reliably and never scrolls away. */}
       <View style={styles.bannerTop}>
-        <BannerAdWithGamFallback
-          primaryUnitId={bannerUnitId}
-          size={BannerAdSize.ADAPTIVE_BANNER}
-        />
+        <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
       </View>
 
       <ScrollView
@@ -295,10 +292,7 @@ const WalletNewScreen = () => {
           GameZoneScreen. Content padding above is driven by this View's own
           measured height via onLayout. */}
       <View style={styles.bottomBannerWrap} onLayout={onBottomBarLayout}>
-        <BannerAdWithGamFallback
-          primaryUnitId={bannerUnitId}
-          size={BannerAdSize.ADAPTIVE_BANNER}
-        />
+        <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
       </View>
 
       {methodModal && (
