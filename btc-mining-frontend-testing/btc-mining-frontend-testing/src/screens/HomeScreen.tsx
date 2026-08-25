@@ -2361,8 +2361,8 @@ const Page: React.FC = () => {
               <View style={styles.powerRow}>
                 {privilegeMultiplier === 1 ? (
                   <>
-                    <Text style={styles.powerValue}>1</Text>
-                    <Text style={styles.powerUnit}> TH/S</Text>
+                    <Text style={styles.powerValue}>1.5</Text>
+                    <Text style={styles.powerUnit}> TH/s</Text>
                   </>
                 ) : (
                   <>

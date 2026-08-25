@@ -31,8 +31,9 @@ import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
 import { get_data_uri, getMobileSecurityHeaders } from '../config/api';
 import {
   PRIVILEGE_TIERS, PRIVILEGE_PRODUCT_IDS, getTierByProductId,
-  BASE_HASHPOWER_PER_AD, MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY,
+  PRIVILEGE_ADS_PER_DAY, dailyGhForTier, formatHashrate,
 } from '../config/superPrivileges';
+import { getObjectFromStorage, saveObjectToStorage } from '../config/storage';
 import { useRewardedVideoAd } from '../services/googleAds';
 import { useHashPower } from '../stores/HashPowerStore';
 import { formatMiningLocalTimeForApi } from '../utils/miningTime';
@@ -77,18 +78,30 @@ const SuperPrivilegesScreen: React.FC = () => {
     if (h > 0 && h !== bannerHeight) setBannerHeight(h);
   }, [bannerHeight]);
 
-  // --- Super Ad Miner "Watch Ads" track ---------------------------------
-  // This button is a shortcut into the SAME daily track as HomeScreen's
-  // "+100% Claim" video card: same backend counter (`rewarded_ads_watched`),
-  // same 60/day cap, same reward. It is not a second allowance -- watching
-  // here consumes from the same 60 the home screen shows.
+  // --- Super Privileges "Watch Ads" allowance ---------------------------
+  // This is the privilege holder's OWN 50-video daily allowance, counted
+  // separately from HomeScreen's 60/day Super Ad Miner track. Watching here
+  // no longer consumes Home's allowance and vice versa.
+  //
+  // NOTE ON PERSISTENCE: the backend has no field for this counter yet, so it
+  // is stored on-device (MMKV), keyed by user + local calendar day. That means
+  // it resets if the app is reinstalled or storage is cleared. The Gh/s credit
+  // itself still goes through the server, so only the daily cap is local. Once
+  // a backend counter exists this should read from it instead.
   const [adsWatched, setAdsWatched] = useState<number | null>(null);
   const [adCrediting, setAdCrediting] = useState(false);
   const [miningActive, setMiningActive] = useState<boolean | null>(storeMiningActive);
   const adEarnedRef = useRef(false);
 
   const adsRemaining =
-    adsWatched == null ? null : Math.max(0, MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY - adsWatched);
+    adsWatched == null ? null : Math.max(0, PRIVILEGE_ADS_PER_DAY - adsWatched);
+
+  /** Storage key scoped to user + local day, so it self-resets at midnight. */
+  const privilegeAdsKey = useCallback(() => {
+    const d = new Date();
+    const localDay = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    return `privilege_ads_${user?.id ?? 'anon'}_${localDay}`;
+  }, [user?.id]);
 
   /** Pulls the authoritative daily counter + mining state. */
   const fetchMiningDetails = useCallback(async () => {
@@ -105,47 +118,49 @@ const SuperPrivilegesScreen: React.FC = () => {
       const data = await res.json();
       const details = data?.mining_details;
       if (details != null) {
-        setAdsWatched(parseFloat(details.rewarded_ads_watched ?? 0) || 0);
         setMiningActive(!!details.mining_isactive);
       }
     } catch {
-      // Leave counters as-is; the button stays disabled while adsWatched is null.
+      // Mining state stays as-is; the local allowance below is unaffected.
     }
   }, [user?.id]);
+
+  /** Loads today's privilege-ad tally from device storage. */
+  const loadPrivilegeAds = useCallback(() => {
+    const stored = getObjectFromStorage(privilegeAdsKey());
+    setAdsWatched(typeof stored?.count === 'number' ? stored.count : 0);
+  }, [privilegeAdsKey]);
 
   useFocusEffect(
     useCallback(() => {
       setMiningActive(storeMiningActive);
       fetchMiningDetails();
-    }, [fetchMiningDetails, storeMiningActive]),
+      loadPrivilegeAds();
+    }, [fetchMiningDetails, loadPrivilegeAds, storeMiningActive]),
   );
 
   const selectedTierConfig = PRIVILEGE_TIERS.find(t => t.tier === selectedTierKey) ?? PRIVILEGE_TIERS[0];
   const selectedProduct = products.find(p => p.identifier === selectedTierConfig.productId);
   const selectedIsActive = !!activeTiers[selectedTierConfig.tier];
-  const selectedBoostedGh = BASE_HASHPOWER_PER_AD * selectedTierConfig.multiplier;
-  const selectedPctLabel = selectedTierConfig.label.replace('+', '');
 
   /**
-   * Gh/s credited per ad watched from THIS screen's "Watch Ads" button.
+   * Gh/s credited per video watched from THIS screen's "Watch Ads" button.
    *
-   * The backend stores the increment it is sent verbatim -- it does NOT apply
-   * the privilege multiplier -- so the boosted amount has to be computed here:
-   *   +5000%  -> 5.5 x 50  = 275 Gh/s
-   *   +10000% -> 5.5 x 100 = 550 Gh/s
+   * A flat per-tier amount (10 for +5000%, 20 for +10000%), NOT
+   * BASE_HASHPOWER_PER_AD * multiplier. The plans are sold as a daily total --
+   * ghPerAd x PRIVILEGE_ADS_PER_DAY, i.e. 500 and 1000 Gh/s/day -- and the old
+   * 5.5-times-multiplier arithmetic produced 275/550 instead.
    *
-   * `effectiveMultiplier` is the combined value from the privileges API, so
-   * stacked plans pay their stacked rate. It falls back to the active tier's
-   * own multiplier when that fetch hasn't landed yet -- the button only renders
-   * for an active tier, so defaulting to the unboosted 1x would silently
-   * under-credit a paying user.
+   * The backend stores the increment it is sent verbatim (it does not apply the
+   * multiplier itself), so this is exactly what gets POSTed.
    *
-   * This boost is deliberately scoped to this button only; HomeScreen's Super
-   * Ad Miner card is untouched.
+   * Scoped to this button only; HomeScreen's Super Ad Miner card is untouched.
    */
-  const adRewardMultiplier =
-    effectiveMultiplier > 1 ? effectiveMultiplier : selectedTierConfig.multiplier;
-  const adRewardGh = BASE_HASHPOWER_PER_AD * adRewardMultiplier;
+  const adRewardGh = selectedTierConfig.ghPerAd;
+  /** Headline figure: what the plan is worth per day if fully watched.
+   *  Promoted to Th/s once it reaches a whole terahash, so the +10000% plan
+   *  reads as "1 Th/s / day" rather than "1000 Gh/s / day". */
+  const selectedDaily = formatHashrate(dailyGhForTier(selectedTierConfig));
 
   const fetchProducts = useCallback(async () => {
     console.log('[SuperPrivileges] Requesting product IDs:', PRIVILEGE_PRODUCT_IDS);
@@ -199,10 +214,11 @@ const SuperPrivilegesScreen: React.FC = () => {
   const onAdReward = useCallback(async () => {
     adEarnedRef.current = true;
     if (!user?.id || adsWatched == null) return;
-    if (adsWatched >= MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY) return;
+    if (adsWatched >= PRIVILEGE_ADS_PER_DAY) return;
 
     const newCount = adsWatched + 1;
     setAdsWatched(newCount);
+    saveObjectToStorage(privilegeAdsKey(), { count: newCount });
     setAdCrediting(true);
 
     // Credit the tier-boosted amount (see adRewardGh above). The backend
@@ -225,21 +241,22 @@ const SuperPrivilegesScreen: React.FC = () => {
         body: JSON.stringify({
           user_id: user.id,
           hashpower: adRewardGh,
-          rewarded_ads_watched: newCount,
+          // Deliberately NOT sending rewarded_ads_watched: that is HomeScreen's
+          // shared 60/day Super Ad Miner counter, and this 50/day privilege
+          // allowance is independent. Sending it here would consume Home's
+          // allowance too. `privilege_ads_watched` is sent so the backend can
+          // adopt this counter later; it is ignored until then.
+          privilege_ads_watched: newCount,
           offset: new Date().getTimezoneOffset(),
         }),
       });
-      const data = await res.json();
-      // Re-sync from the server's own count so this screen and Home can't
-      // drift if the backend clamped or rejected the increment.
-      const serverCount = data?.mining_details?.rewarded_ads_watched;
-      if (serverCount != null) setAdsWatched(parseFloat(serverCount) || 0);
+      await res.json().catch(() => null);
     } catch {
       // Local credit above already stands; the backend record is best-effort,
       // and the next focus refresh will reconcile the counter.
     }
     setAdCrediting(false);
-  }, [user?.id, adsWatched, addHashPower, adRewardGh]);
+  }, [user?.id, adsWatched, addHashPower, adRewardGh, privilegeAdsKey]);
 
   const onAdClosed = useCallback(() => {
     if (adEarnedRef.current) {
@@ -261,7 +278,7 @@ const SuperPrivilegesScreen: React.FC = () => {
     if (adsRemaining != null && adsRemaining <= 0) {
       Alert.alert(
         'Daily limit reached',
-        `You've watched all ${MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY} Super Ad Miner ads for today. Come back tomorrow.`,
+        `You've watched all ${PRIVILEGE_ADS_PER_DAY} videos for today. Come back tomorrow.`,
       );
       return;
     }
@@ -349,15 +366,18 @@ const SuperPrivilegesScreen: React.FC = () => {
               <View style={styles.summaryLeft}>
                 <View style={styles.summaryHeadlineRow}>
                   <Text style={styles.summaryHeadlineValue}>
-                    {selectedBoostedGh.toFixed(selectedBoostedGh % 1 === 0 ? 0 : 2)}
-                    <Text style={styles.summaryHeadlineUnit}> Gh/s</Text>
+                    {selectedDaily.value}
+                    <Text style={styles.summaryHeadlineUnit}> {selectedDaily.unit} / day</Text>
                   </Text>
                 </View>
                 <View style={styles.summaryBadge}>
                   <Text style={styles.summaryBadgeText}>{selectedTierConfig.label}</Text>
                 </View>
+                {/* Describes how the headline is actually earned. The old
+                    "=5.50Gh/s x 5000%" line no longer holds: the reward is a
+                    flat per-video amount now, not base x multiplier. */}
                 <Text style={styles.summaryFormula}>
-                  ={BASE_HASHPOWER_PER_AD.toFixed(2)}Gh/s x {selectedPctLabel}
+                  ={selectedTierConfig.ghPerAd} Gh/s x {PRIVILEGE_ADS_PER_DAY} videos
                 </Text>
               </View>
               <Image
@@ -460,9 +480,7 @@ const SuperPrivilegesScreen: React.FC = () => {
                         those differ, and the hint must not overstate. */}
                     {adsRemaining == null
                       ? 'Checking your daily ad balance…'
-                      : `${adsRemaining} of ${MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY} ads left today · +${adRewardGh.toFixed(
-                          adRewardGh % 1 === 0 ? 0 : 2,
-                        )} Gh/s each`}
+                      : `${adsRemaining} of ${PRIVILEGE_ADS_PER_DAY} videos left today · +${adRewardGh} Gh/s each`}
                   </Text>
                 </>
               ) : (
