@@ -63,6 +63,11 @@ export type RootStackParamList = {
   SimonSays: undefined;
   GuessBtcPrice: undefined;
   SlotMachine: undefined;
+  WordScramble: undefined;
+  MathBlitz: undefined;
+  SpeedTap: undefined;
+  WhackABlock: undefined;
+  StackTower: undefined;
   GameZone: undefined;
   ApptroveDebug: undefined;
   SuperPrivileges: undefined;

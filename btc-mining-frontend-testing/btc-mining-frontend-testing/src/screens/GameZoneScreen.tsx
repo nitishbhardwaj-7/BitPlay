@@ -32,6 +32,11 @@ import { WIN_REWARD_GH as RUSH_MAX_GH } from './NumberRushScreen';
 import { WIN_REWARD_GH as SIMON_MAX_GH } from './SimonSaysScreen';
 import { WIN_REWARD_GH as GUESS_MAX_GH } from './GuessBtcPriceScreen';
 import { WIN_REWARD_GH as SLOT_MAX_GH } from './SlotMachineScreen';
+import { WIN_REWARD_GH as WORD_MAX_GH } from './WordScrambleScreen';
+import { WIN_REWARD_GH as MATH_MAX_GH } from './MathBlitzScreen';
+import { WIN_REWARD_GH as TAP_MAX_GH } from './SpeedTapScreen';
+import { WIN_REWARD_GH as WHACK_MAX_GH } from './WhackABlockScreen';
+import { WIN_REWARD_GH as STACK_MAX_GH } from './StackTowerScreen';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 const { width: W } = Dimensions.get('window');
@@ -69,6 +74,11 @@ const GAMES: GameEntry[] = [
   { name: 'Simon Says', icon: 'music-note-eighth', iconImage: require('../assets/images/icon_simon_says.png'), color: '#4ade80', route: 'SimonSays', category: 'Featured', desc: 'Repeat the sequence', rewardLabel: `Up to ${SIMON_MAX_GH} GH/s` },
   { name: 'Guess the Price', icon: 'bitcoin', iconImage: require('../assets/images/icon_guess_price.png'), color: '#f7931a', route: 'GuessBtcPrice', category: 'Featured', desc: 'Spot the real BTC price', rewardLabel: `Up to ${GUESS_MAX_GH} GH/s` },
   { name: 'Slot Machine', icon: 'slot-machine', iconImage: require('../assets/images/icon_slot_machine.png'), color: '#f472b6', route: 'SlotMachine', category: 'Featured', desc: 'Match symbols to win', rewardLabel: `Up to ${SLOT_MAX_GH} GH/s` },
+  { name: 'Word Scramble', icon: 'format-letter-case', iconImage: require('../assets/images/icon_word_scramble.png'), color: '#38bdf8', route: 'WordScramble', category: 'Featured', desc: 'Unscramble the crypto word', rewardLabel: `Up to ${WORD_MAX_GH} GH/s` },
+  { name: 'Math Blitz', icon: 'calculator-variant-outline', iconImage: require('../assets/images/icon_math_blitz.png'), color: '#4ade80', route: 'MathBlitz', category: 'Featured', desc: 'Solve before the clock', rewardLabel: `Up to ${MATH_MAX_GH} GH/s` },
+  { name: 'Speed Tap', icon: 'gesture-double-tap', iconImage: require('../assets/images/icon_speed_tap.png'), color: '#fbbf24', route: 'SpeedTap', category: 'Featured', desc: 'Tap as fast as you can', rewardLabel: `Up to ${TAP_MAX_GH} GH/s` },
+  { name: 'Whack-a-Block', icon: 'hammer', iconImage: require('../assets/images/icon_whack_block.png'), color: '#f472b6', route: 'WhackABlock', category: 'Featured', desc: 'Hit blocks before they vanish', rewardLabel: `Up to ${WHACK_MAX_GH} GH/s` },
+  { name: 'Stack Tower', icon: 'layers-triple-outline', iconImage: require('../assets/images/icon_stack_tower.png'), color: '#22d3ee', route: 'StackTower', category: 'Featured', desc: 'Drop blocks and keep aligned', rewardLabel: `Up to ${STACK_MAX_GH} GH/s` },
 ];
 
 const CATEGORIES = [

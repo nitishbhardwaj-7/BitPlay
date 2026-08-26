@@ -81,6 +81,11 @@ import NumberRushScreen from './src/screens/NumberRushScreen';
 import SimonSaysScreen from './src/screens/SimonSaysScreen';
 import GuessBtcPriceScreen from './src/screens/GuessBtcPriceScreen';
 import SlotMachineScreen from './src/screens/SlotMachineScreen';
+import WordScrambleScreen from './src/screens/WordScrambleScreen';
+import MathBlitzScreen from './src/screens/MathBlitzScreen';
+import SpeedTapScreen from './src/screens/SpeedTapScreen';
+import WhackABlockScreen from './src/screens/WhackABlockScreen';
+import StackTowerScreen from './src/screens/StackTowerScreen';
 import GameErrorBoundary from './src/components/GameErrorBoundary';
 import GameZoneScreen from './src/screens/GameZoneScreen';
 import SuperPrivilegesScreen from './src/screens/SuperPrivilegesScreen';
@@ -160,6 +165,11 @@ const AppNavigator = () => {
           <RootStack.Screen name="SimonSays">{() => <GameErrorBoundary><SimonSaysScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="GuessBtcPrice">{() => <GameErrorBoundary><GuessBtcPriceScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="SlotMachine">{() => <GameErrorBoundary><SlotMachineScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="WordScramble">{() => <GameErrorBoundary><WordScrambleScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="MathBlitz">{() => <GameErrorBoundary><MathBlitzScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="SpeedTap">{() => <GameErrorBoundary><SpeedTapScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="WhackABlock">{() => <GameErrorBoundary><WhackABlockScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="StackTower">{() => <GameErrorBoundary><StackTowerScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="GameZone">{() => <GameErrorBoundary><GameZoneScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="ApptroveDebug" component={ApptroveDebugScreen} />
           <RootStack.Screen name="SuperPrivileges" component={SuperPrivilegesScreen} />
