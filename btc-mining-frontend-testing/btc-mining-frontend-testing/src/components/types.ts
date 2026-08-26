@@ -57,6 +57,10 @@ export type RootStackParamList = {
   RockPaperScissors: undefined;
   LuckyDice: undefined;
   TreasureChest: undefined;
+  ReactionTap: undefined;
+  OddOneOut: undefined;
+  NumberRush: undefined;
+  SimonSays: undefined;
   GameZone: undefined;
   ApptroveDebug: undefined;
   SuperPrivileges: undefined;

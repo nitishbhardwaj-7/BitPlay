@@ -26,6 +26,10 @@ import { WIN_REWARD_GH as HILO_MAX_GH } from './HigherLowerScreen';
 import { WIN_REWARD_GH as RPS_MAX_GH } from './RockPaperScissorsScreen';
 import { WIN_REWARD_GH as DICE_MAX_GH } from './LuckyDiceScreen';
 import { WIN_REWARD_GH as CHEST_MAX_GH } from './TreasureChestScreen';
+import { WIN_REWARD_GH as REACT_MAX_GH } from './ReactionTapScreen';
+import { WIN_REWARD_GH as ODD_MAX_GH } from './OddOneOutScreen';
+import { WIN_REWARD_GH as RUSH_MAX_GH } from './NumberRushScreen';
+import { WIN_REWARD_GH as SIMON_MAX_GH } from './SimonSaysScreen';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 const { width: W } = Dimensions.get('window');
@@ -57,6 +61,10 @@ const GAMES: GameEntry[] = [
   { name: 'Rock Paper Scissors', icon: 'hand-front-right', iconImage: require('../assets/images/icon_rps.png'), color: '#f472b6', route: 'RockPaperScissors', category: 'Featured', desc: 'Beat the house', rewardLabel: `Up to ${RPS_MAX_GH} GH/s` },
   { name: 'Lucky Dice', icon: 'dice-multiple', iconImage: require('../assets/images/icon_lucky_dice.png'), color: '#fbbf24', route: 'LuckyDice', category: 'Featured', desc: 'Roll higher than 7', rewardLabel: `Up to ${DICE_MAX_GH} GH/s` },
   { name: 'Treasure Chests', icon: 'treasure-chest', iconImage: require('../assets/images/icon_treasure_chest.png'), color: '#f59e0b', route: 'TreasureChest', category: 'Featured', desc: 'Pick the right chest', rewardLabel: `Up to ${CHEST_MAX_GH} GH/s` },
+  { name: 'Reaction Tap', icon: 'lightning-bolt', iconImage: require('../assets/images/icon_reaction_tap.png'), color: '#4ade80', route: 'ReactionTap', category: 'Featured', desc: 'Tap when it turns green', rewardLabel: `Up to ${REACT_MAX_GH} GH/s` },
+  { name: 'Odd One Out', icon: 'palette-outline', iconImage: require('../assets/images/icon_odd_one_out.png'), color: '#a78bfa', route: 'OddOneOut', category: 'Featured', desc: 'Spot the different shade', rewardLabel: `Up to ${ODD_MAX_GH} GH/s` },
+  { name: 'Number Rush', icon: 'numeric', iconImage: require('../assets/images/icon_number_rush.png'), color: '#22d3ee', route: 'NumberRush', category: 'Featured', desc: 'Tap 1 to 12 in order', rewardLabel: `Up to ${RUSH_MAX_GH} GH/s` },
+  { name: 'Simon Says', icon: 'music-note-eighth', iconImage: require('../assets/images/icon_simon_says.png'), color: '#4ade80', route: 'SimonSays', category: 'Featured', desc: 'Repeat the sequence', rewardLabel: `Up to ${SIMON_MAX_GH} GH/s` },
 ];
 
 const CATEGORIES = [

@@ -75,6 +75,10 @@ import HigherLowerScreen from './src/screens/HigherLowerScreen';
 import RockPaperScissorsScreen from './src/screens/RockPaperScissorsScreen';
 import LuckyDiceScreen from './src/screens/LuckyDiceScreen';
 import TreasureChestScreen from './src/screens/TreasureChestScreen';
+import ReactionTapScreen from './src/screens/ReactionTapScreen';
+import OddOneOutScreen from './src/screens/OddOneOutScreen';
+import NumberRushScreen from './src/screens/NumberRushScreen';
+import SimonSaysScreen from './src/screens/SimonSaysScreen';
 import GameErrorBoundary from './src/components/GameErrorBoundary';
 import GameZoneScreen from './src/screens/GameZoneScreen';
 import SuperPrivilegesScreen from './src/screens/SuperPrivilegesScreen';
@@ -148,6 +152,10 @@ const AppNavigator = () => {
           <RootStack.Screen name="RockPaperScissors">{() => <GameErrorBoundary><RockPaperScissorsScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="LuckyDice">{() => <GameErrorBoundary><LuckyDiceScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="TreasureChest">{() => <GameErrorBoundary><TreasureChestScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="ReactionTap">{() => <GameErrorBoundary><ReactionTapScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="OddOneOut">{() => <GameErrorBoundary><OddOneOutScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="NumberRush">{() => <GameErrorBoundary><NumberRushScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="SimonSays">{() => <GameErrorBoundary><SimonSaysScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="GameZone">{() => <GameErrorBoundary><GameZoneScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="ApptroveDebug" component={ApptroveDebugScreen} />
           <RootStack.Screen name="SuperPrivileges" component={SuperPrivilegesScreen} />
