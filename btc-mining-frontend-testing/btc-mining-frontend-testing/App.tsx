@@ -79,6 +79,8 @@ import ReactionTapScreen from './src/screens/ReactionTapScreen';
 import OddOneOutScreen from './src/screens/OddOneOutScreen';
 import NumberRushScreen from './src/screens/NumberRushScreen';
 import SimonSaysScreen from './src/screens/SimonSaysScreen';
+import GuessBtcPriceScreen from './src/screens/GuessBtcPriceScreen';
+import SlotMachineScreen from './src/screens/SlotMachineScreen';
 import GameErrorBoundary from './src/components/GameErrorBoundary';
 import GameZoneScreen from './src/screens/GameZoneScreen';
 import SuperPrivilegesScreen from './src/screens/SuperPrivilegesScreen';
@@ -156,6 +158,8 @@ const AppNavigator = () => {
           <RootStack.Screen name="OddOneOut">{() => <GameErrorBoundary><OddOneOutScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="NumberRush">{() => <GameErrorBoundary><NumberRushScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="SimonSays">{() => <GameErrorBoundary><SimonSaysScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="GuessBtcPrice">{() => <GameErrorBoundary><GuessBtcPriceScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="SlotMachine">{() => <GameErrorBoundary><SlotMachineScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="GameZone">{() => <GameErrorBoundary><GameZoneScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="ApptroveDebug" component={ApptroveDebugScreen} />
           <RootStack.Screen name="SuperPrivileges" component={SuperPrivilegesScreen} />

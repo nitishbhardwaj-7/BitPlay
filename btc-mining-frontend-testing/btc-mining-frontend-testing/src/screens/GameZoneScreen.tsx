@@ -30,6 +30,8 @@ import { WIN_REWARD_GH as REACT_MAX_GH } from './ReactionTapScreen';
 import { WIN_REWARD_GH as ODD_MAX_GH } from './OddOneOutScreen';
 import { WIN_REWARD_GH as RUSH_MAX_GH } from './NumberRushScreen';
 import { WIN_REWARD_GH as SIMON_MAX_GH } from './SimonSaysScreen';
+import { WIN_REWARD_GH as GUESS_MAX_GH } from './GuessBtcPriceScreen';
+import { WIN_REWARD_GH as SLOT_MAX_GH } from './SlotMachineScreen';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 const { width: W } = Dimensions.get('window');
@@ -65,6 +67,8 @@ const GAMES: GameEntry[] = [
   { name: 'Odd One Out', icon: 'palette-outline', iconImage: require('../assets/images/icon_odd_one_out.png'), color: '#a78bfa', route: 'OddOneOut', category: 'Featured', desc: 'Spot the different shade', rewardLabel: `Up to ${ODD_MAX_GH} GH/s` },
   { name: 'Number Rush', icon: 'numeric', iconImage: require('../assets/images/icon_number_rush.png'), color: '#22d3ee', route: 'NumberRush', category: 'Featured', desc: 'Tap 1 to 12 in order', rewardLabel: `Up to ${RUSH_MAX_GH} GH/s` },
   { name: 'Simon Says', icon: 'music-note-eighth', iconImage: require('../assets/images/icon_simon_says.png'), color: '#4ade80', route: 'SimonSays', category: 'Featured', desc: 'Repeat the sequence', rewardLabel: `Up to ${SIMON_MAX_GH} GH/s` },
+  { name: 'Guess the Price', icon: 'bitcoin', iconImage: require('../assets/images/icon_guess_price.png'), color: '#f7931a', route: 'GuessBtcPrice', category: 'Featured', desc: 'Spot the real BTC price', rewardLabel: `Up to ${GUESS_MAX_GH} GH/s` },
+  { name: 'Slot Machine', icon: 'slot-machine', iconImage: require('../assets/images/icon_slot_machine.png'), color: '#f472b6', route: 'SlotMachine', category: 'Featured', desc: 'Match symbols to win', rewardLabel: `Up to ${SLOT_MAX_GH} GH/s` },
 ];
 
 const CATEGORIES = [

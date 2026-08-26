@@ -61,6 +61,8 @@ export type RootStackParamList = {
   OddOneOut: undefined;
   NumberRush: undefined;
   SimonSays: undefined;
+  GuessBtcPrice: undefined;
+  SlotMachine: undefined;
   GameZone: undefined;
   ApptroveDebug: undefined;
   SuperPrivileges: undefined;
