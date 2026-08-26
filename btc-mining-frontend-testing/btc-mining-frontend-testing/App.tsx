@@ -71,6 +71,10 @@ import SpinAndWinScreen from './src/screens/SpinAndWinScreen';
 import MemoryCardMatchScreen from './src/screens/MemoryCardMatchScreen';
 import ScratchAndWinScreen from './src/screens/ScratchAndWinScreen';
 import TapToBombScreen from './src/screens/TapToBombScreen';
+import HigherLowerScreen from './src/screens/HigherLowerScreen';
+import RockPaperScissorsScreen from './src/screens/RockPaperScissorsScreen';
+import LuckyDiceScreen from './src/screens/LuckyDiceScreen';
+import TreasureChestScreen from './src/screens/TreasureChestScreen';
 import GameErrorBoundary from './src/components/GameErrorBoundary';
 import GameZoneScreen from './src/screens/GameZoneScreen';
 import SuperPrivilegesScreen from './src/screens/SuperPrivilegesScreen';
@@ -136,11 +140,15 @@ const AppNavigator = () => {
           <RootStack.Screen name="AboutUsScreen" component={AboutUsScreen} />
           <RootStack.Screen name="MyProfileEditScreen" component={MyProfileEditScreen} />
           <RootStack.Screen name="TradingScreen" component={TradingScreen} />
-          <RootStack.Screen name="SpinAndWin">{p => <GameErrorBoundary><SpinAndWinScreen {...p} /></GameErrorBoundary>}</RootStack.Screen>
-          <RootStack.Screen name="MemoryCardMatch">{p => <GameErrorBoundary><MemoryCardMatchScreen {...p} /></GameErrorBoundary>}</RootStack.Screen>
-          <RootStack.Screen name="ScratchAndWin">{p => <GameErrorBoundary><ScratchAndWinScreen {...p} /></GameErrorBoundary>}</RootStack.Screen>
-          <RootStack.Screen name="TapToBomb">{p => <GameErrorBoundary><TapToBombScreen {...p} /></GameErrorBoundary>}</RootStack.Screen>
-          <RootStack.Screen name="GameZone">{p => <GameErrorBoundary><GameZoneScreen {...p} /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="SpinAndWin">{() => <GameErrorBoundary><SpinAndWinScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="MemoryCardMatch">{() => <GameErrorBoundary><MemoryCardMatchScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="ScratchAndWin">{() => <GameErrorBoundary><ScratchAndWinScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="TapToBomb">{() => <GameErrorBoundary><TapToBombScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="HigherLower">{() => <GameErrorBoundary><HigherLowerScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="RockPaperScissors">{() => <GameErrorBoundary><RockPaperScissorsScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="LuckyDice">{() => <GameErrorBoundary><LuckyDiceScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="TreasureChest">{() => <GameErrorBoundary><TreasureChestScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="GameZone">{() => <GameErrorBoundary><GameZoneScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="ApptroveDebug" component={ApptroveDebugScreen} />
           <RootStack.Screen name="SuperPrivileges" component={SuperPrivilegesScreen} />
         </>

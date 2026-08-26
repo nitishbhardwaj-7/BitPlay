@@ -22,6 +22,10 @@ import { WIN_REWARD_GH as MEMORY_WIN_GH } from './MemoryCardMatchScreen';
 import { SLICES as SPIN_SLICES } from './SpinAndWinScreen';
 import { WIN_REWARD_GH as SCRATCH_MAX_GH } from './ScratchAndWinScreen';
 import { WIN_REWARD_GH as BOMB_MAX_GH } from './TapToBombScreen';
+import { WIN_REWARD_GH as HILO_MAX_GH } from './HigherLowerScreen';
+import { WIN_REWARD_GH as RPS_MAX_GH } from './RockPaperScissorsScreen';
+import { WIN_REWARD_GH as DICE_MAX_GH } from './LuckyDiceScreen';
+import { WIN_REWARD_GH as CHEST_MAX_GH } from './TreasureChestScreen';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 const { width: W } = Dimensions.get('window');
@@ -49,6 +53,10 @@ const GAMES: GameEntry[] = [
   { name: 'Memory Match', icon: 'cards', iconImage: require('../assets/images/icon_memory_match.png'), color: '#7c3aed', route: 'MemoryCardMatch', category: 'Featured', desc: 'Match all the pairs', rewardLabel: `+${MEMORY_WIN_GH} GH/s` },
   { name: 'Scratch & Win', icon: 'ticket-confirmation-outline', iconImage: require('../assets/images/icon_scratch_win.png'), color: '#22c55e', route: 'ScratchAndWin', category: 'Featured', desc: 'Scratch to reveal your reward', rewardLabel: `Up to ${SCRATCH_MAX_GH} GH/s` },
   { name: 'Tap to Bomb', icon: 'bomb', iconImage: require('../assets/images/icon_tap_bomb.png'), color: '#ef4444', route: 'TapToBomb', category: 'Featured', desc: 'Tap a tile, dodge the bombs', rewardLabel: `Up to ${BOMB_MAX_GH} GH/s` },
+  { name: 'Higher or Lower', icon: 'cards-playing-outline', iconImage: require('../assets/images/icon_higher_lower.png'), color: '#38bdf8', route: 'HigherLower', category: 'Featured', desc: 'Guess the next card', rewardLabel: `Up to ${HILO_MAX_GH} GH/s` },
+  { name: 'Rock Paper Scissors', icon: 'hand-front-right', iconImage: require('../assets/images/icon_rps.png'), color: '#f472b6', route: 'RockPaperScissors', category: 'Featured', desc: 'Beat the house', rewardLabel: `Up to ${RPS_MAX_GH} GH/s` },
+  { name: 'Lucky Dice', icon: 'dice-multiple', iconImage: require('../assets/images/icon_lucky_dice.png'), color: '#fbbf24', route: 'LuckyDice', category: 'Featured', desc: 'Roll higher than 7', rewardLabel: `Up to ${DICE_MAX_GH} GH/s` },
+  { name: 'Treasure Chests', icon: 'treasure-chest', iconImage: require('../assets/images/icon_treasure_chest.png'), color: '#f59e0b', route: 'TreasureChest', category: 'Featured', desc: 'Pick the right chest', rewardLabel: `Up to ${CHEST_MAX_GH} GH/s` },
 ];
 
 const CATEGORIES = [

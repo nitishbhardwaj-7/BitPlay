@@ -53,6 +53,10 @@ export type RootStackParamList = {
   MemoryCardMatch: undefined;
   ScratchAndWin: undefined;
   TapToBomb: undefined;
+  HigherLower: undefined;
+  RockPaperScissors: undefined;
+  LuckyDice: undefined;
+  TreasureChest: undefined;
   GameZone: undefined;
   ApptroveDebug: undefined;
   SuperPrivileges: undefined;
