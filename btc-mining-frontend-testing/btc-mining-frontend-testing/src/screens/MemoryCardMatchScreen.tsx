@@ -279,12 +279,20 @@ export default function MemoryCardMatchScreen() {
             </TouchableOpacity>
           )}
           {claimed && <View style={s.claimedBadge}><Text style={s.claimedTxt}>✓ +{WIN_REWARD_GH} GH/s Added!</Text></View>}
+          {/* Replaying costs an ad, with no free path.
+              Previously this row also had a "Play Free" button, and the
+              Watch-Ad button silently fell back to restarting for free
+              whenever the ad had not loaded yet -- either one let a player
+              keep playing indefinitely without ever seeing an ad. An
+              unloaded ad now says so instead of granting a free round. */}
           <View style={s.retryRow}>
-            <TouchableOpacity style={s.retryBtn} onPress={() => playAgainLoaded ? showPlayAgain() : (setRound(r => r + 1), startRound())}>
+            <TouchableOpacity
+              style={s.retryBtn}
+              onPress={() => playAgainLoaded
+                ? showPlayAgain()
+                : Alert.alert('Almost ready', 'The video is still loading. Try again in a second.')}
+            >
               <Text style={s.retryTxt} numberOfLines={1}>▶ Watch Ad → Play Again</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.freeBtn} onPress={() => { setRound(r => r + 1); startRound(); }}>
-              <Text style={s.freeTxt} numberOfLines={1}>Play Free</Text>
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -345,9 +353,7 @@ const s = StyleSheet.create({
   // two buttons different heights, and got visibly clipped. Full-width rows
   // fit the label on one line on every device and match the single-column CTA
   // shape the other game screens use.
-  retryRow: { width: '100%', gap: 10 },
+  retryRow: { width: '100%' },
   retryBtn: { backgroundColor: 'rgba(99,102,241,0.2)', borderRadius: 12, paddingVertical: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(99,102,241,0.4)' },
   retryTxt: { color: '#a5b4fc', fontSize: 14, fontWeight: '700' },
-  freeBtn: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, paddingVertical: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  freeTxt: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
 });
