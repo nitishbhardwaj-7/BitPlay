@@ -104,8 +104,6 @@ export default function NumberRushScreen() {
     setNext(n + 1);
   };
 
-  const playAgain = () => { reward.resetReward(); newRound(); };
-
   return (
     <GameScreenWrapper
       title="Number Rush"
@@ -180,12 +178,6 @@ export default function NumberRushScreen() {
             />
           )}
 
-          {phase !== 'playing' && (
-            <TouchableOpacity style={s.againBtn} onPress={playAgain}>
-              <Text style={s.againTxt}>New Game</Text>
-            </TouchableOpacity>
-          )}
-
           <Text style={s.footer}>Finish with 12s+ to spare for the full 5 GH/s</Text>
         </>
       )}
@@ -211,7 +203,5 @@ const s = StyleSheet.create({
   tileTxt: { color: '#F8FAFC', fontSize: 22, fontWeight: '900' },
   tileTxtDone: { color: 'rgba(148,163,184,0.5)' },
   tileTxtWrong: { color: '#F87171' },
-  againBtn: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 22, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  againTxt: { color: '#94A3B8', fontSize: 13, fontWeight: '700' },
   footer: { marginTop: 16, textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.45)' },
 });

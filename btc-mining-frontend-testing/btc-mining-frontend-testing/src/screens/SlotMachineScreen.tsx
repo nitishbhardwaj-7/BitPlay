@@ -104,8 +104,6 @@ export default function SlotMachineScreen() {
     }, total);
   };
 
-  const spinAgain = () => { reward.resetReward(); newRound(); };
-
   const isSpinning = phase === 'spinning';
 
   return (
@@ -185,12 +183,6 @@ export default function SlotMachineScreen() {
             />
           )}
 
-          {(phase === 'win' || phase === 'lose') && (
-            <TouchableOpacity style={s.againBtn} onPress={spinAgain}>
-              <Text style={s.againTxt}>New Spin</Text>
-            </TouchableOpacity>
-          )}
-
           <Text style={s.footer}>Any pair pays · three Bitcoins pays the full 5 GH/s</Text>
         </>
       )}
@@ -218,7 +210,5 @@ const s = StyleSheet.create({
   },
   spinTxt: { color: '#3B0A25', fontSize: 16, fontWeight: '900' },
   spinningTxt: { color: '#94A3B8', fontSize: 14, fontWeight: '700', marginBottom: 12 },
-  againBtn: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 22, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  againTxt: { color: '#94A3B8', fontSize: 13, fontWeight: '700' },
   footer: { marginTop: 16, textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.45)' },
 });

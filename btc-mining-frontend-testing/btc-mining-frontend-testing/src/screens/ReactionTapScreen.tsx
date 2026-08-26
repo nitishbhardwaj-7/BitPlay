@@ -79,8 +79,6 @@ export default function ReactionTapScreen() {
       setPhase('win');
     }
   };
-
-  const playAgain = () => { reward.resetReward(); newRound(); };
   useEffect(() => { if (phase === 'idle') reward.resetReward(); }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const padStyle =
@@ -146,12 +144,6 @@ export default function ReactionTapScreen() {
             />
           )}
 
-          {(phase === 'win' || phase === 'tooSoon') && (
-            <TouchableOpacity style={s.againBtn} onPress={playAgain}>
-              <Text style={s.againTxt}>Try Again</Text>
-            </TouchableOpacity>
-          )}
-
           <Text style={s.footer}>Under 260 ms pays the full 5 GH/s</Text>
         </>
       )}
@@ -182,7 +174,5 @@ const s = StyleSheet.create({
     shadowOpacity: 0.35, shadowRadius: 12, elevation: 6,
   },
   startTxt: { color: '#052E16', fontSize: 16, fontWeight: '900' },
-  againBtn: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 22, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  againTxt: { color: '#94A3B8', fontSize: 13, fontWeight: '700' },
   footer: { marginTop: 16, textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.45)' },
 });

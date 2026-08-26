@@ -72,8 +72,6 @@ export default function RockPaperScissorsScreen() {
       setPhase('lose');
     }
   };
-
-  const playAgain = () => { reward.resetReward(); newRound(); };
   useEffect(() => { if (phase === 'ready') reward.resetReward(); }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const iconFor = (m: Move | null) => MOVES.find(x => x.key === m)?.icon ?? 'help';
@@ -142,20 +140,16 @@ export default function RockPaperScissorsScreen() {
           )}
 
           {phase === 'draw' && (
-            <View style={s.drawCard}>
-              <Icon name="equal" size={28} color="#FBBF24" />
-              <Text style={s.drawTitle}>It's a Draw!</Text>
-              <Text style={s.drawBody}>No reward this round — play again for free.</Text>
-            </View>
+            <LosePanel
+              title="It's a Draw!"
+              body="No reward this round. Watch a short video to play again."
+              adLoading={reward.retryAdLoading}
+              adLoaded={reward.retryAdLoaded}
+              onRetry={reward.openRetryAd}
+            />
           )}
 
-          {phase !== 'ready' && (
-            <TouchableOpacity style={s.againBtn} onPress={playAgain}>
-              <Text style={s.againTxt}>{phase === 'draw' ? 'Play Again' : 'New Round'}</Text>
-            </TouchableOpacity>
-          )}
-
-          <Text style={s.footer}>1-5 GH/s per win · draws are free replays</Text>
+          <Text style={s.footer}>1-5 GH/s per win · watch a video to play again</Text>
         </>
       )}
     </GameScreenWrapper>
@@ -182,13 +176,5 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderColor: 'rgba(167,139,250,0.3)',
   },
   moveTxt: { color: '#F8FAFC', fontSize: 13, fontWeight: '700' },
-  drawCard: {
-    width: '100%', alignItems: 'center', gap: 6, padding: 20, borderRadius: 18,
-    backgroundColor: 'rgba(251,191,36,0.08)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)',
-  },
-  drawTitle: { fontSize: 18, fontWeight: '900', color: '#FFF' },
-  drawBody: { fontSize: 13, color: '#CBD5E1', textAlign: 'center' },
-  againBtn: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 22, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  againTxt: { color: '#94A3B8', fontSize: 13, fontWeight: '700' },
   footer: { marginTop: 16, textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.45)' },
 });

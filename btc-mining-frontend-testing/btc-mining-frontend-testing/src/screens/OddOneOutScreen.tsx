@@ -102,8 +102,6 @@ export default function OddOneOutScreen() {
     setPhase('win');
   };
 
-  const playAgain = () => { reward.resetReward(); newRound(); };
-
   return (
     <GameScreenWrapper
       title="Odd One Out"
@@ -183,12 +181,6 @@ export default function OddOneOutScreen() {
             />
           )}
 
-          {phase !== 'playing' && (
-            <TouchableOpacity style={s.againBtn} onPress={playAgain}>
-              <Text style={s.againTxt}>New Game</Text>
-            </TouchableOpacity>
-          )}
-
           <Text style={s.footer}>Each round is harder · bank any time or clear all {MAX_STREAK} for 5 GH/s</Text>
         </>
       )}
@@ -212,7 +204,5 @@ const s = StyleSheet.create({
   cashBtnOff: { backgroundColor: 'rgba(255,255,255,0.06)' },
   cashTxt: { color: '#1E1B4B', fontSize: 15, fontWeight: '900' },
   cashTxtOff: { color: '#64748B', fontWeight: '700' },
-  againBtn: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 22, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  againTxt: { color: '#94A3B8', fontSize: 13, fontWeight: '700' },
   footer: { marginTop: 16, textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 16 },
 });

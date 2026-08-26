@@ -118,8 +118,6 @@ export default function TreasureChestScreen() {
       }
     }, REVEAL_ALL_DELAY_MS);
   };
-
-  const playAgain = () => { reward.resetReward(); newRound(); };
   useEffect(() => { if (phase === 'ready') reward.resetReward(); }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -171,12 +169,6 @@ export default function TreasureChestScreen() {
             />
           )}
 
-          {(phase === 'win' || phase === 'lose') && (
-            <TouchableOpacity style={s.againBtn} onPress={playAgain}>
-              <Text style={s.againTxt}>New Chests</Text>
-            </TouchableOpacity>
-          )}
-
           <Text style={s.footer}>3 chests · 1 empty · up to 5 GH/s per win</Text>
         </>
       )}
@@ -205,7 +197,5 @@ const s = StyleSheet.create({
   chestPicked: { borderWidth: 2.5 },
   chestGhTxt: { color: '#FBBF24', fontWeight: '900', fontSize: 14, marginTop: 4 },
   chestEmptyTxt: { color: '#F87171', fontWeight: '800', fontSize: 12, marginTop: 4 },
-  againBtn: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 22, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  againTxt: { color: '#94A3B8', fontSize: 13, fontWeight: '700' },
   footer: { marginTop: 16, textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.45)' },
 });

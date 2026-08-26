@@ -84,8 +84,6 @@ export default function LuckyDiceScreen() {
       }
     }, ROLL_MS);
   };
-
-  const rollAgain = () => { reward.resetReward(); newRound(); };
   useEffect(() => { if (phase === 'ready') reward.resetReward(); }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
@@ -155,12 +153,6 @@ export default function LuckyDiceScreen() {
             />
           )}
 
-          {showTotal && (
-            <TouchableOpacity style={s.againBtn} onPress={rollAgain}>
-              <Text style={s.againTxt}>New Roll</Text>
-            </TouchableOpacity>
-          )}
-
           <Text style={s.footer}>Higher totals pay more · 12 pays the full 5 GH/s</Text>
         </>
       )}
@@ -195,7 +187,5 @@ const s = StyleSheet.create({
   },
   rollTxt: { color: '#1C1917', fontSize: 16, fontWeight: '900' },
   rollingTxt: { color: '#94A3B8', fontSize: 14, fontWeight: '700', marginBottom: 12 },
-  againBtn: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 22, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  againTxt: { color: '#94A3B8', fontSize: 13, fontWeight: '700' },
   footer: { marginTop: 16, textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.45)' },
 });

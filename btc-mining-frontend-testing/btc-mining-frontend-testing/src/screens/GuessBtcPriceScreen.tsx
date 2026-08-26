@@ -98,8 +98,6 @@ export default function GuessBtcPriceScreen() {
     }
   };
 
-  const playAgain = () => { reward.resetReward(); void loadRound(); };
-
   // Deliberately NOT showing a partial price. An earlier version masked only
   // the last three digits ("$78,???"), but decoys sit ~1.8% away and routinely
   // cross a thousands boundary, so the visible prefix matched exactly one
@@ -181,12 +179,6 @@ export default function GuessBtcPriceScreen() {
             />
           )}
 
-          {(phase === 'win' || phase === 'lose') && (
-            <TouchableOpacity style={s.againBtn} onPress={playAgain}>
-              <Text style={s.againTxt}>New Round</Text>
-            </TouchableOpacity>
-          )}
-
           <Text style={s.footer}>Uses the real BTC price · 1-5 GH/s per correct answer</Text>
         </>
       )}
@@ -220,7 +212,5 @@ const s = StyleSheet.create({
   errorBody: { color: '#CBD5E1', fontSize: 13, textAlign: 'center' },
   retryBtn: { marginTop: 6, backgroundColor: '#F87171', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 24 },
   retryTxt: { color: '#450A0A', fontSize: 14, fontWeight: '900' },
-  againBtn: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 22, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  againTxt: { color: '#94A3B8', fontSize: 13, fontWeight: '700' },
   footer: { marginTop: 16, textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.45)' },
 });

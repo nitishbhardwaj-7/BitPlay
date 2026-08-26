@@ -91,8 +91,6 @@ export default function HigherLowerScreen() {
       setPhase('revealed_lose');
     }
   };
-
-  const onNewRoundPress = () => { reward.resetReward(); newRound(); };
   useEffect(() => { if (phase === 'ready') reward.resetReward(); }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -156,12 +154,6 @@ export default function HigherLowerScreen() {
             />
           )}
 
-          {phase !== 'ready' && (
-            <TouchableOpacity style={s.newRoundBtn} onPress={onNewRoundPress}>
-              <Text style={s.newRoundTxt}>New Card</Text>
-            </TouchableOpacity>
-          )}
-
           <Text style={s.footer}>1-5 GH/s per win · watch a video to redeem</Text>
         </>
       )}
@@ -202,7 +194,5 @@ const s = StyleSheet.create({
   },
   choiceTxtDark: { color: '#052E16', fontSize: 16, fontWeight: '900' },
   choiceTxtLight: { color: '#FFF', fontSize: 16, fontWeight: '800' },
-  newRoundBtn: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 22, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  newRoundTxt: { color: '#94A3B8', fontSize: 13, fontWeight: '700' },
   footer: { marginTop: 16, textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.45)' },
 });

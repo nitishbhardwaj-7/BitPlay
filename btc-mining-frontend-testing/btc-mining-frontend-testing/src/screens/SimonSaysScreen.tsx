@@ -113,8 +113,6 @@ export default function SimonSaysScreen() {
     setPhase('win');
   };
 
-  const playAgain = () => { reward.resetReward(); newRound(); };
-
   const statusText =
     phase === 'showing' ? 'Watch the sequence…'
     : phase === 'input' ? `Repeat it — ${inputIdx}/${sequence.length}`
@@ -206,12 +204,6 @@ export default function SimonSaysScreen() {
             />
           )}
 
-          {(phase === 'win' || phase === 'lose') && (
-            <TouchableOpacity style={s.againBtn} onPress={playAgain}>
-              <Text style={s.againTxt}>New Game</Text>
-            </TouchableOpacity>
-          )}
-
           <Text style={s.footer}>Bank any time · clear all {MAX_LEVEL} levels for 5 GH/s</Text>
         </>
       )}
@@ -244,7 +236,5 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(74,222,128,0.14)', borderWidth: 1, borderColor: 'rgba(74,222,128,0.45)',
   },
   cashTxt: { color: '#4ADE80', fontSize: 14, fontWeight: '800' },
-  againBtn: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 22, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  againTxt: { color: '#94A3B8', fontSize: 13, fontWeight: '700' },
   footer: { marginTop: 16, textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.45)' },
 });
