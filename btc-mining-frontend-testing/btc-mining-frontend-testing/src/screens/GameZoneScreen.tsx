@@ -16,7 +16,6 @@ import { BannerAdSlot } from '../components/ads/BannerAdSlot';
 import { BannerAdSize } from 'react-native-google-mobile-ads';
 import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
 import { useAdConfig } from '../providers/AdConfigProvider';
-import { trackProductSearch, trackSearch } from '../services/apptroveAnalytics';
 import { WIN_GH_REWARD as TRADING_WIN_GH } from './TradingScreen';
 import { WIN_REWARD_GH as MEMORY_WIN_GH } from './MemoryCardMatchScreen';
 import { SLICES as SPIN_SLICES } from './SpinAndWinScreen';
@@ -174,8 +173,6 @@ export default function GameZoneScreen() {
     if (text.trim().length >= 2) {
       searchDebounceRef.current = setTimeout(() => {
         const matches = GAMES.filter(g => g.name.toLowerCase().includes(text.toLowerCase())).length;
-        trackProductSearch(text, matches);
-        trackSearch(text, matches);
       }, 800);
     }
   }, []);

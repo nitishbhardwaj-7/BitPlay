@@ -14,7 +14,6 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { get_data_uri } from '../config/api';
 import { useAuth } from '../auth/AuthProvider';
 import { CommonActions } from '@react-navigation/native';
-import { trackDepositCompleted } from '../services/apptroveAnalytics';
 
 const CryptoDepositScreen = ({ navigation, route }: any) => {
   const { amount, currency, notes } = route.params;
@@ -88,7 +87,6 @@ const handleConfirmDeposit = async () => {
     // }
 
     setMessage('Wait for sometime, the deposit is processing and will display in your wallet.');
-    trackDepositCompleted(parseFloat(amount) || 0, String(user?.id ?? ''));
   } catch (err) {
     setError('Network error. Please try again.');
   } finally {

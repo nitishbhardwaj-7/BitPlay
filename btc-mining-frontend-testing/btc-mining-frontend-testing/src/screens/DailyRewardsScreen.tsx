@@ -22,7 +22,6 @@ import { get_data_uri } from '../config/api';
 import { useAuth } from '../auth/AuthProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useHashPower } from "../stores/HashPowerStore";
-import { trackDailyRewardClaimed } from '../services/apptroveAnalytics';
 import { BannerAdWithGamFallback } from '../components/ads/BannerAdWithGamFallback';
 import { BannerAdSize } from 'react-native-google-mobile-ads';
 import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
@@ -174,7 +173,6 @@ const DailyRewardsScreen = () => {
             r._id === rewardId ? { ...r, claimed: true } : r
           )
         );
-        trackDailyRewardClaimed(data.reward?.rewardType ?? 'hashpower', parsed_hashpower, String(user_id ?? ''));
         setClaimedReward(data.reward);
         setShowPopup(true);
         setTimeout(() => setShowPopup(false), 2500);

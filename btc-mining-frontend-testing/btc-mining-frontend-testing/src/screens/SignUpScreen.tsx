@@ -21,7 +21,9 @@ import { apiRequest, API_ENDPOINTS } from '../config/api';
 import { Image } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { getUser, getSession } from '../auth/auth';
-import { trackSignupCompleted, trackSignupEvent } from '../services/apptroveAnalytics';
+import {
+  trackSignupCompleted,
+} from '../services/apptroveAnalytics';
 
 interface SignUpScreenProps { }
 
@@ -113,7 +115,6 @@ const SignUpScreen: React.FC<SignUpScreenProps> = () => {
 
       if (data.success) {
         trackSignupCompleted(String(data.user?.id ?? ''), 'email');
-        trackSignupEvent(String(data.user?.id ?? ''), 'email');
         Alert.alert('Success', 'Account created successfully! Please verify your email.', [
           {
             text: 'OK',

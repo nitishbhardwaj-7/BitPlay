@@ -22,7 +22,6 @@ import { Picker } from '@react-native-picker/picker';
 import { apiRequest, API_ENDPOINTS } from '../config/api';
 import { getSession } from '../auth/auth';
 import { useAuth } from '../auth/AuthProvider';
-import { trackProfileUpdate } from '../services/apptroveAnalytics';
 import InitialsAvatar from '../components/InitialsAvatar';
 import { getObjectFromStorage, saveObjectToStorage } from '../config/storage';
 
@@ -151,7 +150,6 @@ const MyProfileEditScreen = () => {
         setOriginalData({ ...formData });
         setIsEditing(false);
         setHasChanges(false);
-        trackProfileUpdate(String(user?.id ?? ''), Object.keys(payload).join(','));
         if (response.user) await updateUser(response.user);
       } else {
         Alert.alert('Error', response.message || 'Failed to update profile');

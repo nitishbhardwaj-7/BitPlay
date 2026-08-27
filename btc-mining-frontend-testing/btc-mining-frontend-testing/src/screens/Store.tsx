@@ -35,18 +35,8 @@ import { BannerAdSize } from 'react-native-google-mobile-ads';
 import { DEFAULT_ADMOB_BANNER_ID } from '../services/adUnitDefaults';
 import { useAdConfig } from '../providers/AdConfigProvider';
 import {
-  trackSubscriptionStarted,
-  trackPaywallViewed,
-  trackPaymentFailed,
-  trackTrialStarted,
-  trackPurchaseRestored,
-  trackSubscriptionCancelled,
-  trackSubscriptionExpired,
-  trackViewItemList,
-  trackViewItem,
-  trackSelectItem,
-  trackBeginCheckout,
-  trackCheckoutCompleted,
+  trackCheckoutStarted,
+  trackPurchase,
 } from '../services/apptroveAnalytics';
 
 // Import mining pack images
@@ -208,7 +198,6 @@ const StoreScreen = () => {
   // paywall_viewed — fires every time the Store screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      trackPaywallViewed(SubscriptionData.length);
     }, [SubscriptionData.length])
   );
 
@@ -226,9 +215,7 @@ const StoreScreen = () => {
           const expDate = entitlement.expirationDate;
           const willRenew = (entitlement as any).willRenew;
           if (expDate && new Date(expDate) < new Date()) {
-            trackSubscriptionExpired(entitlement.productIdentifier);
           } else if (willRenew === false) {
-            trackSubscriptionCancelled(entitlement.productIdentifier);
           }
         }
         prevEntitlementStateRef.current[key] = isNowActive;
@@ -386,7 +373,6 @@ const StoreScreen = () => {
         });
 
         setSubscriptionData(filteredPlans);
-        trackViewItemList('mining_plans', filteredPlans.length);
 
         // Cache backend plan fields only -- never revenueCatPackage (see the
         // comment at the top of the component for why).
@@ -459,7 +445,7 @@ const StoreScreen = () => {
     if (purchasing) {
       return;
     }
-    trackBeginCheckout(selectedPlan._id, selectedPlan.name, selectedPlan.plan_cost, 'USD');
+    trackCheckoutStarted(selectedPlan.name, selectedPlan.plan_cost, 'USD');
     try {
       setPurchasing(true);
 
@@ -485,7 +471,6 @@ const StoreScreen = () => {
         // Fire trial_started if this product has a free trial period
         const introPrice = (selectedPlan.revenueCatPackage?.product as any)?.introPrice;
         if (introPrice && introPrice.price === 0) {
-          trackTrialStarted(productIdentifier, selectedPlan.name);
         }
         // Purchase successful - now sync with backend
         try {
@@ -546,18 +531,13 @@ const StoreScreen = () => {
             // Continue even if fetch fails, we've already updated locally
           }
 
-          trackSubscriptionStarted(
+          trackPurchase(
             selectedPlan.name,
             productIdentifier,
             selectedPlan.revenueCatPackage?.product.price ?? 0,
             selectedPlan.revenueCatPackage?.product.currencyCode ?? 'USD',
           );
-          trackCheckoutCompleted(
-            selectedPlan._id,
-            selectedPlan.name,
-            selectedPlan.revenueCatPackage?.product.price ?? 0,
-            selectedPlan.revenueCatPackage?.product.currencyCode ?? 'USD',
-          );
+
           Alert.alert(
             'Purchase Successful',
             `Your ${selectedPlan.name} (${selectedPlan.hashrate} ${selectedPlan.unit}) has been activated successfully!`,
@@ -604,7 +584,6 @@ const StoreScreen = () => {
         errorMessage = 'This purchase is invalid. Please try a different plan.';
       }
 
-      trackPaymentFailed(selectedPlan.revenueCatPackage?.product.identifier ?? 'unknown', purchaseError.code ?? 'unknown');
       Alert.alert('Purchase Error', errorMessage);
     } finally {
       setPurchasing(false);
@@ -615,7 +594,6 @@ const StoreScreen = () => {
     try {
       const customerInfo = await Purchases.restorePurchases();
       const entitlementCount = Object.keys(customerInfo.entitlements.active).length;
-      trackPurchaseRestored(entitlementCount);
       Alert.alert('Restore Complete', entitlementCount > 0
         ? `${entitlementCount} purchase(s) restored successfully.`
         : 'No previous purchases found.');
@@ -728,8 +706,6 @@ const StoreScreen = () => {
                 onPress={() => {
                   if (!userPackages.includes(plan._id)) {
                     setSelectedPlanIndex(index);
-                    trackViewItem(plan._id, plan.name, plan.plan_cost, 'USD');
-                    trackSelectItem(plan._id, plan.name, plan.plan_cost, 'USD');
                   }
                 }}
                 disabled={userPackages.includes(plan._id)}

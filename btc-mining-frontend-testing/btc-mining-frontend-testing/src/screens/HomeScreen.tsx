@@ -59,7 +59,9 @@ import {
 } from '../utils/miningPowerCap';
 import OdometerCounter from '../components/OdometerCounter';
 import { useAdConfig } from '../providers/AdConfigProvider';
-import { trackMiningStarted, trackMiningStopped, trackDepositCompleted } from '../services/apptroveAnalytics';
+import {
+  trackMiningStarted,
+} from '../services/apptroveAnalytics';
 import { ApptroveSDK } from 'react-native-apptrove';
 import { getObjectFromStorage, saveObjectToStorage } from '../config/storage';
 import { getHomeCacheKey, isValidHomeCache, HomeCacheShape, HOME_CACHE_VERSION } from '../config/homeCache';
@@ -1550,7 +1552,6 @@ const Page: React.FC = () => {
         if (nextMiningActive) {
           trackMiningStarted(totalMiningPower, String(user.id));
         } else {
-          trackMiningStopped(totalMiningPower, String(user.id));
         }
       }
       if (data.success && data.mining_details) {

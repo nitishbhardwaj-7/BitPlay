@@ -26,7 +26,6 @@ import { Image, Linking, Share } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { useAuth } from '../auth/AuthProvider';
 import { getReferralCode } from '../auth/auth';
-import { trackInviteShared, trackInviteClicked } from '../services/apptroveAnalytics';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 const { width, height } = Dimensions.get('window');
@@ -72,7 +71,6 @@ const InternalReferralScreen: React.FC<InternalReferralScreenProps> = () => {
 
   const handleInvite = async () => {
     setIsLoading(true);
-    trackInviteClicked(userReferralCode);
     try {
       const downloadUrl = Platform.select({
         default: 'https://bitplaypro.com/download',
@@ -84,7 +82,6 @@ const InternalReferralScreen: React.FC<InternalReferralScreenProps> = () => {
 
       if (result.action === Share.sharedAction) {
         const channel = result.activityType ?? 'direct';
-        trackInviteShared(userReferralCode, channel);
       }
     } catch (error) {
     } finally {

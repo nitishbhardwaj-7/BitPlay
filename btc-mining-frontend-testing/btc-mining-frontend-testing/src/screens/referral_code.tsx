@@ -26,7 +26,6 @@ import { Image, Linking, Share } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { useAuth } from '../auth/AuthProvider';
 import { getReferralCode } from '../auth/auth';
-import { trackOnboardingCompleted } from '../services/apptroveAnalytics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 const { width, height } = Dimensions.get('window');
 
@@ -102,7 +101,6 @@ const ReferralScreen: React.FC<ReferralScreenProps> = () => {
         const key = `apptrove_onboarding_completed_${user?.id}`;
         const alreadyFired = await AsyncStorage.getItem(key);
         if (!alreadyFired) {
-          trackOnboardingCompleted(String(user?.id ?? ''));
           await AsyncStorage.setItem(key, '1');
         }
       } catch {}

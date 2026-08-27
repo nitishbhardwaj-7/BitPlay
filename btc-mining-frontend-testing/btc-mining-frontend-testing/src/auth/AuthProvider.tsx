@@ -9,7 +9,6 @@ import {
 import appleAuth from '@invertase/react-native-apple-authentication';
 import { apiRequest, API_ENDPOINTS, setAuthExpiredHandler } from '../config/api';
 import { Alert } from 'react-native';
-import { trackLogout } from '../services/apptroveAnalytics';
 
 type AuthContextType = {
   authenticated: boolean;
@@ -63,7 +62,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
-      if (user?.id) trackLogout(String(user.id));
       await logoutApi();
       await auth().signOut();
       await GoogleSignin.signOut();

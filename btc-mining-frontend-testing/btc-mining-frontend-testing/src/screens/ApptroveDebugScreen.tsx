@@ -11,49 +11,14 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import {
   trackFirstOpen,
-  trackLogin,
   trackSignupCompleted,
-  trackLogout,
-  trackOnboardingCompleted,
-  trackScreenView,
-  trackAppOpen,
-  trackSessionStart,
-  trackSessionEnd,
-  trackNotificationReceived,
-  trackNotificationClicked,
-  trackPaymentInitiated,
-  trackSubscriptionStarted,
-  trackPaywallViewed,
-  trackPaymentFailed,
-  trackTrialStarted,
-  trackSubscriptionCancelled,
-  trackSubscriptionExpired,
-  trackPurchaseRestored,
-  trackInviteClicked,
-  trackInviteShared,
+  trackLogin,
+  trackPurchase,
+  trackCheckoutStarted,
   trackMiningStarted,
-  trackMiningStopped,
-  trackDailyRewardClaimed,
+  trackAdFailedToLoad,
+  trackNotificationClicked,
   trackWithdrawalRequested,
-  trackDepositCompleted,
-  trackAdRequest,
-  trackAdLoaded,
-  trackAdImpression,
-  trackAdClicked,
-  trackAdRevenuePaid,
-  trackAdClosed,
-  trackAdWatchStarted,
-  trackAdWatchCompleted,
-  trackAdWatchSkipped,
-  trackViewItemList,
-  trackViewItem,
-  trackSelectItem,
-  trackBeginCheckout,
-  trackCheckoutCompleted,
-  trackSearch,
-  trackProfileUpdate,
-  trackAchievementUnlock,
-  trackContentView,
 } from '../services/apptroveAnalytics';
 
 const TEST_USER_ID = 'debug-test-user-001';
@@ -62,59 +27,18 @@ const TEST_SESSION_ID = `debug-${Date.now()}`;
 type EventResult = { name: string; status: 'ok' | 'fail'; ts: number };
 
 const EVENTS: { label: string; id: string; fn: () => void }[] = [
-  // Lifecycle
+  // Only the events kept for reporting. "Install" is fired by
+  // ApptroveSDK.fireInstall() at startup, not as a tracked event, so it has no
+  // row here.
   { label: 'first_open', id: 'first_open', fn: () => trackFirstOpen(Platform.OS) },
-  { label: 'app_open', id: 'app_open', fn: () => trackAppOpen(Platform.OS) },
-  { label: 'session_start', id: 'session_start', fn: () => trackSessionStart(TEST_SESSION_ID, Platform.OS) },
-  { label: 'session_end', id: 'session_end', fn: () => trackSessionEnd(TEST_SESSION_ID, 42) },
-  { label: 'screen_view (0zrztVO54t)', id: 'screen_view', fn: () => trackScreenView('ApptroveDebugScreen') },
-  // Auth
-  { label: 'login (o91gt1Q0PK)', id: 'login', fn: () => trackLogin(TEST_USER_ID, 'email') },
-  { label: 'signup (8ASKXJ1vWO + 3 IDs)', id: 'signup', fn: () => trackSignupCompleted(TEST_USER_ID, 'email') },
-  { label: 'logout (pr1kg0PakC)', id: 'logout', fn: () => trackLogout(TEST_USER_ID) },
-  { label: 'onboarding_completed', id: 'onboarding', fn: () => trackOnboardingCompleted(TEST_USER_ID) },
-  { label: 'update / profile (sEQWVHGThl)', id: 'update', fn: () => trackProfileUpdate(TEST_USER_ID, 'name,avatar') },
-  // Notifications
-  { label: 'notification_received', id: 'notif_recv', fn: () => trackNotificationReceived('mining_expired') },
-  { label: 'notification_clicked', id: 'notif_click', fn: () => trackNotificationClicked('mining_expired', TEST_USER_ID) },
-  // Payments / Store
-  { label: 'paywall_viewed', id: 'paywall', fn: () => trackPaywallViewed(3) },
-  { label: 'view_item_list (xLo5iOmEUm)', id: 'view_list', fn: () => trackViewItemList('mining_plans', 3) },
-  { label: 'view_item (XLdSodqgld + 8MvPg9POkj)', id: 'view_item', fn: () => trackViewItem('plan_basic', 'Basic Plan', 9.99, 'USD') },
-  { label: 'select_item (5f0BML6LDg)', id: 'select_item', fn: () => trackSelectItem('plan_basic', 'Basic Plan', 9.99, 'USD') },
-  { label: 'begin_checkout (rbJmUiy8vZ + 34mjlWJaHL)', id: 'checkout', fn: () => trackBeginCheckout('plan_basic', 'Basic Plan', 9.99, 'USD') },
-  { label: 'trial_started', id: 'trial', fn: () => trackTrialStarted('com.bitplay.basic', 'Basic Plan') },
-  { label: 'subscription_started', id: 'sub_start', fn: () => trackSubscriptionStarted('Basic Plan', 'com.bitplay.basic', 9.99, 'USD') },
-  { label: 'checkout_completed (0i9U00nN6p)', id: 'checkout_done', fn: () => trackCheckoutCompleted('plan_basic', 'Basic Plan', 9.99, 'USD') },
-  { label: 'subscription_cancelled', id: 'sub_cancel', fn: () => trackSubscriptionCancelled('com.bitplay.basic') },
-  { label: 'subscription_expired', id: 'sub_expire', fn: () => trackSubscriptionExpired('com.bitplay.basic') },
-  { label: 'purchase_restored', id: 'restore', fn: () => trackPurchaseRestored(1) },
-  { label: 'payment_initiated', id: 'pay_init', fn: () => trackPaymentInitiated('plan_basic', 'bank_transfer', 9.99) },
-  { label: 'payment_failed', id: 'pay_fail', fn: () => trackPaymentFailed('com.bitplay.basic', 'PURCHASE_NOT_ALLOWED') },
-  // Referral
-  { label: 'invite_clicked (7lnE3OclNT)', id: 'invite_click', fn: () => trackInviteClicked('TEST123') },
-  { label: 'invite_shared (dxZXGG1qqL + share)', id: 'invite_share', fn: () => trackInviteShared('TEST123', 'whatsapp') },
-  // Mining
-  { label: 'mining_started', id: 'mine_start', fn: () => trackMiningStarted(100, TEST_USER_ID) },
-  { label: 'mining_stopped', id: 'mine_stop', fn: () => trackMiningStopped(100, TEST_USER_ID) },
-  { label: 'daily_reward_claimed + achievement', id: 'daily', fn: () => trackDailyRewardClaimed('hashpower', 5, TEST_USER_ID) },
-  { label: 'withdrawal_requested', id: 'withdraw', fn: () => trackWithdrawalRequested('BTC', 0.0001, TEST_USER_ID) },
-  { label: 'deposit_completed', id: 'deposit', fn: () => trackDepositCompleted(0.001, TEST_USER_ID) },
-  // Ads
-  { label: 'ad_request', id: 'ad_req', fn: () => trackAdRequest('ca-app-pub-test/001', 'rewarded') },
-  { label: 'ad_loaded', id: 'ad_load', fn: () => trackAdLoaded('ca-app-pub-test/001', 'rewarded') },
-  { label: 'ad_impression', id: 'ad_imp', fn: () => trackAdImpression('ca-app-pub-test/001', 'rewarded') },
-  { label: 'ad_clicked', id: 'ad_click', fn: () => trackAdClicked('ca-app-pub-test/001', 'rewarded') },
-  { label: 'ad_revenue_paid', id: 'ad_rev', fn: () => trackAdRevenuePaid('ca-app-pub-test/001', 0.001, 'USD', 'admob') },
-  { label: 'ad_closed', id: 'ad_close', fn: () => trackAdClosed('ca-app-pub-test/001', 'rewarded') },
-  { label: 'ad_watch_started', id: 'ad_ws', fn: () => trackAdWatchStarted('DebugScreen') },
-  { label: 'ad_watch_completed', id: 'ad_wc', fn: () => trackAdWatchCompleted('DebugScreen', 5) },
-  { label: 'ad_watch_skipped', id: 'ad_wsk', fn: () => trackAdWatchSkipped('DebugScreen') },
-  // Search
-  { label: 'search (mH6sqU7t6u + MtXCvY3Bdu)', id: 'search', fn: () => trackSearch('spin game', 5) },
-  // Misc
-  { label: 'achievement_unlock (xTPvxWuNqm)', id: 'achieve', fn: () => trackAchievementUnlock('debug_test', 1) },
-  { label: 'content_view (Jwzois1ays)', id: 'content', fn: () => trackContentView('debug-001', 'announcement') },
+  { label: 'Sign-Up', id: 'signup', fn: () => trackSignupCompleted(TEST_USER_ID, 'email') },
+  { label: 'Login', id: 'login', fn: () => trackLogin(TEST_USER_ID, 'email') },
+  { label: 'Checkout Started', id: 'checkout_started', fn: () => trackCheckoutStarted('Debug Plan', 9.99, 'USD') },
+  { label: 'Purchase', id: 'purchase', fn: () => trackPurchase('Debug Plan', 'debug.product.id', 9.99, 'USD') },
+  { label: 'mining_started', id: 'mining_started', fn: () => trackMiningStarted(100, TEST_USER_ID) },
+  { label: 'withdrawal_requested', id: 'withdrawal_requested', fn: () => trackWithdrawalRequested(0.0005, 'BTC', 'Lightning') },
+  { label: 'ad_failed_to_load', id: 'ad_failed_to_load', fn: () => trackAdFailedToLoad('debug-ad-unit', 'debug: no fill') },
+  { label: 'notification_clicked', id: 'notification_clicked', fn: () => trackNotificationClicked('debug-notif-1', 'Debug title') },
 ];
 
 export default function ApptroveDebugScreen() {

@@ -14,11 +14,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   trackFirstOpen,
   trackNotificationClicked,
-  trackNotificationReceived,
-  trackAppOpen,
-  trackSessionStart,
-  trackSessionEnd,
-  trackScreenView,
 } from './src/services/apptroveAnalytics';
 
 // Screens
@@ -92,7 +87,6 @@ import SuperPrivilegesScreen from './src/screens/SuperPrivilegesScreen';
 import ForceUpdateModal from './src/components/ForceUpdateModal';
 import { checkForceUpdate, type ForceUpdateResult } from './src/services/versionCheckService';
 import { initializeGoogleAds } from './src/services/googleAds';
-import { useScreenHoldTracking } from './src/hooks/useScreenHoldTracking';
 import ApptroveDebugScreen from './src/screens/ApptroveDebugScreen';
 
 const RootStack = createStackNavigator<RootStackParamList>();
@@ -204,39 +198,11 @@ const AppNavigator = () => {
 
 const App = () => {
   const isDarkMode = useColorScheme() === 'dark';
-  const { onTouchStart, onTouchEnd, onTouchCancel } = useScreenHoldTracking();
-  const sessionIdRef = useRef<string>('');
-  const sessionStartRef = useRef<number>(0);
-
-  // Session tracking via AppState — only after SDK is initialized
-  useEffect(() => {
-    if (!isSdkReady) return;
-    const startSession = () => {
-      sessionIdRef.current = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      sessionStartRef.current = Date.now();
-      trackAppOpen(Platform.OS);
-      trackSessionStart(sessionIdRef.current, Platform.OS);
-    };
-    const endSession = () => {
-      if (sessionStartRef.current > 0) {
-        const durationSec = (Date.now() - sessionStartRef.current) / 1000;
-        trackSessionEnd(sessionIdRef.current, durationSec);
-        sessionStartRef.current = 0;
-      }
-    };
-    startSession();
-    const sub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
-      if (nextState === 'active') startSession();
-      else if (nextState === 'background' || nextState === 'inactive') endSession();
-    });
-    return () => { sub.remove(); endSession(); };
-  }, [isSdkReady]);
 
   useEffect(() => {
 
     const unsubscribe = messaging().onMessage(async remoteMessage => {
       console.log('FCM message received in foreground:', remoteMessage);
-      trackNotificationReceived(remoteMessage.data?.type as string ?? 'unknown');
 
       const notificationType = remoteMessage.data?.type;
       const title = remoteMessage.notification?.title || 'Notification';
@@ -488,7 +454,7 @@ const App = () => {
   }
 
   return (
-    <View style={splashBg} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onTouchCancel={onTouchCancel}>
+    <View style={splashBg}>
     {forceUpdate != null && (
       <ForceUpdateModal
         visible
@@ -508,7 +474,6 @@ const App = () => {
                 screen_name: currentRoute.name,
                 screen_class: currentRoute.name,
               });
-              trackScreenView(currentRoute.name);
             }
           }}
           onStateChange={async () => {
@@ -518,7 +483,6 @@ const App = () => {
                 screen_name: currentRoute.name,
                 screen_class: currentRoute.name,
               });
-              trackScreenView(currentRoute.name);
             }
           }}
           ref={navigationRef}

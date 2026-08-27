@@ -17,7 +17,6 @@ import { Picker } from '@react-native-picker/picker';
 import { get_data_uri } from '../config/api';
 import { useAuth } from '../auth/AuthProvider';
 import axios from 'axios';
-import { trackPaymentInitiated } from '../services/apptroveAnalytics';
 
 const paymentMethods =
   Platform.OS === 'android'
@@ -203,7 +202,6 @@ const MakePaymentScreen = ({ navigation, route }: any) => {
     const result = await createOrUpdateUserPlan(payload);
 
     if (result.success) {
-      trackPaymentInitiated(String(PlanId ?? ''), payment_method, planUSD);
       Alert.alert(
         "Payment Confirmation",
         "Please wait until we confirm your payment!!",

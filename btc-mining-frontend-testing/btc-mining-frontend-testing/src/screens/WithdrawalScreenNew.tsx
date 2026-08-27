@@ -28,7 +28,9 @@ import { WALLET_COLLECTION } from '../types/wallet';
 import axios from 'axios';
 import LinearGradient from 'react-native-linear-gradient';
 import { getBtcUsdPriceCached } from '../services/btcPriceService';
-import { trackWithdrawalRequested } from '../services/apptroveAnalytics';
+import {
+  trackWithdrawalRequested,
+} from '../services/apptroveAnalytics';
 
 const currencies = [
   {

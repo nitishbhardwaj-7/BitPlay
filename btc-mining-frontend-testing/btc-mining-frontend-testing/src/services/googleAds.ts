@@ -7,16 +7,7 @@ import {
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { DEFAULT_ADMOB_REWARDED_ID } from './adUnitDefaults';
 import {
-  trackAdWatchStarted,
-  trackAdWatchCompleted,
-  trackAdWatchSkipped,
-  trackAdRequest,
-  trackAdLoaded,
   trackAdFailedToLoad,
-  trackAdImpression,
-  trackAdClicked,
-  trackAdRevenuePaid,
-  trackAdClosed,
 } from './apptroveAnalytics';
 import { navigationRef } from '../../App';
 
@@ -55,7 +46,6 @@ export function useRewardedVideoAd(
     instanceRef.current = instance;
     setLoaded(false);
     setLoading(true);
-    trackAdRequest(admobId);
     let reloadTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const unsubLoaded = instance.addAdEventListener(
@@ -63,7 +53,6 @@ export function useRewardedVideoAd(
       () => {
         setLoaded(true);
         setLoading(false);
-        trackAdLoaded(admobId);
       }
     );
     const unsubEarned = instance.addAdEventListener(
@@ -71,25 +60,20 @@ export function useRewardedVideoAd(
       (reward) => {
         earnedRef.current = true;
         const screen = navigationRef.getCurrentRoute()?.name ?? 'Unknown';
-        trackAdWatchCompleted(screen, reward.amount);
         onRewardRef.current?.(reward.amount, reward.type);
       }
     );
     const unsubOpened = instance.addAdEventListener(AdEventType.OPENED, () => {
-      trackAdImpression(admobId);
     });
     const unsubClicked = instance.addAdEventListener(AdEventType.CLICKED, () => {
-      trackAdClicked(admobId);
     });
     const unsubClosed = instance.addAdEventListener(AdEventType.CLOSED, () => {
       const didEarn = earnedRef.current;
       earnedRef.current = false;
-      trackAdClosed(admobId);
       setLoaded(false);
       setLoading(true);
       if (!didEarn) {
         const screen = navigationRef.getCurrentRoute()?.name ?? 'Unknown';
-        trackAdWatchSkipped(screen);
       }
       onAdClosedRef.current?.();
       // Don't call instance.load() synchronously here — the ad's native
@@ -100,7 +84,6 @@ export function useRewardedVideoAd(
       // transition finish first.
       reloadTimeout = setTimeout(() => {
         instance.load();
-        trackAdRequest(admobId);
       }, 500);
     });
     const unsubError = instance.addAdEventListener(AdEventType.ERROR, (error) => {
@@ -111,7 +94,6 @@ export function useRewardedVideoAd(
     // Track actual ad revenue when Google Mobile Ads reports it
     const unsubPaid = (instance as any).addAdEventListener?.('paid', (event: any) => {
       if (event?.value != null) {
-        trackAdRevenuePaid(admobId, event.value / 1_000_000, event.currencyCode ?? 'USD', event.precisionType ?? 'admob');
       }
     }) ?? (() => {});
 
@@ -139,7 +121,6 @@ export function useRewardedVideoAd(
       return;
     }
     const screen = navigationRef.getCurrentRoute()?.name ?? 'Unknown';
-    trackAdWatchStarted(screen);
     instance.show();
     setLoading(true);
   }, [loaded]);

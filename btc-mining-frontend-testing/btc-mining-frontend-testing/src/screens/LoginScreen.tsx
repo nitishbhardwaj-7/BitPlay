@@ -25,7 +25,9 @@ import { Image } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../auth/AuthProvider';
 import { getUser, getSession } from '../auth/auth';
-import { trackLogin } from '../services/apptroveAnalytics';
+import {
+  trackLogin,
+} from '../services/apptroveAnalytics';
 const { width, height } = Dimensions.get('window');
 
 interface LoginScreenProps {}
