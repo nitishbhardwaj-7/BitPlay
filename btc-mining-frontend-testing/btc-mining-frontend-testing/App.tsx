@@ -81,6 +81,10 @@ import MathBlitzScreen from './src/screens/MathBlitzScreen';
 import SpeedTapScreen from './src/screens/SpeedTapScreen';
 import WhackABlockScreen from './src/screens/WhackABlockScreen';
 import StackTowerScreen from './src/screens/StackTowerScreen';
+import CrashCashOutScreen from './src/screens/CrashCashOutScreen';
+import CryptoQuizScreen from './src/screens/CryptoQuizScreen';
+import ColorClashScreen from './src/screens/ColorClashScreen';
+import SwipeSortScreen from './src/screens/SwipeSortScreen';
 import GameErrorBoundary from './src/components/GameErrorBoundary';
 import GameZoneScreen from './src/screens/GameZoneScreen';
 import SuperPrivilegesScreen from './src/screens/SuperPrivilegesScreen';
@@ -164,6 +168,10 @@ const AppNavigator = () => {
           <RootStack.Screen name="SpeedTap">{() => <GameErrorBoundary><SpeedTapScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="WhackABlock">{() => <GameErrorBoundary><WhackABlockScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="StackTower">{() => <GameErrorBoundary><StackTowerScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="CrashCashOut">{() => <GameErrorBoundary><CrashCashOutScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="CryptoQuiz">{() => <GameErrorBoundary><CryptoQuizScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="ColorClash">{() => <GameErrorBoundary><ColorClashScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="SwipeSort">{() => <GameErrorBoundary><SwipeSortScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="GameZone">{() => <GameErrorBoundary><GameZoneScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="ApptroveDebug" component={ApptroveDebugScreen} />
           <RootStack.Screen name="SuperPrivileges" component={SuperPrivilegesScreen} />

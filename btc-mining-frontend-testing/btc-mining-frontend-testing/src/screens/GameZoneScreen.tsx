@@ -36,6 +36,10 @@ import { WIN_REWARD_GH as MATH_MAX_GH } from './MathBlitzScreen';
 import { WIN_REWARD_GH as TAP_MAX_GH } from './SpeedTapScreen';
 import { WIN_REWARD_GH as WHACK_MAX_GH } from './WhackABlockScreen';
 import { WIN_REWARD_GH as STACK_MAX_GH } from './StackTowerScreen';
+import { WIN_REWARD_GH as CRASH_MAX_GH } from './CrashCashOutScreen';
+import { WIN_REWARD_GH as QUIZ_MAX_GH } from './CryptoQuizScreen';
+import { WIN_REWARD_GH as CLASH_MAX_GH } from './ColorClashScreen';
+import { WIN_REWARD_GH as SWIPE_MAX_GH } from './SwipeSortScreen';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 const { width: W } = Dimensions.get('window');
@@ -78,6 +82,10 @@ const GAMES: GameEntry[] = [
   { name: 'Speed Tap', icon: 'gesture-double-tap', iconImage: require('../assets/images/icon_speed_tap.png'), color: '#fbbf24', route: 'SpeedTap', category: 'Featured', desc: 'Tap as fast as you can', rewardLabel: `Up to ${TAP_MAX_GH} GH/s` },
   { name: 'Whack-a-Block', icon: 'hammer', iconImage: require('../assets/images/icon_whack_block.png'), color: '#f472b6', route: 'WhackABlock', category: 'Featured', desc: 'Hit blocks before they vanish', rewardLabel: `Up to ${WHACK_MAX_GH} GH/s` },
   { name: 'Stack Tower', icon: 'layers-triple-outline', iconImage: require('../assets/images/icon_stack_tower.png'), color: '#22d3ee', route: 'StackTower', category: 'Featured', desc: 'Drop blocks and keep aligned', rewardLabel: `Up to ${STACK_MAX_GH} GH/s` },
+  { name: 'Crash Cash-Out', icon: 'chart-line-variant', iconImage: require('../assets/images/icon_crash_cashout.png'), color: '#22c55e', route: 'CrashCashOut', category: 'Featured', desc: 'Cash out before it crashes', rewardLabel: `Up to ${CRASH_MAX_GH} GH/s` },
+  { name: 'Crypto Quiz', icon: 'help-circle-outline', iconImage: require('../assets/images/icon_crypto_quiz.png'), color: '#38bdf8', route: 'CryptoQuiz', category: 'Featured', desc: 'Answer 4 crypto questions', rewardLabel: `Up to ${QUIZ_MAX_GH} GH/s` },
+  { name: 'Color Clash', icon: 'palette-swatch-outline', iconImage: require('../assets/images/icon_color_clash.png'), color: '#a78bfa', route: 'ColorClash', category: 'Featured', desc: 'Match the word to its colour', rewardLabel: `Up to ${CLASH_MAX_GH} GH/s` },
+  { name: 'Swipe Sort', icon: 'gesture-swipe-horizontal', iconImage: require('../assets/images/icon_swipe_sort.png'), color: '#f59e0b', route: 'SwipeSort', category: 'Featured', desc: 'Real coin or fake coin?', rewardLabel: `Up to ${SWIPE_MAX_GH} GH/s` },
 ];
 
 const CATEGORIES = [

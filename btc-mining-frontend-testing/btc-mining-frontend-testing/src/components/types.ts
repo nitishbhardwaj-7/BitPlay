@@ -68,6 +68,10 @@ export type RootStackParamList = {
   SpeedTap: undefined;
   WhackABlock: undefined;
   StackTower: undefined;
+  CrashCashOut: undefined;
+  CryptoQuiz: undefined;
+  ColorClash: undefined;
+  SwipeSort: undefined;
   GameZone: undefined;
   ApptroveDebug: undefined;
   SuperPrivileges: undefined;
