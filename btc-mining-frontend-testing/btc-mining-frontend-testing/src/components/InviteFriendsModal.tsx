@@ -131,6 +131,13 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
                   {referralCount} {referralCount === 1 ? 'referral' : 'referrals'}
                 </Text>
               )}
+              {/* States the actual backend rule (referralRewardService.js): 5% of the
+                  referred user's daily mined BTC, credited daily for as long as they
+                  mine. This modal is the only referral surface users can actually
+                  reach, so the rule has to be stated here. */}
+              <Text style={styles.earnRuleText}>
+                You earn 5% of everything your friends mine — every day
+              </Text>
             </View>
 
             {/* Bottom right coin */}
@@ -163,8 +170,11 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
               {/* Right: QR Code */}
               <View style={styles.qrSection}>
                 <View style={styles.qrBox}>
+                  {/* Carries the referral code. The QR previously encoded a bare
+                      https://bitplaypro.com/ , so scanning it attributed nothing
+                      and the scanner had to be told the code separately. */}
                   <QRCode
-                    value="https://bitplaypro.com/"
+                    value={`https://bitplaypro.com/?ref=${encodeURIComponent(referralCode || '')}`}
                     size={120}
                     color="#000"
                     backgroundColor="#fff"
@@ -298,6 +308,14 @@ const styles = StyleSheet.create({
     color: '#4A9EFF',
     fontSize: 18,
     fontWeight: '600',
+  },
+  earnRuleText: {
+    marginTop: 10,
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '600',
+    textAlign: 'center',
+    opacity: 0.95,
   },
   referralCountText: {
     color: '#fff',

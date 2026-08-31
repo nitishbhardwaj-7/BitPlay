@@ -152,9 +152,14 @@ const InternalReferralScreen: React.FC<InternalReferralScreenProps> = () => {
                 style={styles.formBox}
               >
                 <View style={styles.formContainer}>
+                  {/* Copy must match the backend rule in referralRewardService.js:
+                      5% of the referred user's daily mined BTC, credited every day
+                      for as long as they keep mining. There is no fixed bounty and
+                      no qualifying period -- the previous "$50 after 5 days" wording
+                      described a scheme that was never implemented. */}
                   <Text style={styles.earnText}>
-                    Earn up to 50$ for each referral that uses the app for more than 5 days.{' '}
-                    <Text style={styles.learnMore}>Learn more</Text>
+                    Earn <Text style={styles.earnHighlight}>5% of everything your friends mine</Text> — paid
+                    into your BTC balance every day, for as long as they keep mining.
                   </Text>
 
                   {/* Fixed Invite Button */}
@@ -345,9 +350,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  learnMore: {
+  earnHighlight: {
     color: '#6AF3FC',
-    textDecorationLine: 'underline',
+    fontWeight: '700',
   },
 
   skipButton: {

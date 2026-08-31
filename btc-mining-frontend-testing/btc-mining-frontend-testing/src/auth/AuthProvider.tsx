@@ -16,8 +16,11 @@ type AuthContextType = {
   user: any | null;
   login: (token: string, user: object) => Promise<void>;
   logout: () => void;
-  loginWithGoogle: () => Promise<void>;
-  loginWithApple: () => Promise<void>;
+  /** `referralCode` is the optional code typed on the signup form. Social
+   *  signups previously had no way to pass one, so every Google/Apple user
+   *  was created unattributed. */
+  loginWithGoogle: (referralCode?: string) => Promise<void>;
+  loginWithApple: (referralCode?: string) => Promise<void>;
   updateUser: (userData: any) => Promise<void>;
 };
 
@@ -77,7 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   /** -------------------
    *  GOOGLE LOGIN
    *  ------------------- */
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (referralCode?: string) => {
     try {
       // Ensure Google Play Services are available
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -122,7 +125,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           name: displayName || '',      // Optional: User's display name
           email: email || '',           // Required: User's email
           photo: photoURL || null,      // Optional: Profile photo URL
-          accessToken: accessToken || null // Optional: Access token
+          accessToken: accessToken || null, // Optional: Access token
+          referral_code: referralCode?.trim().toLowerCase() || '' // Optional: who invited them
         }),
       });
 
@@ -179,7 +183,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   /** -------------------
    *  APPLE LOGIN
    *  ------------------- */
-  const loginWithApple = async () => {
+  const loginWithApple = async (referralCode?: string) => {
     try {
       const appleAuthResponse = await appleAuth.performRequest({
         requestedOperation: appleAuth.Operation.LOGIN,
@@ -222,7 +226,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           name: displayName || '',       // Optional: User's display name
           email: userEmail,              // Required: User's email
           photo: null,                   // Apple doesn't provide photo
-          accessToken: identityToken || null // Optional: Identity token
+          accessToken: identityToken || null, // Optional: Identity token
+          referral_code: referralCode?.trim().toLowerCase() || '' // Optional: who invited them
         }),
       });
 

@@ -302,7 +302,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = () => {
                     style={[styles.socialButtonSmall, styles.googleBtn]}
                     onPress={async () => {
                       try {
-                        await loginWithGoogle();
+                        await loginWithGoogle(referral_code);
                         // Navigate after successful login
                         const user = await getUser();
                         if (user) {
@@ -331,7 +331,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = () => {
                     style={[styles.socialButtonSmall, styles.appleBtn]}
                     onPress={async () => {
                       try {
-                        await loginWithApple();
+                        await loginWithApple(referral_code);
                         // Navigate after successful login
                         const user = await getUser();
                         if (user) {
@@ -362,7 +362,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = () => {
                     style={[styles.socialButtonWide, styles.googleBtn, styles.marginbottom]}
                     onPress={async () => {
                       try {
-                        await loginWithGoogle();
+                        await loginWithGoogle(referral_code);
                         // Navigate after successful login
                         const user = await getUser();
                         if (user) {

@@ -3,14 +3,8 @@ const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
 const sendTokenResponse = require('../utils/sendTokenResponse');
 
-const generateReferralCode = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-};
+/** Escapes regex metacharacters so user input inside a $regex is a literal. */
+const escapeRegex = (value) => String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -32,8 +26,10 @@ exports.register = async (req, res, next) => {
     // Validate referral code if provided
     if (referral_code && referral_code.trim() !== '') {
       const trimmedCode = referral_code.trim();
+      // Escaped: unescaped, a submitted code of `.*` matched an arbitrary user,
+      // passed validation, and attached the new account to whoever matched first.
       const referringUser = await User.findOne({
-        referralCode: { $regex: `^${trimmedCode}$`, $options: 'i' }
+        referralCode: { $regex: `^${escapeRegex(trimmedCode)}$`, $options: 'i' }
       });
 
       if (!referringUser) {
@@ -56,15 +52,15 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    const user_code = generateReferralCode();
-
-    // Create user
+    // The referral code is deliberately NOT generated here. The User model's
+    // pre-save hook generates one and retries until it is unique; passing a
+    // pre-generated code skipped that loop entirely, so a collision hit the
+    // schema's unique index and surfaced to the user as an unexplained 500.
     const user = await User.create({
       name,
       email,
       password,
       emailVerified: false,
-      referralCode: user_code,
       referralUsed: used_referral
     });
 
@@ -417,7 +413,7 @@ exports.logout = async (req, res, next) => {
 // @access  Public
 exports.socialLogin = async (req, res, next) => {
   try {
-    const { provider, providerId, name, email, photo, accessToken } = req.body;
+    const { provider, providerId, name, email, photo, accessToken, referral_code } = req.body;
 
     // Validation
     if (!provider || !providerId || !email) {
@@ -444,6 +440,26 @@ exports.socialLogin = async (req, res, next) => {
         await user.save();
       }
     } else {
+      // Attribute the referral, exactly as /register does. Without this, every
+      // Google/Apple/Facebook signup was created with referralUsed 'null' and
+      // could never be credited to the person who invited them.
+      // Unlike /register this does NOT reject an unknown code: the user is
+      // already authenticated with the provider at this point, and failing the
+      // signup over a bad referral would strand them with no way to retry.
+      let used_referral = 'null';
+      if (referral_code && String(referral_code).trim() !== '') {
+        const trimmedCode = String(referral_code).trim();
+        const referringUser = await User.findOne({
+          referralCode: { $regex: `^${escapeRegex(trimmedCode)}$`, $options: 'i' }
+        });
+        if (referringUser) {
+          used_referral = trimmedCode;
+          console.log(`Valid referral code ${used_referral} used (social signup)`);
+        } else {
+          console.log(`Ignoring unknown referral code on social signup: ${trimmedCode}`);
+        }
+      }
+
       // Create new user with social provider info
       user = await User.create({
         name: name || 'Social User',
@@ -456,6 +472,7 @@ exports.socialLogin = async (req, res, next) => {
             accessToken: accessToken
           }
         },
+        referralUsed: used_referral,
         isActive: true,
         emailVerified: true // Social logins are pre-verified
       });
