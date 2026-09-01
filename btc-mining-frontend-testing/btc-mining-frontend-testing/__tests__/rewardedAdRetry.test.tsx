@@ -185,3 +185,96 @@ test('unmounting stops all retries', () => {
   act(() => { jest.advanceTimersByTime(120_000); });
   expect(instances.length).toBe(after);
 });
+
+// ---- one request per unit, shared across screens -----------------------
+
+/** Two hooks on one screen, as every game has: a claim ad and a retry ad.
+ *  Separate components so one can unmount while the other stays. */
+let claimState: any = {};
+let retryState: any = {};
+function ClaimChild({ onReward, onClosed }: any) {
+  claimState = useRewardedVideoAd(onReward, { primaryUnitId: 'unit-1' }, onClosed);
+  return null;
+}
+function RetryChild({ onReward, onClosed }: any) {
+  retryState = useRewardedVideoAd(onReward, { primaryUnitId: 'unit-1' }, onClosed);
+  return null;
+}
+function TwoHarness({ claimReward, claimClosed, retryReward, retryClosed, withRetry = true }: any) {
+  return (
+    <>
+      <ClaimChild onReward={claimReward} onClosed={claimClosed} />
+      {withRetry ? <RetryChild onReward={retryReward} onClosed={retryClosed} /> : null}
+    </>
+  );
+}
+
+test('two hooks on the same unit share ONE request, not two', () => {
+  act(() => { tree = renderer.create(<TwoHarness />); });
+  expect(instances).toHaveLength(1);
+});
+
+test('a shared ad is visible as loaded to both hooks', () => {
+  act(() => { tree = renderer.create(<TwoHarness />); });
+  act(() => { latest().emit('rewarded_loaded'); });
+  expect(claimState.loaded).toBe(true);
+  expect(retryState.loaded).toBe(true);
+});
+
+test('the reward goes ONLY to the button that was pressed', () => {
+  const claimReward = jest.fn();
+  const retryReward = jest.fn();
+  act(() => { tree = renderer.create(<TwoHarness claimReward={claimReward} retryReward={retryReward} />); });
+  act(() => { latest().emit('rewarded_loaded'); });
+
+  act(() => { claimState.show(); });
+  act(() => { latest().emit('rewarded_earned_reward', { amount: 1, type: 'coins' }); });
+  expect(claimReward).toHaveBeenCalledTimes(1);
+  expect(retryReward).not.toHaveBeenCalled();
+});
+
+test('the close callback goes ONLY to the button that was pressed', () => {
+  const claimClosed = jest.fn();
+  const retryClosed = jest.fn();
+  act(() => { tree = renderer.create(<TwoHarness claimClosed={claimClosed} retryClosed={retryClosed} />); });
+  act(() => { latest().emit('rewarded_loaded'); });
+
+  act(() => { retryState.show(); });
+  act(() => { latest().emit('closed'); });
+  expect(retryClosed).toHaveBeenCalledTimes(1);
+  expect(claimClosed).not.toHaveBeenCalled();
+});
+
+test('a second ad is fetched once the shared one has been used', () => {
+  act(() => { tree = renderer.create(<TwoHarness />); });
+  act(() => { latest().emit('rewarded_loaded'); });
+  const before = instances.length;
+  act(() => { claimState.show(); });
+  act(() => { latest().emit('closed'); });
+  act(() => { jest.advanceTimersByTime(600); });
+  expect(instances.length).toBe(before + 1);
+  expect(claimState.loaded).toBe(false);
+});
+
+test('one hook unmounting does not cancel the ad the other is using', () => {
+  act(() => { tree = renderer.create(<TwoHarness />); });
+  act(() => { latest().emit('rewarded_loaded'); });
+  const shared = latest();
+  const before = instances.length;
+
+  act(() => { tree!.update(<TwoHarness withRetry={false} />); }); // retry hook goes away
+  expect(instances.length).toBe(before);     // no new request needed
+  expect(claimState.loaded).toBe(true);      // the cached ad survives
+
+  act(() => { claimState.show(); });
+  expect(shared.shown).toBe(1);
+});
+
+test('the last hook unmounting releases the ad instead of churning', () => {
+  act(() => { tree = renderer.create(<TwoHarness />); });
+  act(() => { latest().emit('error', { code: 'no-fill' }); });
+  act(() => { tree!.unmount(); tree = null; });
+  const after = instances.length;
+  act(() => { jest.advanceTimersByTime(300_000); });
+  expect(instances.length).toBe(after);      // nothing requested in the background
+});
