@@ -119,10 +119,15 @@ export function useGameReward({
     show: showRetryAd, loading: retryAdLoading, loaded: retryAdLoaded,
   } = useRewardedVideoAd(onRetryAdReward, { primaryUnitId: ads.rewardedVideoId }, onRetryAdClosed);
 
+  // When the ad is not ready, still call show(): it kicks off a fresh request
+  // rather than leaving the user with a button that only ever apologises. That
+  // was how a single failed request became permanent -- nothing retried, and
+  // this early return meant nothing ever asked it to.
   const openClaimAd = useCallback(() => {
     if (pendingWinGh.current == null) return;
     if (!claimAdLoaded) {
-      Alert.alert('Almost ready', 'The reward video is still loading. Try again in a second.');
+      showClaimAd();
+      Alert.alert('Almost ready', 'The reward video is still loading. Try again in a few seconds.');
       return;
     }
     showClaimAd();
@@ -130,11 +135,12 @@ export function useGameReward({
 
   const openRetryAd = useCallback(() => {
     if (!retryAdLoaded) {
-      Alert.alert('Almost ready', 'The video is still loading. Try again in a second.');
+      showRetryAd();
+      Alert.alert('Almost ready', 'The video is still loading. Try again in a few seconds.');
       return;
     }
     showRetryAd();
-  }, [retryAdLoaded, showRetryAd, gameName]);
+  }, [retryAdLoaded, showRetryAd]);
 
   return {
     isMiningActive,

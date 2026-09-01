@@ -293,9 +293,14 @@ export default function MemoryCardMatchScreen() {
           <View style={s.retryRow}>
             <TouchableOpacity
               style={s.retryBtn}
-              onPress={() => playAgainLoaded
-                ? showPlayAgain()
-                : Alert.alert('Almost ready', 'The video is still loading. Try again in a second.')}
+              onPress={() => {
+                // showPlayAgain() either shows the ad or, when it is not ready,
+                // starts a fresh request -- so this never becomes a dead button.
+                showPlayAgain();
+                if (!playAgainLoaded) {
+                  Alert.alert('Almost ready', 'The video is still loading. Try again in a few seconds.');
+                }
+              }}
             >
               <Text style={s.retryTxt} numberOfLines={1}>▶ Watch Ad → Play Again</Text>
             </TouchableOpacity>

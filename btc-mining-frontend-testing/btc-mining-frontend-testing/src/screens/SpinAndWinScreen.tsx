@@ -522,7 +522,10 @@ const SpinAndWinScreen: React.FC = () => {
   const openClaimAd = () => {
     if (pendingWinGh.current == null && wonGh == null) return;
     if (!claimAdLoaded) {
-      Alert.alert('Almost ready', 'The reward video is still loading. Try again in a second.');
+      // Kick a fresh request instead of only apologising -- a failed load
+      // otherwise leaves this button permanently useless.
+      showClaimAd();
+      Alert.alert('Almost ready', 'The reward video is still loading. Try again in a few seconds.');
       return;
     }
     showClaimAd();
@@ -530,7 +533,10 @@ const SpinAndWinScreen: React.FC = () => {
 
   const openRetryAd = () => {
     if (!retryAdLoaded) {
-      Alert.alert('Almost ready', 'The video is still loading. Try again in a second.');
+      // Kick a fresh request instead of only apologising -- a failed load
+      // otherwise leaves this button permanently useless.
+      showRetryAd();
+      Alert.alert('Almost ready', 'The video is still loading. Try again in a few seconds.');
       return;
     }
     showRetryAd();
