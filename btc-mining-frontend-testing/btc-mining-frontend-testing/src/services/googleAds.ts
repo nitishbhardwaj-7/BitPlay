@@ -7,6 +7,7 @@ import {
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { AppState } from 'react-native';
 import { DEFAULT_ADMOB_REWARDED_ID } from './adUnitDefaults';
+import { useAdConfig } from '../providers/AdConfigProvider';
 import {
   trackAdFailedToLoad,
 } from './apptroveAnalytics';
@@ -14,7 +15,49 @@ import {
 export type RewardedVideoOptions = {
   /** AdMob rewarded from API (`rewardedVideoId`), else {@link DEFAULT_ADMOB_REWARDED_ID}. */
   primaryUnitId?: string | null;
+  /**
+   * Second demand source tried when the primary fails, defaulting to the
+   * config's `gamRewardedVideoId`. Pass null to opt a call site out.
+   */
+  fallbackUnitId?: string | null;
 };
+
+/**
+ * Google's public sample publisher. Ad units under it serve test ads to
+ * everyone and earn nothing, and showing them in a production build is an
+ * AdMob policy risk -- so they are dropped from the waterfall outside __DEV__.
+ *
+ * This is not hypothetical: the production ad config currently returns
+ * `ca-app-pub-3940256099942544/5224354917` as gamRewardedVideoId. Without this
+ * guard, adding the fallback would have started serving test ads to real users.
+ */
+const GOOGLE_SAMPLE_PUBLISHER = 'ca-app-pub-3940256099942544';
+/** Google's sample Ad Manager network. */
+const GOOGLE_SAMPLE_GAM_NETWORK = '/6499/';
+
+export function isGoogleSampleAdUnit(unitId: string): boolean {
+  return unitId.includes(GOOGLE_SAMPLE_PUBLISHER) || unitId.startsWith(GOOGLE_SAMPLE_GAM_NETWORK);
+}
+
+const warnedSampleUnits = new Set<string>();
+
+/** The units to try, in order, with sample units filtered out of release builds. */
+function buildWaterfall(primary: string, fallback?: string | null): string[] {
+  const candidates = [primary, fallback ?? ''].filter(Boolean) as string[];
+  const usable = candidates.filter(unitId => {
+    if (__DEV__ || !isGoogleSampleAdUnit(unitId)) return true;
+    if (!warnedSampleUnits.has(unitId)) {
+      warnedSampleUnits.add(unitId);
+      console.warn(
+        `[Ads] Ignoring ad unit ${unitId}: it belongs to Google's sample publisher, ` +
+        'which serves test ads and earns nothing. Fix the ad config on the server.',
+      );
+    }
+    return false;
+  });
+  // Never end up with nothing to request.
+  return usable.length > 0 ? Array.from(new Set(usable)) : [primary];
+}
 
 const initializeGoogleAds = async () => {
   await mobileAds().setRequestConfiguration({
@@ -58,7 +101,11 @@ type Subscriber = {
  * retry callbacks over.
  */
 type AdSlot = {
+  /** Identity of the slot: the primary unit id. */
   unitId: string;
+  /** Units to try in order; index resets to 0 after a successful load. */
+  units: string[];
+  unitIndex: number;
   ad: RewardedAd | null;
   loaded: boolean;
   loading: boolean;
@@ -73,14 +120,23 @@ type AdSlot = {
 
 const slots = new Map<string, AdSlot>();
 
-function getSlot(unitId: string): AdSlot {
+function getSlot(unitId: string, fallbackUnitId?: string | null): AdSlot {
   let slot = slots.get(unitId);
   if (!slot) {
     slot = {
-      unitId, ad: null, loaded: false, loading: true, retry: 0, generation: 0,
+      unitId, units: buildWaterfall(unitId, fallbackUnitId), unitIndex: 0,
+      ad: null, loaded: false, loading: true, retry: 0, generation: 0,
       timers: new Set(), unsubs: [], subs: new Set(), presenter: null,
     };
     slots.set(unitId, slot);
+  } else if (fallbackUnitId !== undefined) {
+    // The config arrives asynchronously, so the fallback may only show up on a
+    // later render than the one that created the slot.
+    const units = buildWaterfall(unitId, fallbackUnitId);
+    if (units.join('|') !== slot.units.join('|')) {
+      slot.units = units;
+      slot.unitIndex = Math.min(slot.unitIndex, units.length - 1);
+    }
   }
   return slot;
 }
@@ -118,7 +174,8 @@ function build(slot: AdSlot) {
   const generation = ++slot.generation;
   const isStale = () => slot.generation !== generation;
 
-  const ad = RewardedAd.createForAdRequest(slot.unitId);
+  const requestedUnit = slot.units[slot.unitIndex] ?? slot.unitId;
+  const ad = RewardedAd.createForAdRequest(requestedUnit);
   slot.ad = ad;
   slot.loaded = false;
   slot.loading = true;
@@ -128,6 +185,9 @@ function build(slot: AdSlot) {
     ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
       if (isStale()) return;
       slot.retry = 0;
+      // Next request starts from the top of the waterfall again, so the
+      // primary unit always gets first refusal.
+      slot.unitIndex = 0;
       slot.loaded = true;
       slot.loading = false;
       notify(slot);
@@ -156,9 +216,20 @@ function build(slot: AdSlot) {
       slot.loaded = false;
       slot.loading = false;
       notify(slot);
-      trackAdFailedToLoad(slot.unitId, String((error as any)?.code ?? 'unknown'));
-      // Keep trying. Fill often returns on its own a little later, and the
-      // alternative is a button that never works again this session.
+      trackAdFailedToLoad(requestedUnit, String((error as any)?.code ?? 'unknown'));
+
+      // Another demand source left to try: go straight to it. A no-fill on one
+      // unit says nothing about the next.
+      if (slot.unitIndex < slot.units.length - 1) {
+        slot.unitIndex += 1;
+        schedule(slot, () => build(slot), 300);
+        return;
+      }
+
+      // Whole waterfall failed. Back off and start again from the top. Fill
+      // often returns on its own a little later, and the alternative is a
+      // button that never works again this session.
+      slot.unitIndex = 0;
       const delay = RETRY_BACKOFF_MS[Math.min(slot.retry, RETRY_BACKOFF_MS.length - 1)];
       slot.retry += 1;
       schedule(slot, () => build(slot), delay);
@@ -196,6 +267,15 @@ export function useRewardedVideoAd(
     (options?.primaryUnitId && options.primaryUnitId.trim()) ||
     DEFAULT_ADMOB_REWARDED_ID;
 
+  // Read the fallback from config here rather than at each call site: there are
+  // 17 of them and they all pass the same ids, so threading it through by hand
+  // would only create chances to miss one.
+  const { ads } = useAdConfig();
+  const fallbackId =
+    options?.fallbackUnitId !== undefined
+      ? options.fallbackUnitId
+      : ads?.gamRewardedVideoId ?? null;
+
   const [, forceRender] = useState(0);
   const onRewardRef = useRef(onReward);
   onRewardRef.current = onReward;
@@ -205,7 +285,7 @@ export function useRewardedVideoAd(
 
   useEffect(() => {
     bindAppState();
-    const slot = getSlot(admobId);
+    const slot = getSlot(admobId, fallbackId);
     const sub: Subscriber = {
       onReward: (amount, type) => onRewardRef.current?.(amount, type),
       onClosed: () => onAdClosedRef.current?.(),
@@ -228,14 +308,18 @@ export function useRewardedVideoAd(
         slot.loaded = false;
         slot.loading = true;
         slot.retry = 0;
+        // Back to the top of the waterfall. Without this, a screen that had
+        // failed over to the fallback would resume there next time it mounted,
+        // and the primary (higher value) unit would stop being asked at all.
+        slot.unitIndex = 0;
       }
     };
-  }, [admobId]);
+  }, [admobId, fallbackId]);
 
-  const slot = getSlot(admobId);
+  const slot = getSlot(admobId, fallbackId);
 
   const show = useCallback(() => {
-    const current = getSlot(admobId);
+    const current = getSlot(admobId, fallbackId);
     const sub = subRef.current;
     if (!sub) return;
     if (!current.loaded || !current.ad || current.presenter) {
@@ -249,7 +333,7 @@ export function useRewardedVideoAd(
     current.loading = true;
     current.ad.show();
     notify(current);
-  }, [admobId]);
+  }, [admobId, fallbackId]);
 
   return { show, loading: slot.loading, loaded: slot.loaded };
 }

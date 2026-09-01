@@ -33,8 +33,10 @@ jest.mock('react-native-google-mobile-ads', () => {
     handlers: Record<string, Handler[]> = {};
     loadCount = 0;
     shown = 0;
-    static createForAdRequest() {
+    __unit = '';
+    static createForAdRequest(unitId: string) {
       const i = new FakeRewardedAd();
+      i.__unit = unitId;
       instances.push(i);
       return i;
     }
@@ -58,6 +60,8 @@ jest.mock('react-native-google-mobile-ads', () => {
 });
 
 jest.mock('../src/services/apptroveAnalytics', () => ({ trackAdFailedToLoad: jest.fn() }));
+let mockAdConfig: any = { gamRewardedVideoId: null };
+jest.mock('../src/providers/AdConfigProvider', () => ({ useAdConfig: () => ({ ads: mockAdConfig }) }));
 // googleAds.ts used to import navigationRef from App; mock it so this suite
 // can also run against the pre-fix version of the hook.
 jest.mock('../App', () => ({ navigationRef: { getCurrentRoute: () => ({ name: 'Test' }) } }), { virtual: true });
@@ -73,7 +77,7 @@ function Harness({ onReward, onClosed }: any) {
 let tree: renderer.ReactTestRenderer | null = null;
 const mount = (props: any = {}) => { tree = renderer.create(<Harness {...props} />); return tree; };
 
-beforeEach(() => { instances.length = 0; jest.clearAllTimers(); });
+beforeEach(() => { instances.length = 0; jest.clearAllTimers(); mockAdConfig = { gamRewardedVideoId: null }; });
 // Without this, a test's outstanding retry timers keep firing during the NEXT
 // test's advanceTimersByTime and spawn instances it never asked for.
 afterEach(() => { act(() => { tree?.unmount(); }); tree = null; jest.clearAllTimers(); });
@@ -277,4 +281,78 @@ test('the last hook unmounting releases the ad instead of churning', () => {
   const after = instances.length;
   act(() => { jest.advanceTimersByTime(300_000); });
   expect(instances.length).toBe(after);      // nothing requested in the background
+});
+
+// ---- waterfall to a second demand source -------------------------------
+
+const unitOf = (i: number) => (instances[i] as any).__unit;
+
+test('a failing primary falls straight through to the fallback unit', () => {
+  mockAdConfig = { gamRewardedVideoId: 'gam-unit' };
+  act(() => { mount(); });
+  expect(unitOf(0)).toBe('unit-1');
+
+  act(() => { latest().emit('error', { code: 'no-fill' }); });
+  // Straight to the next source -- a no-fill on one unit says nothing about
+  // the next -- so this is the short hop, not the 2s backoff.
+  act(() => { jest.advanceTimersByTime(350); });
+  expect(instances).toHaveLength(2);
+  expect(unitOf(1)).toBe('gam-unit');
+});
+
+test('when the whole waterfall fails it backs off and restarts at the primary', () => {
+  mockAdConfig = { gamRewardedVideoId: 'gam-unit' };
+  act(() => { mount(); });
+  act(() => { latest().emit('error', { code: 'no-fill' }); });
+  act(() => { jest.advanceTimersByTime(350); });
+  act(() => { latest().emit('error', { code: 'no-fill' }); });   // fallback fails too
+
+  act(() => { jest.advanceTimersByTime(1_900); });
+  expect(instances).toHaveLength(2);                              // backing off now
+  act(() => { jest.advanceTimersByTime(200); });
+  expect(instances).toHaveLength(3);
+  expect(unitOf(2)).toBe('unit-1');                               // back to the top
+});
+
+test('after a success the next request starts at the primary again', () => {
+  mockAdConfig = { gamRewardedVideoId: 'gam-unit' };
+  act(() => { mount(); });
+  act(() => { latest().emit('error', { code: 'no-fill' }); });
+  act(() => { jest.advanceTimersByTime(350); });
+  act(() => { latest().emit('rewarded_loaded'); });               // fallback filled
+  act(() => { state.show(); });
+  act(() => { latest().emit('closed'); });
+  act(() => { jest.advanceTimersByTime(600); });
+  expect(unitOf(instances.length - 1)).toBe('unit-1');
+});
+
+test("Google's sample units are refused in a release build", () => {
+  const dev = (global as any).__DEV__;
+  (global as any).__DEV__ = false;
+  mockAdConfig = { gamRewardedVideoId: 'ca-app-pub-3940256099942544/5224354917' };
+  try {
+    act(() => { mount(); });
+    act(() => { latest().emit('error', { code: 'no-fill' }); });
+    // No second source to hop to, so it must be the 2s backoff, not the 300ms hop.
+    act(() => { jest.advanceTimersByTime(350); });
+    expect(instances).toHaveLength(1);
+    act(() => { jest.advanceTimersByTime(1_700); });
+    expect(unitOf(1)).toBe('unit-1');
+  } finally {
+    (global as any).__DEV__ = dev;
+  }
+});
+
+test('sample units are still allowed in development', () => {
+  const dev = (global as any).__DEV__;
+  (global as any).__DEV__ = true;
+  mockAdConfig = { gamRewardedVideoId: 'ca-app-pub-3940256099942544/5224354917' };
+  try {
+    act(() => { mount(); });
+    act(() => { latest().emit('error', { code: 'no-fill' }); });
+    act(() => { jest.advanceTimersByTime(350); });
+    expect(unitOf(1)).toBe('ca-app-pub-3940256099942544/5224354917');
+  } finally {
+    (global as any).__DEV__ = dev;
+  }
 });
