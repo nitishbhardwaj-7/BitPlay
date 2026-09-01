@@ -343,7 +343,7 @@ const LoginScreen: React.FC<LoginScreenProps> = () => {
                   style={[styles.socialButtonSmall, styles.googleBtn]}
                   onPress={async () => {
                     try {
-                      await loginWithGoogle();
+                      const social = await loginWithGoogle();
                       // Navigation will be handled by useEffect watching authenticated state
                       // Or navigate directly after successful login
                       const user = await getUser();
@@ -351,7 +351,8 @@ const LoginScreen: React.FC<LoginScreenProps> = () => {
                         navigation.replace('ReferralScreen', {
                           token: await getSession(),
                           user: user,
-                          fromLogin: true
+                          fromLogin: true,
+                          isNewUser: social.isNewUser
                         });
                       }
                     } catch (error) {
@@ -373,7 +374,7 @@ const LoginScreen: React.FC<LoginScreenProps> = () => {
                   style={[styles.socialButtonSmall, styles.appleBtn]}
                   onPress={async () => {
                     try {
-                      await loginWithApple();
+                      const social = await loginWithApple();
                       // Navigation will be handled by useEffect watching authenticated state
                       // Or navigate directly after successful login
                       const user = await getUser();
@@ -381,7 +382,8 @@ const LoginScreen: React.FC<LoginScreenProps> = () => {
                         navigation.replace('ReferralScreen', {
                           token: await getSession(),
                           user: user,
-                          fromLogin: true
+                          fromLogin: true,
+                          isNewUser: social.isNewUser
                         });
                       }
                     } catch (error) {
@@ -405,7 +407,7 @@ const LoginScreen: React.FC<LoginScreenProps> = () => {
                   style={[styles.socialButtonWide, styles.googleBtn]}
                   onPress={async () => {
                     try {
-                      await loginWithGoogle();
+                      const social = await loginWithGoogle();
                       // Navigation will be handled by useEffect watching authenticated state
                       // Or navigate directly after successful login
                       const user = await getUser();
@@ -413,7 +415,8 @@ const LoginScreen: React.FC<LoginScreenProps> = () => {
                         navigation.replace('ReferralScreen', {
                           token: await getSession(),
                           user: user,
-                          fromLogin: true
+                          fromLogin: true,
+                          isNewUser: social.isNewUser
                         });
                       }
                     } catch (error) {

@@ -19,8 +19,8 @@ type AuthContextType = {
   /** `referralCode` is the optional code typed on the signup form. Social
    *  signups previously had no way to pass one, so every Google/Apple user
    *  was created unattributed. */
-  loginWithGoogle: (referralCode?: string) => Promise<void>;
-  loginWithApple: (referralCode?: string) => Promise<void>;
+  loginWithGoogle: (referralCode?: string) => Promise<{ isNewUser: boolean }>;
+  loginWithApple: (referralCode?: string) => Promise<{ isNewUser: boolean }>;
   updateUser: (userData: any) => Promise<void>;
 };
 
@@ -161,6 +161,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('✅ Google login successful!');
       console.log('MongoDB User ID:', mongoUserId);
       console.log('Firebase UID (for reference):', uid);
+
+      // Reported by the backend when THIS call created the account. The Login
+      // screen has no referral field, so a user invited by a friend who taps
+      // "Login with Google" would otherwise be permanently unattributable --
+      // callers use this to offer the referral prompt.
+      return { isNewUser: backendResponse.isNewUser === true };
     } catch (error: any) {
       console.error('Google login failed:', error);
       
@@ -263,6 +269,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('✅ Apple login successful!');
       console.log('MongoDB User ID:', mongoUserId);
       console.log('Apple User ID (for reference):', appleUserId || uid);
+
+      return { isNewUser: backendResponse.isNewUser === true };
     } catch (error: any) {
       console.error('Apple login failed:', error);
       

@@ -13,7 +13,7 @@ export type RootStackParamList = {
   ChangePassword: { email: string; resetToken: string };
   Main: undefined;
   TwofactorOTP: { token: string; user: any };
-  ReferralScreen: { token: string; user: any; fromLogin?: boolean };
+  ReferralScreen: { token: string; user: any; fromLogin?: boolean; isNewUser?: boolean };
   MyProfileScreen: undefined;
   UpdateEmail: undefined;
   TwoFactorScreen: undefined;

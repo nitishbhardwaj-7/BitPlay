@@ -39,8 +39,40 @@ const ReferralScreen: React.FC<ReferralScreenProps> = () => {
   const route = useRoute();
 
   // Safely extract route params with fallbacks
-  const routeParams = route.params as { token?: string; user?: any; fromLogin?: boolean } | undefined;
-  const { token = '', user = null, fromLogin = false } = routeParams || {};
+  const routeParams = route.params as { token?: string; user?: any; fromLogin?: boolean; isNewUser?: boolean } | undefined;
+  const { token = '', user = null, fromLogin = false, isNewUser = false } = routeParams || {};
+
+  // A social sign-in that CREATED the account had no chance to supply a
+  // referral code: the Login screen has no such field, so anyone invited by a
+  // friend who tapped "Login with Google" was permanently unattributable.
+  // Offer the code here instead. The backend applies it write-once.
+  const [inviteCode, setInviteCode] = useState('');
+  const [claiming, setClaiming] = useState(false);
+  const [claimed, setClaimed] = useState(false);
+  const [claimError, setClaimError] = useState('');
+
+  const applyInviteCode = async () => {
+    const code = inviteCode.trim();
+    if (!code) { setClaimError('Enter the code your friend gave you.'); return; }
+    setClaiming(true);
+    setClaimError('');
+    try {
+      const res = await apiRequest(API_ENDPOINTS.REFERRAL_CLAIM, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: JSON.stringify({ referral_code: code.toLowerCase() }),
+      });
+      if (res?.success) {
+        setClaimed(true);
+      } else {
+        setClaimError(res?.message || 'Could not apply that code.');
+      }
+    } catch (e: any) {
+      setClaimError(e?.message || 'Could not apply that code.');
+    } finally {
+      setClaiming(false);
+    }
+  };
 
 
   type ReferralScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
@@ -180,6 +212,40 @@ const ReferralScreen: React.FC<ReferralScreenProps> = () => {
                   <Text style={styles.tapToCopy}>Tap to copy</Text>
                 </LinearGradient>
               </TouchableOpacity>
+
+              {isNewUser && !claimed && (
+                <View style={styles.claimBox}>
+                  <Text style={styles.claimTitle}>Were you invited?</Text>
+                  <Text style={styles.claimBody}>
+                    Enter your friend's code and they'll earn 5% of what you mine.
+                  </Text>
+                  <TextInput
+                    style={styles.claimInput}
+                    placeholder="INVITE CODE"
+                    placeholderTextColor="#7A8699"
+                    value={inviteCode}
+                    onChangeText={t => { setInviteCode(t); if (claimError) setClaimError(''); }}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    maxLength={12}
+                  />
+                  {claimError ? <Text style={styles.claimError}>{claimError}</Text> : null}
+                  <TouchableOpacity
+                    onPress={applyInviteCode}
+                    disabled={claiming}
+                    activeOpacity={0.85}
+                    style={styles.claimBtn}
+                  >
+                    <Text style={styles.claimBtnText}>{claiming ? 'Applying...' : 'Apply Code'}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {claimed && (
+                <View style={styles.claimDone}>
+                  <Text style={styles.claimDoneText}>Invite code applied</Text>
+                </View>
+              )}
 
               {/* Invite Section */}
               <TouchableOpacity
@@ -387,6 +453,48 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 
+  claimBox: {
+    width: '100%',
+    marginTop: 18,
+    padding: 16,
+    borderRadius: 15,
+    backgroundColor: '#1B202CAA',
+    borderWidth: 1,
+    borderColor: '#2E3646',
+  },
+  claimTitle: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  claimBody: { color: '#9AA6B8', fontSize: 12.5, marginTop: 4, marginBottom: 12, lineHeight: 17 },
+  claimInput: {
+    height: 46,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    color: '#fff',
+    fontSize: 16,
+    letterSpacing: 2,
+    backgroundColor: '#11151E',
+    borderWidth: 1,
+    borderColor: '#2E3646',
+  },
+  claimError: { color: '#FF8A8A', fontSize: 12, marginTop: 8 },
+  claimBtn: {
+    marginTop: 12,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#2ACFEF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  claimBtnText: { color: '#0B1220', fontSize: 14, fontWeight: '800' },
+  claimDone: {
+    width: '100%',
+    marginTop: 18,
+    padding: 14,
+    borderRadius: 15,
+    backgroundColor: 'rgba(34,197,94,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(74,222,128,0.4)',
+  },
+  claimDoneText: { color: '#DCFCE7', fontSize: 13.5, fontWeight: '700', textAlign: 'center' },
   skipButton: {
     borderRadius: 70,
     marginTop: 20,

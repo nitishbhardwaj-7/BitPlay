@@ -425,6 +425,7 @@ exports.socialLogin = async (req, res, next) => {
 
     // Check if user already exists with this email
     let user = await User.findOne({ email });
+    const isNewUser = !user;
 
     if (user) {
       // User exists, update social provider info if not already set
@@ -478,7 +479,9 @@ exports.socialLogin = async (req, res, next) => {
       });
     }
 
-    sendTokenResponse(user, 200, res);
+    // isNewUser lets the app offer a referral code to someone who signed up
+    // through the Login screen, which has no referral field of its own.
+    sendTokenResponse(user, 200, res, { isNewUser });
   } catch (error) {
     console.error('Social login error:', error);
     res.status(500).json({
@@ -976,5 +979,50 @@ exports.VerifyTwoFaOTP = async (req, res, next) => {
       success: false,
       message: 'Server error'
     });
+  }
+};
+
+// @desc    Attach a referrer to an account that does not have one yet
+// @route   POST /api/auth/referral/claim
+// @access  Private
+exports.claimReferral = async (req, res) => {
+  try {
+    const { referral_code } = req.body;
+    const code = String(referral_code ?? '').trim();
+
+    if (!code) {
+      return res.status(400).json({ success: false, message: 'Referral code is required' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Write-once. Without this, a user could re-point their referrer at will
+    // and move a recurring 5%/day payout between accounts.
+    const alreadySet = user.referralUsed && String(user.referralUsed).trim().toLowerCase() !== 'null';
+    if (alreadySet) {
+      return res.status(409).json({ success: false, message: 'A referral code has already been applied to this account.' });
+    }
+
+    const referringUser = await User.findOne({
+      referralCode: { $regex: `^${escapeRegex(code)}$`, $options: 'i' }
+    });
+    if (!referringUser) {
+      return res.status(400).json({ success: false, message: 'Invalid referral code. Please check the code and try again.' });
+    }
+
+    if (String(referringUser._id) === String(user._id)) {
+      return res.status(400).json({ success: false, message: 'You cannot use your own referral code.' });
+    }
+
+    user.referralUsed = code;
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json({ success: true, message: 'Referral code applied.', referralUsed: code });
+  } catch (error) {
+    console.error('Claim referral error:', error);
+    return res.status(500).json({ success: false, message: 'Server error while applying referral code' });
   }
 };

@@ -44,7 +44,7 @@ async function assignMissingReferralCode(userId) {
 }
 
 // Get token from model, create cookie and send response
-const sendTokenResponse = async (user, statusCode, res) => {
+const sendTokenResponse = async (user, statusCode, res, extra = {}) => {
   try {
     // Create token
     const token = user.getSignedJwtToken();
@@ -79,6 +79,7 @@ const sendTokenResponse = async (user, statusCode, res) => {
       .json({
         success: true,
         token,
+        ...extra,
         user: {
           id: user._id,
           name: user.name,

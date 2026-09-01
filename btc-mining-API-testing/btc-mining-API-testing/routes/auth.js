@@ -14,7 +14,8 @@ const {
   updateemailotp,
   updateemail,
   TwoFactorOTP,
-  VerifyTwoFaOTP
+  VerifyTwoFaOTP,
+  claimReferral
 } = require('../controllers/authController');
 
 
@@ -65,6 +66,7 @@ router.post('/verify-twofactorotp', VerifyTwoFaOTP);
 // Protected routes
 router.put('/update-profile', auth, updateProfile);
 router.get('/me', auth, getMe);
+router.post('/referral/claim', auth, claimReferral);
 router.get('/logout', auth, logout);
 
 module.exports = router;

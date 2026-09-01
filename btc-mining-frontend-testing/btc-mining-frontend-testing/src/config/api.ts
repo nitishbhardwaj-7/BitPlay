@@ -217,6 +217,7 @@ export const API_ENDPOINTS = {
   REFERRALS: '/api/referrals',
   SOCIAL_LOGIN: '/api/auth/social-login',
   ME: '/api/auth/me',
+  REFERRAL_CLAIM: '/api/auth/referral/claim',
   UPDATE_PROFILE: '/api/auth/update-profile',
   UPLOAD_PROFILE_IMAGE: '/api/profile-image/upload',
   GET_PROFILE_IMAGE: '/api/profile-image',

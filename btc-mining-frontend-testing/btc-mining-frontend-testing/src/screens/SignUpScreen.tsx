@@ -302,14 +302,15 @@ const SignUpScreen: React.FC<SignUpScreenProps> = () => {
                     style={[styles.socialButtonSmall, styles.googleBtn]}
                     onPress={async () => {
                       try {
-                        await loginWithGoogle(referral_code);
+                        const social = await loginWithGoogle(referral_code);
                         // Navigate after successful login
                         const user = await getUser();
                         if (user) {
                           navigation.replace('ReferralScreen', {
                             token: await getSession(),
                             user: user,
-                            fromLogin: false
+                            fromLogin: false,
+                            isNewUser: social.isNewUser
                           });
                         }
                       } catch (error) {
@@ -331,14 +332,15 @@ const SignUpScreen: React.FC<SignUpScreenProps> = () => {
                     style={[styles.socialButtonSmall, styles.appleBtn]}
                     onPress={async () => {
                       try {
-                        await loginWithApple(referral_code);
+                        const social = await loginWithApple(referral_code);
                         // Navigate after successful login
                         const user = await getUser();
                         if (user) {
                           navigation.replace('ReferralScreen', {
                             token: await getSession(),
                             user: user,
-                            fromLogin: false
+                            fromLogin: false,
+                            isNewUser: social.isNewUser
                           });
                         }
                       } catch (error) {
@@ -362,14 +364,15 @@ const SignUpScreen: React.FC<SignUpScreenProps> = () => {
                     style={[styles.socialButtonWide, styles.googleBtn, styles.marginbottom]}
                     onPress={async () => {
                       try {
-                        await loginWithGoogle(referral_code);
+                        const social = await loginWithGoogle(referral_code);
                         // Navigate after successful login
                         const user = await getUser();
                         if (user) {
                           navigation.replace('ReferralScreen', {
                             token: await getSession(),
                             user: user,
-                            fromLogin: false
+                            fromLogin: false,
+                            isNewUser: social.isNewUser
                           });
                         }
                       } catch (error) {
