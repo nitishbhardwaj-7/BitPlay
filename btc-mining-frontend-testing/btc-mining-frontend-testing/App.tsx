@@ -92,6 +92,7 @@ import ForceUpdateModal from './src/components/ForceUpdateModal';
 import { checkForceUpdate, type ForceUpdateResult } from './src/services/versionCheckService';
 import { initializeGoogleAds } from './src/services/googleAds';
 import ApptroveDebugScreen from './src/screens/ApptroveDebugScreen';
+import { startReferralLinkCapture } from './src/utils/referralLink';
 
 const RootStack = createStackNavigator<RootStackParamList>();
 
@@ -206,6 +207,11 @@ const AppNavigator = () => {
 
 const App = () => {
   const isDarkMode = useColorScheme() === 'dark';
+
+  // Capture a referral code from an incoming link (bitplaypro://?ref=CODE, or
+  // the https invite link once app links are verified) and hold it until the
+  // signup form can use it.
+  useEffect(() => startReferralLinkCapture(), []);
 
   useEffect(() => {
 

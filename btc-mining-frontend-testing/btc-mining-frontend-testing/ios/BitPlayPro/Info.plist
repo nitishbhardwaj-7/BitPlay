@@ -32,6 +32,16 @@
 				<string>com.googleusercontent.apps.1063839909090-tuitpjcj2lj0qgutd2pfa9d7ttarjd43</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.bitplaypro.bitplaypro.referral</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>bitplaypro</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>

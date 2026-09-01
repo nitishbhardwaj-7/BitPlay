@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../components/types';
 import LinearGradient from 'react-native-linear-gradient';
 import { apiRequest, API_ENDPOINTS } from '../config/api';
+import { getPendingReferralCode, clearPendingReferralCode } from '../utils/referralLink';
 import { Image } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { getUser, getSession } from '../auth/auth';
@@ -35,6 +36,13 @@ const SignUpScreen: React.FC<SignUpScreenProps> = () => {
 
   const [referral_code, setReferral] = useState('');
   const [referralError, setReferralError] = useState('');
+
+  // Prefill from an invite link, so the invitee does not have to retype a code
+  // they were already sent. Left editable, and cleared once used.
+  useEffect(() => {
+    const pending = getPendingReferralCode();
+    if (pending) setReferral(pending);
+  }, []);
 
   const [password, setPassword] = useState('');
   const [nameError, setNameError] = useState('');
@@ -114,6 +122,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = () => {
       setIsLoading(false);
 
       if (data.success) {
+        clearPendingReferralCode(); // consumed -- do not prefill a later signup
         trackSignupCompleted(String(data.user?.id ?? ''), 'email');
         Alert.alert('Success', 'Account created successfully! Please verify your email.', [
           {

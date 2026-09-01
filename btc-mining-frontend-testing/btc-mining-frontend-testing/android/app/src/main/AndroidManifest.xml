@@ -52,6 +52,20 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Referral / invite links: bitplaypro://?ref=CODE
+                 A custom scheme deliberately, not the https invite URL: an
+                 https intent-filter only opens the app once assetlinks.json is
+                 hosted at bitplaypro.com/.well-known/, and until then it just
+                 adds a chooser dialog when browsing the site. launchMode is
+                 already singleTask, so an incoming link reaches the running
+                 app through onNewIntent. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="bitplaypro" />
+            </intent-filter>
         </activity>
 
         <!-- Facebook SDK -->
