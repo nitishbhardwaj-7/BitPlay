@@ -201,10 +201,15 @@ export default function MemoryCardMatchScreen() {
     if (!won || claimed || claiming) return;
     setClaiming(true);
     try {
+      // `user.userId` is never set anywhere in the app, so this always sent
+      // user_id: undefined -- JSON.stringify drops the key entirely and the
+      // backend recorded nothing. The local addHashPower fallback below is why
+      // it looked like it worked. Every other game uses `user.id` (see
+      // useGameReward), which is the Mongo _id.
       const res = await fetch(get_data_uri('USERMININGDETAILS'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user?.userId, hashpower: WIN_REWARD_GH, offset: new Date().getTimezoneOffset() }),
+        body: JSON.stringify({ user_id: user?.id, hashpower: WIN_REWARD_GH, offset: new Date().getTimezoneOffset() }),
       });
       const data = await res.json().catch(() => null);
       if (data?.success && data?.mining_details) {
