@@ -9,6 +9,7 @@ import {
   Share,
   Linking,
   Platform,
+  ScrollView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -77,6 +78,17 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Icon name="close" size={24} color="#666" />
           </TouchableOpacity>
+
+          {/* Scrollable: modalContent is capped at 85% of the screen, and on a
+              small device (320x640) everything below the gradient -- invitation
+              code, store buttons, QR -- fell outside that cap with no way to
+              reach it, so the user could not see or scan their own QR. */}
+          <ScrollView
+            style={styles.modalScroll}
+            contentContainerStyle={styles.modalScrollContent}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
 
           {/* Top Blue Section */}
           <LinearGradient
@@ -155,7 +167,14 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
               {/* Left: Code */}
               <View style={styles.codeSection}>
                 <Text style={styles.codeLabel}>My invitation code</Text>
-                <Text style={styles.codeValue}>{referralCode}</Text>
+                <Text
+                  style={styles.codeValue}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.6}
+                >
+                  {referralCode}
+                </Text>
                 {/* Store Icons Horizontal */}
                 <View style={styles.storeIconsRow}>
                   <TouchableOpacity onPress={openAppStore}>
@@ -183,6 +202,8 @@ const InviteFriendsModal: React.FC<InviteFriendsModalProps> = ({
               </View>
             </View>
           </View>
+
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -203,6 +224,15 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
+  },
+  modalScroll: {
+    width: '100%',
+  },
+  modalScrollContent: {
+    // No flexGrow: the sheet should hug its content and only scroll once it
+    // hits modalContent's 85% cap, otherwise it stretches and leaves a band of
+    // empty white below the QR.
+    paddingBottom: 12,
   },
   closeButton: {
     position: 'absolute',
