@@ -85,6 +85,7 @@ import CrashCashOutScreen from './src/screens/CrashCashOutScreen';
 import CryptoQuizScreen from './src/screens/CryptoQuizScreen';
 import ColorClashScreen from './src/screens/ColorClashScreen';
 import SwipeSortScreen from './src/screens/SwipeSortScreen';
+import NewsScreen from './src/screens/NewsScreen';
 import GameErrorBoundary from './src/components/GameErrorBoundary';
 import GameZoneScreen from './src/screens/GameZoneScreen';
 import SuperPrivilegesScreen from './src/screens/SuperPrivilegesScreen';
@@ -173,6 +174,7 @@ const AppNavigator = () => {
           <RootStack.Screen name="CryptoQuiz">{() => <GameErrorBoundary><CryptoQuizScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="ColorClash">{() => <GameErrorBoundary><ColorClashScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="SwipeSort">{() => <GameErrorBoundary><SwipeSortScreen /></GameErrorBoundary>}</RootStack.Screen>
+          <RootStack.Screen name="NewsScreen" component={NewsScreen} />
           <RootStack.Screen name="GameZone">{() => <GameErrorBoundary><GameZoneScreen /></GameErrorBoundary>}</RootStack.Screen>
           <RootStack.Screen name="ApptroveDebug" component={ApptroveDebugScreen} />
           <RootStack.Screen name="SuperPrivileges" component={SuperPrivilegesScreen} />

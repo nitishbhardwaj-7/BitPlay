@@ -2339,6 +2339,28 @@ const Page: React.FC = () => {
           </Pressable>
         </View>
 
+        {/* Crypto News — same entry pattern as Explore GameZone */}
+        <View style={styles.newsSection}>
+          <View style={styles.newsRow}>
+            <View style={styles.newsIconBadge}>
+              <Text style={styles.newsIconGlyph}>📰</Text>
+            </View>
+            <View style={styles.newsCopy}>
+              <Text style={styles.newsTitle}>Crypto News</Text>
+              <Text style={styles.newsHint} numberOfLines={2}>
+                Today's Bitcoin headlines, updated through the day
+              </Text>
+            </View>
+          </View>
+          <Pressable
+            onPress={() => navigation.navigate('NewsScreen' as any)}
+            android_ripple={{ color: 'rgba(34, 211, 238, 0.3)', borderless: false }}
+            style={({ pressed }) => [styles.exploreGameZoneBtn, pressed && { opacity: 0.8 }]}
+          >
+            <Text style={styles.exploreGameZoneBtnText}>📰 Read the News</Text>
+          </Pressable>
+        </View>
+
         <View style={styles.dailyRewardSection}>
           <View style={styles.dailyRewardContainer}>
             {/* Left Icon */}
@@ -2943,6 +2965,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 14,
   },
+  newsSection: {
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 16,
+    marginTop: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(34, 211, 238, 0.35)',
+    backgroundColor: '#0B111D',
+  },
+  newsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  newsIconBadge: {
+    width: 44, height: 44, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(34, 211, 238, 0.12)',
+    borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.28)',
+  },
+  newsIconGlyph: { fontSize: 22 },
+  newsCopy: { flex: 1, marginLeft: 12 },
+  newsTitle: { color: '#F1F5F9', fontSize: 15, fontWeight: '800' },
+  newsHint: { color: '#94A3B8', fontSize: 12, marginTop: 2, lineHeight: 16 },
   exploreGameZoneBtn: {
     marginTop: 8,
     backgroundColor: 'rgba(34, 211, 238, 0.12)',

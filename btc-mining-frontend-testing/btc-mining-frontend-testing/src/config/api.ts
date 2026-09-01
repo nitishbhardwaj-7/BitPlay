@@ -127,6 +127,7 @@ export const DATA_ENDPOINTS = {
   CUSTOM_NOTIFICATION: '/api/firebase_tokens/custom-notification',
   PROCESS_SPEED_TRANSACTION: '/api/lightning-handles/pay-invoice',
   GOOGLE_ADS_IDS: '/api/google-ads/ids',
+  NEWS: '/api/news',
   GET_WITHDRAWAL_LIMITS: '/api/withdrawals/limits',
   DELETE_REQ: '/api/delete-handles/create',
   TWOFACTORSTATUS: '/api/security/2fa-status',
