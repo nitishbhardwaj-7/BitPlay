@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Dimensions, Image, Linking, TouchableOpacity } from 'react-native';
 import { BannerAdSize } from 'react-native-google-mobile-ads';
+import { BANNER_ADS_ENABLED } from '../../config/adPlacements';
 import { BannerAdWithGamFallback } from './BannerAdWithGamFallback';
 
 /** How long the static house banner stays up before retrying the real ad. */
@@ -40,6 +41,10 @@ export function BannerAdSlot({ unitId, size = BannerAdSize.ADAPTIVE_BANNER }: Ba
     const timer = setTimeout(() => setShowFallback(false), FALLBACK_HOLD_MS);
     return () => clearTimeout(timer);
   }, [showFallback]);
+
+  // Banners are switched off app-wide; see config/adPlacements. Placed below
+  // the hooks so hook order stays identical whichever way the flag is set.
+  if (!BANNER_ADS_ENABLED) return null;
 
   if (showFallback) {
     return (

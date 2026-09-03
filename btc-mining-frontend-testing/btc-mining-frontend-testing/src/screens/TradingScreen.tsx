@@ -6,6 +6,7 @@ import React, {
   useState,
 } from 'react';
 import BitPlayLoader from '../components/BitPlayLoader';
+import { BANNER_ADS_ENABLED } from '../config/adPlacements';
 import {
   Alert,
   View,
@@ -831,12 +832,14 @@ export default function TradingScreen() {
         {/* Top banner ad — same placement as GameZoneScreen: directly below
             the header and outside the ScrollView, so it renders reliably and
             never scrolls away. */}
-        <View style={styles.bannerTop}>
-          <BannerAdWithGamFallback
-            primaryUnitId={ads.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID}
-            size={BannerAdSize.ADAPTIVE_BANNER}
-          />
-        </View>
+        {BANNER_ADS_ENABLED && (
+          <View style={styles.bannerTop}>
+            <BannerAdWithGamFallback
+              primaryUnitId={ads.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID}
+              size={BannerAdSize.ADAPTIVE_BANNER}
+            />
+          </View>
+        )}
 
         {!tradeActive ? (
           /* ─── IDLE STATE: Main question screen ─── */

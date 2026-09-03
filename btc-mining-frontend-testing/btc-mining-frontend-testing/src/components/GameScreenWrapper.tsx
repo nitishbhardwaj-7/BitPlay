@@ -1,4 +1,5 @@
 import React from 'react';
+import { BANNER_ADS_ENABLED } from '../config/adPlacements';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar, ScrollView,
 } from 'react-native';
@@ -65,9 +66,11 @@ export default function GameScreenWrapper({
         </View>
 
         {/* Top banner ad — loads immediately, skeleton shown until ready */}
-        <View style={styles.topBannerWrap}>
-          <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.BANNER} />
-        </View>
+        {BANNER_ADS_ENABLED && (
+          <View style={styles.topBannerWrap}>
+            <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.BANNER} />
+          </View>
+        )}
 
         {/* Game content */}
         {scrollable ? (
@@ -97,9 +100,11 @@ export default function GameScreenWrapper({
         )}
 
         {/* Bottom banner ad pinned above safe area */}
-        <View style={[styles.bannerWrap, { paddingBottom: insets.bottom || 8 }]}>
-          <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
-        </View>
+        {BANNER_ADS_ENABLED && (
+          <View style={[styles.bannerWrap, { paddingBottom: insets.bottom || 8 }]}>
+            <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
+          </View>
+        )}
       </SafeAreaView>
     </LinearGradient>
   );

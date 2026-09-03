@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BANNER_ADS_ENABLED } from '../config/adPlacements';
 import BitPlayLoader from '../components/BitPlayLoader';
 import {
   View,
@@ -423,12 +424,14 @@ const MyMiner = () => {
       </ScrollView>
 
       {/* Ad Banner */}
-      <View style={styles.bannerContainer}>
-        <BannerAdWithGamFallback
-          primaryUnitId={ads.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID}
-          size={BannerAdSize.FULL_BANNER}
-        />
-      </View>
+      {BANNER_ADS_ENABLED && (
+        <View style={styles.bannerContainer}>
+          <BannerAdWithGamFallback
+            primaryUnitId={ads.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID}
+            size={BannerAdSize.FULL_BANNER}
+          />
+        </View>
+      )}
     </View>
   );
 };

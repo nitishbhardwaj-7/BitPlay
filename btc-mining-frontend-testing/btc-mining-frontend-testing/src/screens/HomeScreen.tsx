@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { BANNER_ADS_ENABLED } from '../config/adPlacements';
 import BitPlayLoader from '../components/BitPlayLoader';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -2768,6 +2769,7 @@ const Page: React.FC = () => {
         referralCount={user_referrals}
       />
 
+      {BANNER_ADS_ENABLED && (
       <View style={styles.bannerWrapper}>
         <View style={styles.bannerContainer}>
           {bannerAdError ? (
@@ -2789,6 +2791,7 @@ const Page: React.FC = () => {
           )}
         </View>
       </View>
+      )}
     </SafeAreaView>
   );
 };

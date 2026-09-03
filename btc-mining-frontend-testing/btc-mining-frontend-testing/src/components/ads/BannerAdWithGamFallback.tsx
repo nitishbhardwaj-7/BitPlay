@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+import { BANNER_ADS_ENABLED } from '../../config/adPlacements';
 
 export type BannerAdWithGamFallbackProps = {
   primaryUnitId: string;
@@ -31,6 +32,8 @@ export function BannerAdWithGamFallback({
   onAdFailedToLoad,
   onAllFailed,
 }: BannerAdWithGamFallbackProps) {
+  // Screens that use this component directly must go dark too, not just the
+  // ones going through BannerAdSlot.
   const [adState, setAdState] = useState<'loading' | 'loaded' | 'failed'>('loading');
   // Bumping this remounts <BannerAd/>, which is what actually issues a fresh
   // ad request -- calling load() again on the same instance is not exposed.
@@ -82,6 +85,10 @@ export function BannerAdWithGamFallback({
 
   // Collapse the slot while failed so it never leaves an empty gap; a pending
   // retry will flip this back to 'loading' and re-render the ad.
+  // Banners are switched off app-wide; see config/adPlacements. Below the
+  // hooks so hook order is identical whichever way the flag is set.
+  if (!BANNER_ADS_ENABLED) return null;
+
   if (adState === 'failed') return null;
 
   return (

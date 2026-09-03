@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { BANNER_ADS_ENABLED } from '../config/adPlacements';
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl,
   TouchableOpacity, StatusBar, LayoutAnimation, Platform, UIManager,
@@ -45,7 +46,7 @@ function buildRows(items: NewsItem[], locked: boolean): Row[] {
   const rows: Row[] = [];
   items.forEach((item, index) => {
     rows.push({ kind: 'news', item });
-    if ((index + 1) % AD_EVERY === 0 && index !== items.length - 1) {
+    if (BANNER_ADS_ENABLED && (index + 1) % AD_EVERY === 0 && index !== items.length - 1) {
       rows.push({ kind: 'ad', key: `ad-${index}` });
     }
   });
@@ -218,9 +219,11 @@ export default function NewsScreen() {
           <View style={s.rightSlot} />
         </View>
 
-        <View style={s.topBanner}>
-          <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.BANNER} />
-        </View>
+        {BANNER_ADS_ENABLED && (
+          <View style={s.topBanner}>
+            <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.BANNER} />
+          </View>
+        )}
 
         {loading ? (
           <View style={s.center}>
@@ -260,9 +263,11 @@ export default function NewsScreen() {
           />
         )}
 
-        <View style={s.bottomBanner}>
-          <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.BANNER} />
-        </View>
+        {BANNER_ADS_ENABLED && (
+          <View style={s.bottomBanner}>
+            <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.BANNER} />
+          </View>
+        )}
       </SafeAreaView>
     </LinearGradient>
   );

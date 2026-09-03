@@ -12,6 +12,7 @@ import {
   Image,
 } from 'react-native';
 import React, { useCallback, useEffect, useState } from 'react';
+import { BANNER_ADS_ENABLED } from '../config/adPlacements';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BalanceCard from '../components/NewWallet/BalanceCard';
 import { useAuth } from '../auth/AuthProvider';
@@ -234,9 +235,11 @@ const WalletNewScreen = () => {
 
       {/* Top banner ad — same placement as GameZoneScreen: above the
           ScrollView so it renders reliably and never scrolls away. */}
-      <View style={styles.bannerTop}>
-        <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
-      </View>
+      {BANNER_ADS_ENABLED && (
+        <View style={styles.bannerTop}>
+          <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
+        </View>
+      )}
 
       <ScrollView
         refreshControl={
@@ -291,9 +294,11 @@ const WalletNewScreen = () => {
       {/* Fixed bottom banner ad — absolutely pinned, mirroring
           GameZoneScreen. Content padding above is driven by this View's own
           measured height via onLayout. */}
-      <View style={styles.bottomBannerWrap} onLayout={onBottomBarLayout}>
-        <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
-      </View>
+      {BANNER_ADS_ENABLED && (
+        <View style={styles.bottomBannerWrap} onLayout={onBottomBarLayout}>
+          <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
+        </View>
+      )}
 
       {methodModal && (
         <View style={styles.modalWrapper}>

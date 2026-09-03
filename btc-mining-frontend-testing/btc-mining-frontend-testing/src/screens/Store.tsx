@@ -1,4 +1,5 @@
 import { StackNavigationProp } from '@react-navigation/stack';
+import { BANNER_ADS_ENABLED } from '../config/adPlacements';
 import BitPlayLoader from '../components/BitPlayLoader';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -644,9 +645,11 @@ const StoreScreen = () => {
       {/* Top banner ad — same placement as GameZoneScreen: directly below the
           header and outside the ScrollView, so it renders reliably and never
           scrolls away. */}
-      <View style={styles.bannerTop}>
-        <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
-      </View>
+      {BANNER_ADS_ENABLED && (
+        <View style={styles.bannerTop}>
+          <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
+        </View>
+      )}
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.contentContainer}>
         {/* Mining power first */}
@@ -842,9 +845,11 @@ const StoreScreen = () => {
       {/* Bottom banner ad — a plain flex sibling (not absolutely pinned) so
           it stacks *below* the conditional purchase panel above rather than
           covering the Mint button when a plan is selected. */}
-      <View style={styles.bottomBannerWrap}>
-        <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
-      </View>
+      {BANNER_ADS_ENABLED && (
+        <View style={styles.bottomBannerWrap}>
+          <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
+        </View>
+      )}
     </View>
   );
 };

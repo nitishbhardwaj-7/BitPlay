@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { BANNER_ADS_ENABLED } from '../config/adPlacements';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, Animated, Dimensions, Image, NativeSyntheticEvent, NativeScrollEvent,
@@ -271,9 +272,11 @@ export default function GameZoneScreen() {
         </Animated.View>
 
         {/* Banner Ad below header, outside ScrollView for reliable rendering */}
-        <View style={styles.bannerTop}>
-          <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
-        </View>
+        {BANNER_ADS_ENABLED && (
+          <View style={styles.bannerTop}>
+            <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
+          </View>
+        )}
 
         <ScrollView
           style={{ flex: 1 }}
@@ -517,9 +520,11 @@ export default function GameZoneScreen() {
             already accounts for it since we no longer exclude the bottom
             edge). Reserved-content padding above is driven by this View's
             own measured height via onLayout. */}
-        <View style={styles.bottomBannerWrap} onLayout={onBottomBarLayout}>
-          <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
-        </View>
+        {BANNER_ADS_ENABLED && (
+          <View style={styles.bottomBannerWrap} onLayout={onBottomBarLayout}>
+            <BannerAdSlot unitId={bannerUnitId} size={BannerAdSize.ADAPTIVE_BANNER} />
+          </View>
+        )}
       </SafeAreaView>
     </View>
   );
