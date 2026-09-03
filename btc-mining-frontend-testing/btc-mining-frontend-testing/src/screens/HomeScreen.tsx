@@ -2344,7 +2344,7 @@ const Page: React.FC = () => {
         <View style={styles.newsSection}>
           <View style={styles.newsRow}>
             <View style={styles.newsIconBadge}>
-              <Text style={styles.newsIconGlyph}>📰</Text>
+              <Icon name="newspaper-variant-outline" size={22} color="#18D4F2" />
             </View>
             <View style={styles.newsCopy}>
               <Text style={styles.newsTitle}>Crypto News</Text>
@@ -2358,7 +2358,10 @@ const Page: React.FC = () => {
             android_ripple={{ color: 'rgba(34, 211, 238, 0.3)', borderless: false }}
             style={({ pressed }) => [styles.exploreGameZoneBtn, pressed && { opacity: 0.8 }]}
           >
-            <Text style={styles.exploreGameZoneBtnText}>📰 Read the News</Text>
+            <View style={styles.newsBtnInner}>
+              <Icon name="newspaper-variant-outline" size={16} color="#18D4F2" />
+              <Text style={styles.exploreGameZoneBtnText}>Read the News</Text>
+            </View>
           </Pressable>
         </View>
 
@@ -2985,7 +2988,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(34, 211, 238, 0.12)',
     borderWidth: 1, borderColor: 'rgba(34, 211, 238, 0.28)',
   },
-  newsIconGlyph: { fontSize: 22 },
+  newsBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   newsCopy: { flex: 1, marginLeft: 12 },
   newsTitle: { color: '#F1F5F9', fontSize: 15, fontWeight: '800' },
   newsHint: { color: '#94A3B8', fontSize: 12, marginTop: 2, lineHeight: 16 },
