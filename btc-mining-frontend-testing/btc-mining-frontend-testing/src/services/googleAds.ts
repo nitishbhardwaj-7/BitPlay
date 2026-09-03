@@ -80,6 +80,18 @@ const RETRY_BACKOFF_MS = [2_000, 5_000, 15_000, 30_000, 60_000];
 /** If a load neither succeeds nor errors within this, rebuild the request. */
 const LOAD_WATCHDOG_MS = 45_000;
 
+/**
+ * Google documents rewarded/interstitial ads as expiring roughly 1 hour after
+ * they finish loading -- calling show() past that point fails silently at the
+ * native layer (fires AdEventType.ERROR, no impression). A slot can easily
+ * sit "loaded" that long: it's shared across every screen that wants the
+ * unit and only rebuilds when a subscriber actually calls show() or the app
+ * backgrounds/foregrounds, so a user who loads Home and doesn't tap "watch
+ * ad" for a while would otherwise hit an ad that looks ready but isn't.
+ * Refresh a bit ahead of the real expiry as a safety margin.
+ */
+const AD_FRESHNESS_MS = 50 * 60 * 1000;
+
 type Subscriber = {
   onReward?: (amount: number, type: string) => void;
   onClosed?: () => void;
@@ -108,6 +120,8 @@ type AdSlot = {
   unitIndex: number;
   ad: RewardedAd | null;
   loaded: boolean;
+  /** When the current `ad` fired LOADED, for the expiry check in show(). */
+  loadedAt: number | null;
   loading: boolean;
   retry: number;
   /** Bumped on every rebuild so a stale instance's events are ignored. */
@@ -125,7 +139,7 @@ function getSlot(unitId: string, fallbackUnitId?: string | null): AdSlot {
   if (!slot) {
     slot = {
       unitId, units: buildWaterfall(unitId, fallbackUnitId), unitIndex: 0,
-      ad: null, loaded: false, loading: true, retry: 0, generation: 0,
+      ad: null, loaded: false, loadedAt: null, loading: true, retry: 0, generation: 0,
       timers: new Set(), unsubs: [], subs: new Set(), presenter: null,
     };
     slots.set(unitId, slot);
@@ -189,6 +203,7 @@ function build(slot: AdSlot) {
       // primary unit always gets first refusal.
       slot.unitIndex = 0;
       slot.loaded = true;
+      slot.loadedAt = Date.now();
       slot.loading = false;
       notify(slot);
     }),
@@ -201,6 +216,7 @@ function build(slot: AdSlot) {
       const presenter = slot.presenter;
       slot.presenter = null;
       slot.loaded = false;
+      slot.loadedAt = null;
       slot.loading = true;
       notify(slot);
       presenter?.onClosed?.();
@@ -213,9 +229,24 @@ function build(slot: AdSlot) {
     }),
     ad.addAdEventListener(AdEventType.ERROR, error => {
       if (isStale()) return;
+      // This fires for a show()-time failure (e.g. the ad expired while
+      // sitting loaded -- Google docs it at ~1hr) exactly the same as a
+      // load-time failure; the SDK doesn't distinguish them. Previously
+      // `presenter` was only ever cleared on CLOSED, so a show-time error
+      // left it stuck set: show() then treats the slot as "already showing"
+      // forever and just silently rebuilds instead of ever showing an ad
+      // again, for the rest of that screen's mount -- a user hitting this
+      // would see the button do nothing on every subsequent tap. Tell
+      // whoever was presenting (if anyone) that this attempt is over so
+      // their loading state clears instead of spinning forever, then treat
+      // it exactly like CLOSED for presenter bookkeeping.
+      const presenter = slot.presenter;
+      slot.presenter = null;
       slot.loaded = false;
+      slot.loadedAt = null;
       slot.loading = false;
       notify(slot);
+      presenter?.onClosed?.();
       trackAdFailedToLoad(requestedUnit, String((error as any)?.code ?? 'unknown'));
 
       // Another demand source left to try: go straight to it. A no-fill on one
@@ -306,6 +337,7 @@ export function useRewardedVideoAd(
         clearTimers(slot);
         detach(slot);
         slot.loaded = false;
+        slot.loadedAt = null;
         slot.loading = true;
         slot.retry = 0;
         // Back to the top of the waterfall. Without this, a screen that had
@@ -322,9 +354,12 @@ export function useRewardedVideoAd(
     const current = getSlot(admobId, fallbackId);
     const sub = subRef.current;
     if (!sub) return;
-    if (!current.loaded || !current.ad || current.presenter) {
-      // Not ready: make sure something is actually in flight rather than
-      // leaving the user with a button that silently does nothing.
+    const stale = current.loadedAt != null && Date.now() - current.loadedAt > AD_FRESHNESS_MS;
+    if (!current.loaded || !current.ad || current.presenter || stale) {
+      // Not ready (or the loaded ad has been sitting long enough it may have
+      // expired server-side): make sure something is actually in flight
+      // rather than leaving the user with a button that silently does
+      // nothing, or attempting a show() likely to fail with no impression.
       current.retry = 0;
       build(current);
       return;
