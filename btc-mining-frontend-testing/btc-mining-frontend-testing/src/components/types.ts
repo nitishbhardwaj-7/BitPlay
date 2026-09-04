@@ -46,7 +46,6 @@ export type RootStackParamList = {
   TwoFactorLoginScreen: {token: string;user: any; fromLogin?: boolean; };
   MyMiner: undefined;
   WebViewScreen: { url: string; title: string };
-  NewsScreen: undefined;
   AboutUsScreen: undefined;
   MyProfileEditScreen: undefined;
   TradingScreen: undefined;

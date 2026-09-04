@@ -7,11 +7,13 @@ import MyProfileScreen from '../screens/MyProfileScreen';
 import StoreScreen from '../screens/Store';
 import WalletNewScreen from '../screens/WalletNewScreen';
 import GameZoneScreen from '../screens/GameZoneScreen';
+import NewsScreen from '../screens/NewsScreen';
 
 export type MainTabParamList = {
   Home: undefined;
   Wallet: undefined;
   Games: undefined;
+  News: undefined;
   Store: undefined;
   Profile: undefined;
 };
@@ -57,6 +59,15 @@ export default function MainTabNavigator() {
         options={{
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="gamepad-variant-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="News"
+        component={NewsScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="newspaper-variant-outline" color={color} size={size} />
           ),
         }}
       />

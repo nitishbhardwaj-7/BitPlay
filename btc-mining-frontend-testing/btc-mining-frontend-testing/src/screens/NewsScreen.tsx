@@ -56,6 +56,7 @@ function buildRows(items: NewsItem[], locked: boolean): Row[] {
 
 export default function NewsScreen() {
   const navigation = useNavigation();
+  const canGoBack = navigation.canGoBack();
   const { ads } = useAdConfig();
   const bannerUnitId = ads?.homeBannerId ?? DEFAULT_ADMOB_BANNER_ID;
 
@@ -205,11 +206,17 @@ export default function NewsScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#0f172a" translucent={false} />
       <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
         <View style={s.header}>
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-            <View style={s.backCircle}>
-              <Icon name="arrow-left" size={20} color="#f8fafc" />
-            </View>
-          </TouchableOpacity>
+          {/* Reached as a tab there is nothing to go back to, so the button is
+              dropped -- but its width is kept so the title stays centred. */}
+          {canGoBack ? (
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+              <View style={s.backCircle}>
+                <Icon name="arrow-left" size={20} color="#f8fafc" />
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <View style={s.backBtn} />
+          )}
           <View style={s.titleWrap}>
             <View style={s.iconBadge}>
               <Icon name="newspaper-variant-outline" size={18} color="#18D4F2" />

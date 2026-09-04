@@ -2354,7 +2354,7 @@ const Page: React.FC = () => {
             </View>
           </View>
           <Pressable
-            onPress={() => navigation.navigate('NewsScreen' as any)}
+            onPress={() => navigation.navigate('News' as any)}
             android_ripple={{ color: 'rgba(34, 211, 238, 0.3)', borderless: false }}
             style={({ pressed }) => [styles.exploreGameZoneBtn, pressed && { opacity: 0.8 }]}
           >
