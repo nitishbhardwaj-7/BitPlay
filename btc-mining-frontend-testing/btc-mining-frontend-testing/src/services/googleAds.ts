@@ -182,6 +182,17 @@ function detach(slot: AdSlot) {
 function build(slot: AdSlot) {
   // Nothing on screen wants this unit; don't churn in the background.
   if (slot.subs.size === 0) return;
+
+  // Never rebuild underneath an ad the user is currently watching. detach()
+  // strips the listeners off that live instance, so EARNED_REWARD and CLOSED
+  // never arrive: the user watches the whole ad and is credited nothing, and
+  // `presenter` is left set forever, which makes every later show() bail out
+  // too -- the button goes dead until the app is restarted.
+  //
+  // Both the load watchdog and a second show() tap used to land here mid-ad.
+  // The CLOSED handler queues the next load, so skipping now costs nothing.
+  if (slot.presenter) return;
+
   clearTimers(slot);
   detach(slot);
 
@@ -205,6 +216,10 @@ function build(slot: AdSlot) {
       slot.loaded = true;
       slot.loadedAt = Date.now();
       slot.loading = false;
+      // The watchdog exists to catch a request that never resolves. This one
+      // resolved, so disarm it -- left armed it fires 45s later regardless,
+      // which is typically in the middle of the ad it just loaded.
+      clearTimers(slot);
       notify(slot);
     }),
     ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, reward => {
