@@ -2416,7 +2416,7 @@ const Page: React.FC = () => {
           </View>
           {/* Explore GameZone CTA */}
           <Pressable
-            onPress={() => navigation.navigate('GameZone' as any)}
+            onPress={() => navigation.navigate('Games' as any)}
             android_ripple={{ color: 'rgba(34, 211, 238, 0.3)', borderless: false }}
             style={({ pressed }) => [styles.exploreGameZoneBtn, pressed && { opacity: 0.8 }]}
           >

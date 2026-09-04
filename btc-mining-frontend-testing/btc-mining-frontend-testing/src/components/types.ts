@@ -72,7 +72,6 @@ export type RootStackParamList = {
   CryptoQuiz: undefined;
   ColorClash: undefined;
   SwipeSort: undefined;
-  GameZone: undefined;
   ApptroveDebug: undefined;
   SuperPrivileges: undefined;
 };

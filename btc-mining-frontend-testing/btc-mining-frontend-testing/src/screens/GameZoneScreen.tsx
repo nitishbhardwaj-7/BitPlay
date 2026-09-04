@@ -259,9 +259,10 @@ export default function GameZoneScreen() {
 
         {/* Header */}
         <Animated.View style={[styles.header, { opacity: headerAnim, transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-            <MaterialCommunityIcons name="arrow-left" size={22} color="#F5F7FA" />
-          </TouchableOpacity>
+          {/* No back button: Game Zone is a tab, so there is nowhere to go
+              back to, and following the parent stack would drop the user out of
+              the tab navigator. The width is kept so the header does not shift. */}
+          <View style={styles.backBtn} />
           <View style={styles.headerText}>
             <Text style={styles.headerTitle}>Game Zone</Text>
             <Text style={styles.headerSub}>
