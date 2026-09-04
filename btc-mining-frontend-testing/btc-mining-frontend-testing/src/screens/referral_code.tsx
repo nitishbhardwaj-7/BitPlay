@@ -48,7 +48,11 @@ const ReferralScreen: React.FC<ReferralScreenProps> = () => {
   // Offer the code here instead. The backend applies it write-once.
   const [inviteCode, setInviteCode] = useState('');
   const [claiming, setClaiming] = useState(false);
-  const [claimed, setClaimed] = useState(false);
+  // An account that already has a referrer gets the confirmation state rather
+  // than an input that can only fail: the backend applies a code write-once.
+  const hasReferrer =
+    !!user?.referralUsed && String(user.referralUsed).trim().toLowerCase() !== 'null';
+  const [claimed, setClaimed] = useState(hasReferrer);
   const [claimError, setClaimError] = useState('');
 
   const applyInviteCode = async () => {
@@ -213,7 +217,11 @@ const ReferralScreen: React.FC<ReferralScreenProps> = () => {
                 </LinearGradient>
               </TouchableOpacity>
 
-              {isNewUser && !claimed && (
+              {/* Shown to everyone, not just accounts created moments ago: a user
+                  who was invited but reached this screen any other way still
+                  needs somewhere to enter the code. The backend applies it
+                  write-once and rejects an account that already has one. */}
+              {!claimed && (
                 <View style={styles.claimBox}>
                   <Text style={styles.claimTitle}>Were you invited?</Text>
                   <Text style={styles.claimBody}>
