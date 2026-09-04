@@ -395,6 +395,10 @@ const Page: React.FC = () => {
     }
   }, [user]);
 
+  // Set when an activation could not be confirmed with the server; cleared once
+  // it lands. Persisted so it survives the app being killed mid-activation.
+  const ACTIVATION_PENDING_KEY = 'mining:activation_pending';
+
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const balanceRef = useRef(btcBalance);
   const miningAnimationRef = useRef<LottieView>(null);
@@ -503,6 +507,37 @@ const Page: React.FC = () => {
     });
     return () => subscription.remove();
   }, [isMiningEnabled, syncBtcSessionBalance]);
+
+  // Finish an activation whose confirmation never reached the server -- the ad
+  // was watched, so the user is owed it. Runs when the app returns to the
+  // foreground (network back) and once on mount (covers a kill mid-activation).
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+
+    const finishPendingActivation = async () => {
+      try {
+        if ((await AsyncStorage.getItem(ACTIVATION_PENDING_KEY)) !== '1') return;
+        if (cancelled) return;
+        await logToFile('Retrying activation that never reached the server');
+        const ok = await syncUserData(0, undefined, true);
+        if (ok && !cancelled) {
+          await AsyncStorage.removeItem(ACTIVATION_PENDING_KEY);
+          setIsMiningEnabled(true);
+          miningActivatedLocallyRef.current = true;
+        }
+      } catch {
+        // Left pending on purpose: the next foreground tries again.
+      }
+    };
+
+    finishPendingActivation();
+    const subscription = AppState.addEventListener('change', next => {
+      if (next === 'active') finishPendingActivation();
+    });
+    return () => { cancelled = true; subscription.remove(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const [recentActivity, setRecentActivity] = useState<any[]>(cachedHome?.recentActivity ?? []);
   const [isLoading, setIsLoading] = useState(true);
@@ -743,12 +778,44 @@ const Page: React.FC = () => {
     }
   };
 
-  const ClaimDailyReward = async () => {
-    const netState = await NetInfo.fetch();
-    if (!netState.isConnected) {
-      Alert.alert('No Connection', 'Please check your internet connection and try again.');
-      return;
+  /**
+   * Activating mining server-side, made durable.
+   *
+   * The activation POST fires the instant a full-screen rewarded ad closes,
+   * which is the worst moment to need the network: on iOS the stack is often
+   * still being restored as the ad's view controller is dismissed, so a single
+   * attempt can fail while the device is perfectly online. That failure used to
+   * be invisible -- mining looked active locally, the server never heard about
+   * it, and the next refresh silently flipped it back off. Restarting the app
+   * "fixed" it because by then the network state was warm.
+   *
+   * So: retry with backoff, and if every attempt fails, remember the intent and
+   * finish it the next time the app comes to the foreground.
+   */
+  const ensureMiningActivated = async (): Promise<boolean> => {
+    const backoffMs = [0, 600, 2000, 5000];
+    for (let attempt = 0; attempt < backoffMs.length; attempt++) {
+      if (backoffMs[attempt] > 0) {
+        await new Promise<void>(resolve => setTimeout(resolve, backoffMs[attempt]));
+      }
+      const ok = await syncUserData(0, undefined, true);
+      if (ok) {
+        try { await AsyncStorage.removeItem(ACTIVATION_PENDING_KEY); } catch {}
+        return true;
+      }
+      await logToFile(`Mining activation attempt ${attempt + 1} failed`);
     }
+    // Out of attempts: keep the intent so foregrounding the app completes it.
+    try { await AsyncStorage.setItem(ACTIVATION_PENDING_KEY, '1'); } catch {}
+    return false;
+  };
+
+  const ClaimDailyReward = async () => {
+    // Deliberately no NetInfo pre-check here. This runs the moment the
+    // activation ad closes, when iOS routinely reports isConnected: false for a
+    // beat while the network stack comes back -- and bailing out here abandoned
+    // the activation entirely, with the ad already watched. The requests below
+    // are the real test of connectivity, and they retry.
     const daily_check_uri = get_data_uri('USERDAILYREWARD');
 
     const local_time = formatMiningLocalTimeForApi(new Date());
@@ -758,7 +825,16 @@ const Page: React.FC = () => {
     // This ensures the daily reward endpoint check passes
     setIsMiningEnabled(true);
     // Pass 0 as hashpower to set mining_isactive without changing hashpower (0 adds nothing)
-    await syncUserData(0, undefined, true);
+    const activated = await ensureMiningActivated();
+    if (!activated) {
+      // The ad was watched, so never strand the user: the intent is stored and
+      // retried on foreground, and the local state stays on meanwhile.
+      Alert.alert(
+        'Mining Starting',
+        "You're all set -- we're still confirming with the server. This finishes automatically in a moment.",
+      );
+      return;
+    }
 
     const res = await fetch(daily_check_uri, {
       method: "POST",
@@ -1020,16 +1096,18 @@ const Page: React.FC = () => {
   const handleReward = async () => {
     setIsMiningEnabled(true);
 
-    if (adsWatched >= MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY) {
-      return;
-    }
-
-    // If this is for activating mining (daily reward), skip the ad reward (5.5Gh)
-    // and only claim the daily reward (3Gh, or 25Gh/s for first-ever mining start).
+    // Activation is handled before the daily-cap guard below. Ordered the other
+    // way round, a user who had hit the 60-ad cap watched the activation ad and
+    // got nothing: the guard returned before mining was ever sent to the server,
+    // leaving the toggle on locally and off everywhere else.
     if (shouldClaimDailyRewardRef.current) {
       shouldClaimDailyRewardRef.current = false; // Reset the flag
       await ClaimDailyReward();
       return; // Exit early - don't process ad reward
+    }
+
+    if (adsWatched >= MAX_VIDEO_CLAIMS_PER_TRACK_PER_DAY) {
+      return;
     }
 
     const newAdsCount = adsWatched + 1;
@@ -1487,7 +1565,7 @@ const Page: React.FC = () => {
     ads?: number,
     mining_status?: boolean,
     isThreeGhReward = false,
-  ) => {
+  ): Promise<boolean> => {
     try {
 
       const offset = new Date().getTimezoneOffset();
@@ -1573,7 +1651,13 @@ const Page: React.FC = () => {
         if (details.streak_days != null) setStreakDays(details.streak_days);
         if (details.streak_bonus_gh != null) setStreakBonusGh(details.streak_bonus_gh);
       }
+      return data?.success === true;
     } catch (err) {
+      // Was swallowed silently. A failed activation POST looked identical to a
+      // successful one, so mining showed as on locally and flipped back off at
+      // the next refresh with nothing logged and nothing retrying.
+      logToFile(`syncUserData failed: ${String(err)}`);
+      return false;
     }
   };
 
@@ -1732,7 +1816,7 @@ const Page: React.FC = () => {
   // install), the individual displays below show a placeholder only until
   // the background fetch resolves (see `!hasCache && isLoading` below).
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="light-content" backgroundColor="#050914" translucent={false} />
       <ScrollView
         style={styles.scrollContainer}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { BANNER_ADS_ENABLED } from '../config/adPlacements';
 import {
   View,
   Text,
@@ -103,7 +104,10 @@ const SocialMediaLinks: React.FC = () => {
 const styles = StyleSheet.create({
   socialMediaSection: {
     marginTop: 16,
-    marginBottom: Platform.OS === 'ios' ? 80 : 120,
+    // This is the last block in Home's scroll view, and the margin existed to
+    // clear the bottom banner that used to float over it. With banners off it
+    // was just dead space above the tab bar.
+    marginBottom: BANNER_ADS_ENABLED ? (Platform.OS === 'ios' ? 80 : 120) : 16,
   },
 
   socialMediaContainer: {

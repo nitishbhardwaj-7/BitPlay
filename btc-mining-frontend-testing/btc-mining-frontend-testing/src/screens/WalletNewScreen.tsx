@@ -94,7 +94,9 @@ const WalletNewScreen = () => {
   // exactly that much space and never end up hidden behind it. Same
   // onLayout-driven approach GameZoneScreen uses; 60 is a sane first-frame
   // default before onLayout fires.
-  const [bottomBarHeight, setBottomBarHeight] = useState(60);
+  // Reserved for the bottom banner; with banners off the wrapper never renders,
+  // so onLayout never fires and this would stay as dead space above the tab bar.
+  const [bottomBarHeight, setBottomBarHeight] = useState(BANNER_ADS_ENABLED ? 60 : 0);
   const onBottomBarLayout = useCallback((e: any) => {
     const h = e.nativeEvent.layout.height;
     if (h > 0 && h !== bottomBarHeight) setBottomBarHeight(h);

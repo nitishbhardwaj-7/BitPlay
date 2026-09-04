@@ -153,7 +153,10 @@ const CAROUSEL_PEEK = 28;
 const SLIDE_WIDTH = W - SPACING.md * 2 - CAROUSEL_PEEK;
 const SLIDE_STRIDE = SLIDE_WIDTH + SPACING.md;
 
-const DEFAULT_BOTTOM_BAR_HEIGHT = 72;
+// Space reserved at the end of the list for the bottom banner. With banners off
+// the wrapper never renders, so its onLayout never fires and this default would
+// otherwise sit there forever as dead space above the tab bar.
+const DEFAULT_BOTTOM_BAR_HEIGHT = BANNER_ADS_ENABLED ? 72 : 0;
 
 export default function GameZoneScreen() {
   const navigation = useNavigation<Nav>();
@@ -252,7 +255,7 @@ export default function GameZoneScreen() {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       {/* No `edges` override — SafeAreaView pads all 4 sides once, exactly
           like HomeScreen, so we never hand-add insets.bottom ourselves. */}
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
 
         {/* Header */}
         <Animated.View style={[styles.header, { opacity: headerAnim, transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
