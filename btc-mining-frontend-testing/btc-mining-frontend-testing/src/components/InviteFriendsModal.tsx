@@ -253,8 +253,14 @@ const styles = StyleSheet.create({
 
     position: 'relative',
     minHeight: 300,
+    // The negative margins bleed this section past the sheet's padding so the
+    // gradient reaches the edges. They must NOT include the bottom: `margin`
+    // shorthand did, which pulled the white card below up over the last 16pt of
+    // this section -- burying the "You earn 5% ..." line on iOS while Android,
+    // where the margin is 0, showed it fine.
     marginTop: Platform.OS === 'ios' ? -16 : 0,
-    margin: Platform.OS === 'ios' ? -16 : 0,
+    marginLeft: Platform.OS === 'ios' ? -16 : 0,
+    marginRight: Platform.OS === 'ios' ? -16 : 0,
   },
   modalHeader: {
     flexDirection: 'row',
